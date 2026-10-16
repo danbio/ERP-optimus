@@ -1,0 +1,46 @@
+@layer app {
+  .layout {
+    display: flex;
+    min-height: 100vh;
+  }
+
+  .sidebar {
+    width: var(--largura-sidebar);
+    background: var(--navy);
+    color: #fff;
+    padding: var(--esp-5) var(--esp-4);
+    flex-shrink: 0;
+
+    & .sidebar__logo {
+      display: block;
+      max-width: 140px;
+      margin-bottom: var(--esp-6);
+    }
+
+    & a {
+      display: block;
+      color: var(--soft);
+      padding: var(--esp-2) var(--esp-2);
+      border-radius: var(--raio);
+      margin-bottom: var(--esp-1);
+    }
+
+    & a:hover, & a.ativo {
+      background: var(--ink);
+      color: #fff;
+      text-decoration: none;
+    }
+  }
+
+  .conteudo {
+    flex: 1;
+    padding: var(--esp-6);
+  }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--esp-5);
+  }
+}

@@ -1,0 +1,7 @@
+@layer proposta {
+  /* Carregado só nos templates de PDF. Conteúdo chega na fatia 5. */
+  @page {
+    size: A4;
+    margin: 0;
+  }
+}

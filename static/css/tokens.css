@@ -1,0 +1,37 @@
+@layer tokens, base, components, app, proposta;
+
+@layer tokens {
+  :root {
+    /* Cores — brandbook Optimus */
+    --navy: #123643;
+    --gold: #D4A429;
+    --ink: #1E2A30;
+    --muted: #6B7A80;
+    --light: #F3F5F6;
+    --line: #DCE2E4;
+    --soft: #C9D3D6;
+    --ok: #2E7D4F;
+    --erro: #B4442F;
+
+    /* Tipografia */
+    --fonte: "Poppins", Arial, sans-serif;
+    --texto-xs: 0.75rem;
+    --texto-sm: 0.875rem;
+    --texto-base: 1rem;
+    --texto-lg: 1.25rem;
+    --texto-xl: 1.75rem;
+
+    /* Espaçamento */
+    --esp-1: 0.25rem;
+    --esp-2: 0.5rem;
+    --esp-3: 0.75rem;
+    --esp-4: 1rem;
+    --esp-5: 1.5rem;
+    --esp-6: 2rem;
+
+    /* Layout */
+    --raio: 8px;
+    --sombra: 0 1px 3px rgba(18, 54, 67, 0.12);
+    --largura-sidebar: 220px;
+  }
+}

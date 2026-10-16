@@ -1,0 +1,136 @@
+@layer components {
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--esp-2);
+    padding: var(--esp-2) var(--esp-4);
+    border: 1px solid var(--navy);
+    border-radius: var(--raio);
+    background: var(--navy);
+    color: #fff;
+    font-family: var(--fonte);
+    font-size: var(--texto-sm);
+    font-weight: 500;
+    cursor: pointer;
+
+    &:hover {
+      background: var(--ink);
+      text-decoration: none;
+    }
+
+    &.btn--secundario {
+      background: transparent;
+      color: var(--navy);
+    }
+
+    &.btn--ouro {
+      background: var(--gold);
+      border-color: var(--gold);
+      color: var(--ink);
+    }
+  }
+
+  .card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--raio);
+    box-shadow: var(--sombra);
+    padding: var(--esp-5);
+  }
+
+  .kpi {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--raio);
+    padding: var(--esp-4);
+
+    & .kpi__valor {
+      font-size: var(--texto-xl);
+      font-weight: 700;
+      color: var(--navy);
+    }
+
+    & .kpi__rotulo {
+      font-size: var(--texto-sm);
+      color: var(--muted);
+    }
+
+    &.kpi--escuro {
+      background: var(--navy);
+
+      & .kpi__valor {
+        color: #fff;
+      }
+
+      & .kpi__rotulo {
+        color: var(--soft);
+      }
+    }
+  }
+
+  .tabela {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--texto-sm);
+
+    & th, & td {
+      padding: var(--esp-2) var(--esp-3);
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+    }
+
+    & th {
+      color: var(--muted);
+      font-weight: 500;
+    }
+  }
+
+  .campo {
+    display: block;
+    margin-bottom: var(--esp-4);
+
+    & label {
+      display: block;
+      margin-bottom: var(--esp-1);
+      font-size: var(--texto-sm);
+      font-weight: 500;
+      color: var(--ink);
+    }
+
+    & input, & select, & textarea {
+      width: 100%;
+      padding: var(--esp-2) var(--esp-3);
+      border: 1px solid var(--soft);
+      border-radius: var(--raio);
+      font-family: var(--fonte);
+      font-size: var(--texto-base);
+      color: var(--ink);
+      background: #fff;
+    }
+
+    & input:focus, & select:focus, & textarea:focus {
+      outline: 2px solid var(--gold);
+      outline-offset: -1px;
+    }
+  }
+
+  .badge {
+    display: inline-block;
+    padding: var(--esp-1) var(--esp-2);
+    border-radius: var(--raio);
+    font-size: var(--texto-xs);
+    font-weight: 500;
+    background: var(--soft);
+    color: var(--ink);
+
+    &.badge--ok {
+      background: var(--ok);
+      color: #fff;
+    }
+
+    &.badge--erro {
+      background: var(--erro);
+      color: #fff;
+    }
+  }
+}

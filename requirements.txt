@@ -1,0 +1,5 @@
+# Fatia 1: só o necessário para o esqueleto rodar.
+# Demais dependências do stack (Playwright, matplotlib, pypdf, waitress,
+# pytest-django) entram nas fatias em que forem efetivamente usadas —
+# ver docs/decisoes.md para a justificativa de cada uma.
+Django==5.2.18
