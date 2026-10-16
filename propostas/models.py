@@ -1,6 +1,7 @@
 from django.db import models
+from django.utils import timezone
 
-from clientes.models import Cliente, UnidadeConsumidora
+from clientes.models import UnidadeConsumidora
 
 
 class FaturaReferencia(models.Model):
@@ -76,7 +77,6 @@ class Proposta(models.Model):
     origem = models.ForeignKey(
         "self", on_delete=models.SET_NULL, null=True, blank=True, related_name="revisoes"
     )
-    cliente = models.ForeignKey(Cliente, on_delete=models.PROTECT, related_name="propostas")
     uc = models.ForeignKey(UnidadeConsumidora, on_delete=models.PROTECT, related_name="propostas")
     fatura = models.ForeignKey(FaturaReferencia, on_delete=models.PROTECT, related_name="propostas")
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.RASCUNHO)
@@ -98,6 +98,24 @@ class Proposta(models.Model):
 
     def __str__(self):
         return f"{self.numero} v{self.versao}"
+
+    @property
+    def cliente(self):
+        """O cliente não tem FK própria: é sempre o dono da UC (ver D11)."""
+        return self.uc.cliente
+
+    @classmethod
+    def proximo_numero(cls, ano=None):
+        ano = ano or timezone.localdate().year
+        prefixo = f"OPT-{ano}-"
+        ultimo = (
+            cls.objects.filter(numero__startswith=prefixo)
+            .order_by("-numero")
+            .values_list("numero", flat=True)
+            .first()
+        )
+        proxima_seq = int(ultimo.rsplit("-", 1)[-1]) + 1 if ultimo else 1
+        return f"{prefixo}{proxima_seq:04d}"
 
     @property
     def kwp(self):

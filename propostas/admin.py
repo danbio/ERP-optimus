@@ -12,7 +12,11 @@ class ItemKitInline(admin.TabularInline):
 class PropostaAdmin(admin.ModelAdmin):
     list_display = ["numero", "versao", "cliente", "status", "investimento", "emissao"]
     list_filter = ["status"]
-    search_fields = ["numero", "cliente__nome"]
+    search_fields = ["numero", "uc__cliente__nome"]
+
+    @admin.display(description="Cliente")
+    def cliente(self, obj):
+        return obj.cliente
     inlines = [ItemKitInline]
 
 

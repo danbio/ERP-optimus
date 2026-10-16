@@ -1,0 +1,15 @@
+{% extends "core/base.html" %}
+
+{% block titulo %}{{ proposta.numero }}{% endblock %}
+{% block titulo_pagina %}{{ proposta.numero }} — v{{ proposta.versao }}{% endblock %}
+
+{% block conteudo %}
+  <div class="card">
+    <p>
+      A proposta {{ proposta.numero }} v{{ proposta.versao }} está
+      <span class="badge">{{ proposta.get_status_display }}</span>
+      e não pode mais ser editada diretamente. A tela de revisão (nova versão) chega na fatia 6.
+    </p>
+    <a href="{% url 'propostas:lista' %}" class="btn">Voltar para a lista</a>
+  </div>
+{% endblock %}

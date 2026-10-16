@@ -41,6 +41,50 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: var(--esp-3);
     margin-bottom: var(--esp-5);
+  }
+
+  .proposta-editor {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: var(--esp-5);
+    align-items: start;
+
+    & .card {
+      margin-bottom: var(--esp-4);
+    }
+
+    & .proposta-editor__resultados {
+      position: sticky;
+      top: var(--esp-5);
+    }
+  }
+
+  .kpi-grade {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: var(--esp-3);
+  }
+
+  .alertas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--esp-2);
+    margin-top: var(--esp-4);
+  }
+
+  .kit-linhas {
+    & .kit-linha {
+      display: grid;
+      grid-template-columns: 1fr 2fr 1fr 0.6fr 0.8fr auto;
+      gap: var(--esp-2);
+      align-items: end;
+      margin-bottom: var(--esp-3);
+
+      & .campo {
+        margin-bottom: 0;
+      }
+    }
   }
 }

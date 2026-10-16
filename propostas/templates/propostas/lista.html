@@ -1,0 +1,47 @@
+{% extends "core/base.html" %}
+
+{% block titulo %}Propostas{% endblock %}
+{% block titulo_pagina %}Propostas{% endblock %}
+
+{% block conteudo %}
+  <div class="card">
+    <form method="get" class="topbar">
+      <input type="text" name="busca" placeholder="Buscar por cliente" value="{{ request.GET.busca }}">
+      <select name="status">
+        <option value="">Todos os status</option>
+        {% for valor, rotulo in status_choices %}
+          <option value="{{ valor }}" {% if request.GET.status == valor %}selected{% endif %}>{{ rotulo }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn--secundario">Filtrar</button>
+      <a href="{% url 'propostas:nova' %}" class="btn">+ nova proposta</a>
+    </form>
+
+    <table class="tabela">
+      <thead>
+        <tr>
+          <th>Número</th>
+          <th>Cliente</th>
+          <th>kWp</th>
+          <th>Investimento</th>
+          <th>Status</th>
+          <th>Emissão</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for proposta in propostas %}
+          <tr>
+            <td><a href="{% url 'propostas:editar' proposta.pk %}">{{ proposta.numero }} v{{ proposta.versao }}</a></td>
+            <td>{{ proposta.cliente.nome }}</td>
+            <td>{{ proposta.kwp|floatformat:2 }}</td>
+            <td>R$ {{ proposta.investimento|floatformat:2 }}</td>
+            <td><span class="badge">{{ proposta.get_status_display }}</span></td>
+            <td>{{ proposta.emissao|default:"—" }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6">Nenhuma proposta cadastrada.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}

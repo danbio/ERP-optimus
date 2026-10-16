@@ -1,0 +1,21 @@
+{% extends "core/base.html" %}
+
+{% block titulo %}{{ titulo }}{% endblock %}
+{% block titulo_pagina %}{{ titulo }}{% endblock %}
+
+{% block conteudo %}
+  <div class="card">
+    <form method="post" enctype="multipart/form-data" novalidate>
+      {% csrf_token %}
+      {% for campo in form %}
+        <div class="campo">
+          <label for="{{ campo.id_for_label }}">{{ campo.label }}</label>
+          {{ campo }}
+          {% if campo.errors %}<p class="badge badge--erro">{{ campo.errors|join:" " }}</p>{% endif %}
+        </div>
+      {% endfor %}
+      <button type="submit" class="btn">Salvar</button>
+      <a href="javascript:history.back()" class="btn btn--secundario">Cancelar</a>
+    </form>
+  </div>
+{% endblock %}

@@ -1,0 +1,37 @@
+{% if mensagem %}
+  <p class="badge">{{ mensagem }}</p>
+{% else %}
+  <div class="kpi-grade">
+    <div class="kpi kpi--escuro">
+      <div class="kpi__valor">{{ kwp|floatformat:2 }}</div>
+      <div class="kpi__rotulo">kWp instalado</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi__valor">{{ geracao_media_mensal|floatformat:0 }}</div>
+      <div class="kpi__rotulo">Geração média (kWh/mês)</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi__valor">{{ consumo_media_mensal|floatformat:0 }}</div>
+      <div class="kpi__rotulo">Consumo médio (kWh/mês)</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi__valor">R$ {{ resultado.economia_mensal_ano1|floatformat:2 }}</div>
+      <div class="kpi__rotulo">Economia mensal (ano 1)</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi__valor">{{ resultado.payback_meses|floatformat:1 }}</div>
+      <div class="kpi__rotulo">Payback (meses)</div>
+    </div>
+    <div class="kpi kpi--escuro">
+      <div class="kpi__valor">R$ {{ investimento|floatformat:2 }}</div>
+      <div class="kpi__rotulo">Investimento</div>
+    </div>
+  </div>
+  {% if resultado.alertas %}
+    <div class="alertas">
+      {% for alerta in resultado.alertas %}
+        <span class="badge badge--erro">{{ alerta }}</span>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endif %}

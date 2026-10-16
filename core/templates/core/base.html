@@ -16,7 +16,7 @@
     <nav class="sidebar">
       <img src="{% static 'img/logo-branco.png' %}" alt="Optimus Energia Solar" class="sidebar__logo">
       <a href="{% url 'core:inicio' %}">Início</a>
-      <a href="#">Propostas</a>
+      <a href="{% url 'propostas:lista' %}">Propostas</a>
       <a href="#">Clientes</a>
       <a href="#">Configurações</a>
     </nav>
@@ -27,5 +27,6 @@
       {% block conteudo %}{% endblock %}
     </div>
   </div>
+  {% block extra_js %}{% endblock %}
 </body>
 </html>

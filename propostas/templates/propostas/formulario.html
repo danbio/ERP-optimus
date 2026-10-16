@@ -1,0 +1,120 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block titulo %}{{ numero_previsto }}{% endblock %}
+{% block titulo_pagina %}
+  {% if proposta %}{{ proposta.numero }} — v{{ proposta.versao }}{% else %}Nova proposta{% endif %}
+{% endblock %}
+
+{% block conteudo %}
+<div class="proposta-editor">
+  <div class="proposta-editor__form">
+    <form method="post" id="proposta-form" enctype="multipart/form-data" novalidate>
+      {% csrf_token %}
+
+      <div class="card">
+        <h3>Número</h3>
+        <p>{{ numero_previsto }}{% if not proposta %} (gerado ao salvar){% endif %}</p>
+      </div>
+
+      <div class="card">
+        <h3>Cliente / unidade consumidora</h3>
+        <div class="campo">
+          <label for="{{ proposta_form.uc.id_for_label }}">UC</label>
+          {{ proposta_form.uc }}
+          {% if proposta_form.uc.errors %}<p class="badge badge--erro">{{ proposta_form.uc.errors|join:" " }}</p>{% endif %}
+        </div>
+        <a class="btn btn--secundario" href="{% url 'clientes:uc_novo' %}?next={{ request.path }}">+ nova UC</a>
+        <a class="btn btn--secundario" href="{% url 'clientes:cliente_novo' %}?next={{ request.path }}">+ novo cliente</a>
+      </div>
+
+      <div class="card">
+        <h3>Fatura de referência</h3>
+        <div class="campo">
+          <label for="{{ proposta_form.fatura.id_for_label }}">Fatura</label>
+          {{ proposta_form.fatura }}
+          {% if proposta_form.fatura.errors %}<p class="badge badge--erro">{{ proposta_form.fatura.errors|join:" " }}</p>{% endif %}
+        </div>
+        <a class="btn btn--secundario" href="{% url 'propostas:fatura_novo' %}?next={{ request.path }}">+ nova fatura</a>
+      </div>
+
+      <div class="card">
+        <h3>Kit</h3>
+        <input type="hidden" id="kit-proximo-indice" name="proximo_indice" value="{{ proximo_indice_kit }}">
+        <div id="kit-linhas" class="kit-linhas">
+          {% for form in kit_forms %}
+            {% include "propostas/_kit_linha.html" with form=form %}
+          {% endfor %}
+        </div>
+        <button type="button" class="btn btn--secundario"
+                hx-get="{% url 'propostas:kit_nova_linha' %}"
+                hx-include="#kit-proximo-indice"
+                hx-target="#kit-linhas"
+                hx-swap="beforeend">+ item do kit</button>
+      </div>
+
+      <div class="card">
+        <h3>Premissas</h3>
+        {% for campo in premissas_form %}
+          <div class="campo">
+            <label for="{{ campo.id_for_label }}">{{ campo.label }}</label>
+            {{ campo }}
+          </div>
+        {% endfor %}
+      </div>
+
+      <div class="card">
+        <h3>Comercial</h3>
+        <div class="campo">
+          <label for="{{ proposta_form.investimento.id_for_label }}">Investimento (R$)</label>
+          {{ proposta_form.investimento }}
+        </div>
+        <div class="campo">
+          <label for="{{ proposta_form.forma_pagamento.id_for_label }}">Forma de pagamento</label>
+          {{ proposta_form.forma_pagamento }}
+        </div>
+        <div class="campo">
+          <label for="{{ proposta_form.validade_dias.id_for_label }}">Validade (dias)</label>
+          {{ proposta_form.validade_dias }}
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Textos</h3>
+        <div class="campo">
+          <label for="{{ proposta_form.beneficios.id_for_label }}">Benefícios (um por linha)</label>
+          {{ proposta_form.beneficios }}
+        </div>
+        <div class="campo">
+          <label for="{{ proposta_form.escopo.id_for_label }}">Escopo incluso (um por linha)</label>
+          {{ proposta_form.escopo }}
+        </div>
+        <div class="campo">
+          <label for="{{ proposta_form.texto_sobre.id_for_label }}">Sobre a Optimus</label>
+          {{ proposta_form.texto_sobre }}
+        </div>
+      </div>
+
+      <button type="submit" class="btn">Salvar</button>
+      <a href="{% url 'propostas:lista' %}" class="btn btn--secundario">Cancelar</a>
+    </form>
+  </div>
+
+  <div class="proposta-editor__resultados">
+    <div class="card">
+      <h3>Resultados</h3>
+      <div id="resultados"
+           hx-post="{% url 'propostas:recalcular' %}"
+           hx-trigger="change delay:400ms from:#proposta-form, htmx:afterSwap delay:400ms from:#kit-linhas"
+           hx-include="#proposta-form"
+           hx-swap="innerHTML">
+        {% include "propostas/_resultados.html" %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'js/propostas.js' %}" defer></script>
+{% endblock %}

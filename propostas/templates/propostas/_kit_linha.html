@@ -1,0 +1,26 @@
+<div class="kit-linha">
+  <div class="campo">
+    <label for="{{ form.tipo.id_for_label }}">Tipo</label>
+    {{ form.tipo }}
+  </div>
+  <div class="campo">
+    <label for="{{ form.descricao.id_for_label }}">Descrição</label>
+    {{ form.descricao }}
+  </div>
+  <div class="campo">
+    <label for="{{ form.modelo.id_for_label }}">Modelo</label>
+    {{ form.modelo }}
+  </div>
+  <div class="campo">
+    <label for="{{ form.quantidade.id_for_label }}">Qtd.</label>
+    {{ form.quantidade }}
+  </div>
+  <div class="campo">
+    <label for="{{ form.potencia_w.id_for_label }}">Potência (W)</label>
+    {{ form.potencia_w }}
+  </div>
+  <button type="button" class="btn btn--secundario" data-remover-linha>Remover</button>
+</div>
+{% if indice_seguinte %}
+  <input type="hidden" id="kit-proximo-indice" name="proximo_indice" value="{{ indice_seguinte }}" hx-swap-oob="true">
+{% endif %}

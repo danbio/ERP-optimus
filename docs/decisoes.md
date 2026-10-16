@@ -57,6 +57,11 @@ Formato: data · decisão · motivo · alternativas descartadas.
 - **Decisão:** adicionar `Pillow` ao `requirements.txt` a partir da fatia 3.
 - **Alternativa descartada:** trocar `logo` por `FileField` para evitar a dependência — rejeitada por fugir da spec sem necessidade; Pillow é leve e amplamente usada em projetos Django.
 
+## D11 · 2026-10-15 · `Proposta` não tem FK própria para `Cliente`
+- **Motivo:** `Proposta.cliente` e `Proposta.uc` seriam duas fontes para o mesmo dado (o cliente é sempre o dono da UC escolhida) — risco de inconsistência se alguém trocar a UC sem trocar o cliente, ou vice-versa.
+- **Decisão:** remover o campo `cliente` do model `Proposta`. `Proposta.cliente` agora é uma `@property` que retorna `self.uc.cliente`. A tela de nova proposta só pede a UC; o cliente aparece derivado, não é escolhido separadamente.
+- **Consequência:** `list_display`/`search_fields` no admin usam `uc__cliente__...` ou o método `cliente()`, já que não é mais um campo de banco filtrável diretamente por `cliente__`.
+
 ## Pendências de validação
 - [ ] Regra de custo de disponibilidade para GD após a Lei 14.300 (item 3 de D08).
 - [ ] Valor da TUSD Fio B vigente na Energisa TO por subgrupo (B1/B2/B3).
