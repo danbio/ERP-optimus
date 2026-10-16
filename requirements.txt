@@ -5,6 +5,9 @@ Django==5.2.18
 pytest==9.1.1
 pytest-django==4.14.0
 
+# Fatia 3: ImageField (ConfigEmpresa.logo) exige Pillow — ver D10.
+pillow==12.3.0
+
 # Demais dependências do stack (Playwright, matplotlib, pypdf, waitress)
 # entram nas fatias em que forem efetivamente usadas —
 # ver docs/decisoes.md para a justificativa de cada uma.

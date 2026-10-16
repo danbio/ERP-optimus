@@ -46,6 +46,17 @@ Formato: data · decisão · motivo · alternativas descartadas.
 | 6 | Classe tarifária ignorada | Alerta quando a classe da UC é incompatível (ex.: B1 residencial em cliente comercial) |
 | 7 | Irradiação digitada no código | Tabela `IrradiacaoMunicipio` com fonte registrada |
 
+## D09 · 2026-10-15 · Campos extras em `EntradaCalculo` para os alertas de negócio
+- **Motivo:** a spec da fatia 1 lista, na mesma seção do motor de cálculo, quatro alertas (razão CC/CA, classe B1 com cliente CNPJ, Fio B estimado, cobertura fora da faixa) — mas o `EntradaCalculo` original só trazia dados para calcular os dois primeiros (CC/CA e cobertura). Classe tarifária e "Fio B foi informado ou estimado" são informações da UC/fatura, inexistentes como models até a fatia 3.
+- **Decisão:** acrescentar três campos opcionais, com valor padrão, ao `EntradaCalculo`: `classe` (str), `cliente_pessoa_juridica` (bool), `fiob_informado` (bool). Assim `calcular()` continua uma função pura e autossuficiente, gerando os quatro alertas sozinha, sem o motor de cálculo depender de Django/models.
+- **Consequência:** quando a fatia 3 criar `Cliente`/`UnidadeConsumidora`, a view só precisa repassar esses três valores ao montar o `EntradaCalculo`; nenhuma mudança de assinatura é necessária.
+- **Alternativa descartada:** mover os alertas de classe/Fio B para fora de `calculo.py` (camada de view) — rejeitada porque fragmentaria a lista de alertas em dois lugares diferentes, dificultando manter `tests/test_caso_referencia.py` como fonte única de verdade dos alertas esperados.
+
+## D10 · 2026-10-15 · Dependência `Pillow`
+- **Motivo:** `core.ConfigEmpresa.logo` é um `ImageField` (spec-fase1.md §1), e o `ImageField` do Django exige a biblioteca Pillow instalada — sem ela, o `migrate`/`check` falha.
+- **Decisão:** adicionar `Pillow` ao `requirements.txt` a partir da fatia 3.
+- **Alternativa descartada:** trocar `logo` por `FileField` para evitar a dependência — rejeitada por fugir da spec sem necessidade; Pillow é leve e amplamente usada em projetos Django.
+
 ## Pendências de validação
 - [ ] Regra de custo de disponibilidade para GD após a Lei 14.300 (item 3 de D08).
 - [ ] Valor da TUSD Fio B vigente na Energisa TO por subgrupo (B1/B2/B3).
