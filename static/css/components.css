@@ -132,5 +132,32 @@
       background: var(--erro);
       color: #fff;
     }
+
+    &.badge--aviso {
+      background: var(--aviso);
+      color: var(--ink);
+    }
+  }
+
+  .btn.btn--pequeno {
+    padding: var(--esp-1) var(--esp-2);
+    font-size: var(--texto-xs);
+  }
+
+  .tabela.tabela--compacta {
+    & th, & td {
+      padding: var(--esp-1) var(--esp-2);
+    }
+  }
+
+  .tabela .num {
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .ajuda {
+    font-size: var(--texto-xs);
+    color: var(--muted);
+    margin: 0;
   }
 }

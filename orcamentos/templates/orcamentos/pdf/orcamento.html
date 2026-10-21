@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Orçamento {{ orcamento.numero }} v{{ orcamento.versao }} · {{ orcamento.cliente.nome }}</title>
+  <link rel="stylesheet" href="{{ base_estatico }}/css/tokens.css">
+  <link rel="stylesheet" href="{{ base_estatico }}/css/base.css">
+  <link rel="stylesheet" href="{{ base_estatico }}/css/proposta.css">
+</head>
+<body class="doc doc--orcamento">
+
+  <header class="doc-cabecalho">
+    <img src="{{ base_estatico }}/img/logo.png" alt="{{ empresa.nome_fantasia }}" class="doc-cabecalho__logo">
+    <span class="doc-cabecalho__ref">Orçamento nº {{ orcamento.numero }}{% if orcamento.versao > 1 %} v{{ orcamento.versao }}{% endif %} · {{ orcamento.cliente.nome }}</span>
+  </header>
+
+  <section class="doc-abertura">
+    <div class="doc-sobretitulo">Orçamento</div>
+    <h1 class="doc-titulo">{{ orcamento.titulo }}</h1>
+    {% if orcamento.local_instalacao %}<p class="doc-subtitulo">{{ orcamento.local_instalacao }}</p>{% endif %}
+  </section>
+
+  <section class="doc-cliente">
+    <div class="doc-rotulo">Cliente</div>
+    <div class="doc-cliente__nome">{{ orcamento.cliente.nome }}</div>
+    <div class="doc-cliente__dados">
+      {% if orcamento.cliente.razao_social %}{{ orcamento.cliente.razao_social }} · {% endif %}
+      {% if orcamento.cliente.cpf_cnpj %}{{ orcamento.cliente.cpf_cnpj }} · {% endif %}
+      {{ orcamento.cliente.telefone }}
+    </div>
+    <div class="doc-cliente__grade">
+      <div><div class="doc-rotulo">Nº do orçamento</div>{{ orcamento.numero }}{% if orcamento.versao > 1 %} v{{ orcamento.versao }}{% endif %}</div>
+      <div><div class="doc-rotulo">Emissão</div>{{ emissao|date:"d/m/Y" }}</div>
+      <div><div class="doc-rotulo">Válido até</div>{{ validade_ate|date:"d/m/Y" }}</div>
+    </div>
+  </section>
+
+  {% for grupo in grupos %}
+    <section class="doc-secao">
+      <h2 class="doc-h2">{{ grupo.rotulo }}</h2>
+      <table class="doc-tabela">
+        <thead>
+          <tr>
+            <th class="doc-tabela__qtd">Qtd.</th>
+            <th>Descrição</th>
+            <th class="num">Unitário (R$)</th>
+            <th class="num">Total (R$)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in grupo.itens %}
+            <tr>
+              <td class="doc-tabela__qtd">{{ item.quantidade|floatformat:"-2" }} {{ item.unidade }}</td>
+              <td>
+                {{ item.descricao }}
+                {% if item.codigo %}<span class="doc-codigo">Cód. Intelbras {{ item.codigo }}</span>{% endif %}
+              </td>
+              <td class="num">{{ item.preco_unitario|floatformat:"2g" }}</td>
+              <td class="num">{{ item.total|floatformat:"2g" }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+  {% endfor %}
+
+  <section class="doc-investimento">
+    <div class="doc-rotulo doc-rotulo--ouro">Investimento total</div>
+    <div class="doc-investimento__valor">R$ {{ resumo.total|floatformat:"2g" }}</div>
+    <div class="doc-investimento__detalhe">
+      {% if resumo.total_intelbras %}Equipamentos R$ {{ resumo.total_intelbras|floatformat:"2g" }}{% endif %}
+      {% if resumo.total_materiais %} · Materiais R$ {{ resumo.total_materiais|floatformat:"2g" }}{% endif %}
+      {% if resumo.total_servicos %} · Serviços R$ {{ resumo.total_servicos|floatformat:"2g" }}{% endif %}
+      {% if resumo.desconto_valor %} · Desconto de {{ resumo.desconto_pct|floatformat:"-2" }}% (− R$ {{ resumo.desconto_valor|floatformat:"2g" }}){% endif %}
+    </div>
+  </section>
+
+  <section class="doc-secao doc-secao--inteira">
+    <h2 class="doc-h2">Condições</h2>
+    <table class="doc-tabela doc-tabela--condicoes">
+      <tbody>
+        <tr><td>Validade</td><td>{{ orcamento.validade_dias }} dias, até {{ validade_ate|date:"d/m/Y" }}</td></tr>
+        {% if orcamento.forma_pagamento %}<tr><td>Forma de pagamento</td><td>{{ orcamento.forma_pagamento }}</td></tr>{% endif %}
+        {% if orcamento.prazo_execucao %}<tr><td>Prazo de execução</td><td>{{ orcamento.prazo_execucao }}</td></tr>{% endif %}
+        {% if orcamento.garantia %}<tr><td>Garantia</td><td>{{ orcamento.garantia|linebreaksbr }}</td></tr>{% endif %}
+        {% if orcamento.observacoes %}<tr><td>Observações</td><td>{{ orcamento.observacoes|linebreaksbr }}</td></tr>{% endif %}
+        {% if orcamento.projeto_registrado %}<tr><td>Projeto Intelbras</td><td>Projeto registrado junto à Intelbras{% if orcamento.numero_registro %} (nº {{ orcamento.numero_registro }}){% endif %}</td></tr>{% endif %}
+      </tbody>
+    </table>
+    <p class="doc-nota">{{ empresa.nome_fantasia|default:empresa.razao_social }} é revenda credenciada Intelbras: equipamentos originais, com nota fiscal e garantia do fabricante.</p>
+  </section>
+
+  <section class="doc-aceite">
+    <h2 class="doc-h2">Aceite do orçamento</h2>
+    <div class="doc-aceite__grade">
+      <div class="doc-assinatura">
+        <strong>{{ empresa.razao_social|upper }}</strong>
+        <span>CNPJ {{ empresa.cnpj }}</span>
+      </div>
+      <div class="doc-assinatura">
+        <strong>{{ orcamento.cliente.nome|upper }}</strong>
+        <span>CPF/CNPJ: {{ orcamento.cliente.cpf_cnpj|default:"______________________" }}</span>
+        <span>Data: ____ / ____ / ________</span>
+      </div>
+    </div>
+  </section>
+
+</body>
+</html>

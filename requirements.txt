@@ -8,6 +8,11 @@ pytest-django==4.14.0
 # Fatia 3: ImageField (ConfigEmpresa.logo) exige Pillow — ver D10.
 pillow==12.3.0
 
-# Demais dependências do stack (Playwright, matplotlib, pypdf, waitress)
+# Orçamentos Intelbras: leitura da tabela .xlsb (D13) e PDF via Chromium (D15).
+# Depois do pip install, rodar uma vez:  python -m playwright install chromium
+pyxlsb==1.0.10
+playwright==1.56.0
+
+# Demais dependências do stack (matplotlib, pypdf, waitress)
 # entram nas fatias em que forem efetivamente usadas —
 # ver docs/decisoes.md para a justificativa de cada uma.

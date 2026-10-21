@@ -1,0 +1,22 @@
+{% if itens %}
+  <table class="tabela tabela--compacta">
+    <thead><tr><th>Tipo</th><th>Descrição</th><th>Un.</th><th class="num">Preço</th><th></th></tr></thead>
+    <tbody>
+      {% for item in itens %}
+        <tr>
+          <td>{{ item.get_tipo_display }}</td>
+          <td>{{ item.descricao }}</td>
+          <td>{{ item.unidade }}</td>
+          <td class="num">{{ item.preco|floatformat:"2g" }}</td>
+          <td>
+            <button type="button" class="btn btn--pequeno"
+                    hx-post="{% url 'orcamentos:adicionar_proprio' orcamento_pk item.pk %}"
+                    hx-target="#itens" hx-swap="outerHTML">+ adicionar</button>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% else %}
+  <p class="ajuda">Nenhum item próprio cadastrado. Cadastre serviços e materiais em Admin → Itens próprios.</p>
+{% endif %}

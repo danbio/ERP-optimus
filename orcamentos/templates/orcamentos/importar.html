@@ -1,0 +1,65 @@
+{% extends "core/base.html" %}
+
+{% block titulo %}Importar tabela{% endblock %}
+{% block titulo_pagina %}Importar tabela de preços Intelbras{% endblock %}
+
+{% block conteudo %}
+  <div class="card card--estreito">
+    <p>Envie o arquivo <strong>.xlsb</strong> original baixado do Portal Sou Parceiro (atualizado nos dias 1 e 15).
+       Serão importadas só as linhas com UF de destino <strong>{{ uf_destino }}</strong>. A leitura leva de 15 a 30 segundos.</p>
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="campo">
+        <label for="{{ form.arquivo.id_for_label }}">{{ form.arquivo.label }}</label>
+        {{ form.arquivo }}
+        {% if form.arquivo.errors %}<p class="badge badge--erro">{{ form.arquivo.errors|join:" " }}</p>{% endif %}
+      </div>
+      <button type="submit" class="btn">Importar</button>
+      <a href="{% url 'orcamentos:catalogo' %}" class="btn btn--secundario">Voltar ao catálogo</a>
+    </form>
+    {% if erro %}<p class="badge badge--erro">{{ erro }}</p>{% endif %}
+  </div>
+
+  {% if resumo %}
+    <div class="card">
+      <h2>Tabela {{ tabela.referencia }} importada</h2>
+      <div class="kpi-grade">
+        <div class="kpi kpi--escuro"><div class="kpi__valor">{{ resumo.total }}</div><div class="kpi__rotulo">produtos na tabela</div></div>
+        <div class="kpi"><div class="kpi__valor">{{ resumo.novos }}</div><div class="kpi__rotulo">novos</div></div>
+        <div class="kpi"><div class="kpi__valor">{{ resumo.precos_alterados }}</div><div class="kpi__rotulo">com preço alterado</div></div>
+        <div class="kpi"><div class="kpi__valor">{{ resumo.sairam }}</div><div class="kpi__rotulo">saíram da tabela</div></div>
+        <div class="kpi"><div class="kpi__valor">{{ resumo.em_encerramento }}</div><div class="kpi__rotulo">em encerramento</div></div>
+      </div>
+      {% if resumo.maiores_variacoes %}
+        <h3>Maiores variações de custo (PSD)</h3>
+        <table class="tabela tabela--compacta">
+          <thead><tr><th>Código</th><th>Produto</th><th class="num">Antes</th><th class="num">Agora</th><th class="num">Variação</th></tr></thead>
+          <tbody>
+            {% for v in resumo.maiores_variacoes %}
+              <tr>
+                <td>{{ v.codigo }}</td><td>{{ v.produto }}</td>
+                <td class="num">{{ v.psd_antes }}</td><td class="num">{{ v.psd_depois }}</td>
+                <td class="num">{% if v.variacao_pct is not None %}{{ v.variacao_pct|floatformat:1 }}%{% else %}—{% endif %}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {% if historico %}
+    <div class="card">
+      <h3>Importações anteriores</h3>
+      <table class="tabela tabela--compacta">
+        <thead><tr><th>Referência</th><th>UF</th><th>Importada em</th><th class="num">Produtos</th><th class="num">Preços alterados</th></tr></thead>
+        <tbody>
+          {% for t in historico %}
+            <tr><td>{{ t.referencia }}</td><td>{{ t.uf_destino }}</td><td>{{ t.importada_em|date:"d/m/Y H:i" }}</td>
+                <td class="num">{{ t.resumo.total }}</td><td class="num">{{ t.resumo.precos_alterados }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+{% endblock %}

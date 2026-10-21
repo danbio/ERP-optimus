@@ -1,0 +1,47 @@
+{% extends "core/base.html" %}
+
+{% block titulo %}Orçamentos{% endblock %}
+{% block titulo_pagina %}Orçamentos Intelbras{% endblock %}
+
+{% block conteudo %}
+  <div class="card">
+    <form method="get" class="topbar">
+      <input type="text" name="busca" placeholder="Cliente, título ou número" value="{{ request.GET.busca }}">
+      <select name="status">
+        <option value="">Todos os status</option>
+        {% for valor, rotulo in status_choices %}
+          <option value="{{ valor }}" {% if request.GET.status == valor %}selected{% endif %}>{{ rotulo }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn--secundario">Filtrar</button>
+      <a href="{% url 'orcamentos:novo' %}" class="btn">+ novo orçamento</a>
+    </form>
+
+    <table class="tabela">
+      <thead>
+        <tr>
+          <th>Número</th>
+          <th>Cliente</th>
+          <th>Título</th>
+          <th class="num">Total</th>
+          <th>Status</th>
+          <th>Emissão</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for orcamento in orcamentos %}
+          <tr>
+            <td><a href="{% url 'orcamentos:editor' orcamento.pk %}">{{ orcamento.numero }} v{{ orcamento.versao }}</a></td>
+            <td>{{ orcamento.cliente.nome }}</td>
+            <td>{{ orcamento.titulo }}</td>
+            <td class="num">R$ {{ orcamento.total|floatformat:"2g" }}</td>
+            <td><span class="badge status--{{ orcamento.status }}">{{ orcamento.get_status_display }}</span></td>
+            <td>{{ orcamento.emissao|date:"d/m/Y"|default:"—" }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6">Nenhum orçamento cadastrado.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}

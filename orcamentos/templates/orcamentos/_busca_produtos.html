@@ -1,0 +1,32 @@
+{% if termo and termo|length < 2 %}
+  <p class="ajuda">Digite ao menos 2 caracteres.</p>
+{% elif termo and not produtos %}
+  <p class="ajuda">Nenhum produto ativo encontrado para "{{ termo }}".</p>
+{% endif %}
+{% if produtos %}
+  <table class="tabela tabela--compacta">
+    <thead>
+      <tr><th>Código</th><th>Produto</th><th>Segmento</th><th class="num">Custo (PSD)</th><th class="num">PSCF</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for produto in produtos %}
+        <tr>
+          <td>{{ produto.codigo }}</td>
+          <td>
+            {{ produto.nome }}
+            {% if produto.em_encerramento %}<span class="badge badge--aviso">em encerramento</span>{% endif %}
+            {% if produto.qtd_multipla > 1 %}<span class="badge">múltiplo {{ produto.qtd_multipla }}</span>{% endif %}
+          </td>
+          <td>{{ produto.segmento }}</td>
+          <td class="num">{% if produto.psd %}{{ produto.psd|floatformat:"2g" }}{% else %}—{% endif %}</td>
+          <td class="num">{{ produto.pscf|floatformat:"2g" }}</td>
+          <td>
+            <button type="button" class="btn btn--pequeno"
+                    hx-post="{% url 'orcamentos:adicionar_produto' orcamento_pk produto.pk %}"
+                    hx-target="#itens" hx-swap="outerHTML">+ adicionar</button>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endif %}
