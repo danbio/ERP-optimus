@@ -4,7 +4,7 @@ import pytest
 from django.test import Client as Navegador
 from django.urls import reverse
 
-from clientes.models import Cliente
+from clientes.models import Cliente, UnidadeConsumidora
 from core.models import Municipio
 
 
@@ -83,3 +83,19 @@ def test_menu_sem_link_morto(db):
     html = Navegador().get(reverse("core:inicio")).content.decode()
     assert 'href="#"' not in html
     assert reverse("clientes:lista") in html
+
+
+def test_uc_sem_municipio_pode_ser_corrigida(gurupi):
+    cliente = Cliente.objects.create(nome="Maria", telefone="63999991234")
+    uc = UnidadeConsumidora.objects.create(
+        cliente=cliente, numero_uc="123", endereco="Rua A (município digitado: Gurupy/TO)",
+        classe="B1", ligacao="mono",
+    )
+    navegador = Navegador()
+    assert "escolher município" in navegador.get(reverse("clientes:ficha", args=[cliente.pk])).content.decode()
+    navegador.post(reverse("clientes:uc_editar", args=[uc.pk]), {
+        "cliente": cliente.pk, "numero_uc": "123", "endereco": "Rua A", "municipio": gurupi.pk,
+        "concessionaria": "Energisa TO", "classe": "B1", "ligacao": "mono",
+    })
+    uc.refresh_from_db()
+    assert uc.municipio == gurupi

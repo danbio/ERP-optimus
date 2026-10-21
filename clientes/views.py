@@ -6,7 +6,7 @@ from core.validacoes import so_digitos
 from propostas.models import Proposta
 
 from .forms import ClienteForm, UnidadeConsumidoraForm
-from .models import Cliente
+from .models import Cliente, UnidadeConsumidora
 
 
 def lista(request):
@@ -72,3 +72,15 @@ def uc_novo(request):
         "form": form,
         "titulo": "Nova unidade consumidora",
     })
+
+
+def uc_editar(request, pk):
+    uc = get_object_or_404(UnidadeConsumidora, pk=pk)
+    if request.method == "POST":
+        form = UnidadeConsumidoraForm(request.POST, instance=uc)
+        if form.is_valid():
+            form.save()
+            return redirect("clientes:ficha", pk=uc.cliente_id)
+    else:
+        form = UnidadeConsumidoraForm(instance=uc)
+    return render(request, "clientes/form_simples.html", {"form": form, "titulo": f"Editar UC {uc.numero_uc}"})

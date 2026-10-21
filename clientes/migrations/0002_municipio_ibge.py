@@ -1,7 +1,8 @@
 """UC e cliente passam a apontar para core.Municipio (D21, D26).
 
 O município digitado como texto é procurado pelo nome, sem acento e sem diferença
-de maiúsculas. Se não for achado, a UC fica sem município e o formulário pede de novo.
+de maiúsculas. Se não for achado, a UC fica sem município, o texto antigo vai para o
+fim do endereço (para não se perder) e a ficha do cliente pede para corrigir.
 Telefone e CPF/CNPJ antigos passam a ser guardados só com os números (D24).
 """
 
@@ -21,7 +22,9 @@ def converter(apps, schema_editor):
     por_nome = {(chave_nome(m.nome), m.uf): m for m in Municipio.objects.all()}
     for uc in UnidadeConsumidora.objects.all():
         uc.municipio_ibge = por_nome.get((chave_nome(uc.municipio), (uc.uf or "").upper()))
-        uc.save(update_fields=["municipio_ibge"])
+        if uc.municipio_ibge is None and uc.municipio:
+            uc.endereco = f"{uc.endereco} (município digitado: {uc.municipio}/{uc.uf})"[:255]
+        uc.save(update_fields=["municipio_ibge", "endereco"])
 
     for cliente in Cliente.objects.all():
         cliente.cpf_cnpj = re.sub(r"\D", "", cliente.cpf_cnpj or "")

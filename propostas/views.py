@@ -52,7 +52,7 @@ def _kwp_kw_ca(linhas):
 
 def _montar_entrada(uc, fatura, investimento, premissas, linhas):
     if uc.municipio is None:
-        return None, "Escolha o município da unidade consumidora."
+        return None, "Escolha o município da unidade consumidora (Clientes → ficha do cliente → UC)."
     if not uc.municipio.irradiacao:
         return None, f"Cadastre a irradiação de {uc.municipio} (Admin → Municípios)."
 

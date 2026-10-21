@@ -32,9 +32,9 @@
         <tbody>
           {% for uc in ucs %}
             <tr>
-              <td>{{ uc.numero_uc }}</td>
+              <td><a href="{% url 'clientes:uc_editar' uc.pk %}">{{ uc.numero_uc }}</a></td>
               <td>{{ uc.endereco }}</td>
-              <td>{{ uc.municipio.nome|default:"—" }}</td>
+              <td>{% if uc.municipio %}{{ uc.municipio.nome }}{% else %}<a href="{% url 'clientes:uc_editar' uc.pk %}" class="badge badge--aviso">escolher município</a>{% endif %}</td>
               <td>{{ uc.get_ligacao_display }}</td>
             </tr>
           {% empty %}

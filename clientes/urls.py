@@ -10,4 +10,5 @@ urlpatterns = [
     path("<int:pk>/", views.ficha, name="ficha"),
     path("<int:pk>/editar/", views.cliente_editar, name="cliente_editar"),
     path("uc/novo/", views.uc_novo, name="uc_novo"),
+    path("uc/<int:pk>/editar/", views.uc_editar, name="uc_editar"),
 ]
