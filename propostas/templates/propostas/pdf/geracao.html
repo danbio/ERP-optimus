@@ -34,7 +34,7 @@
   <table class="doc-tabela doc-tabela--condicoes">
     <thead><tr><th>Parâmetro</th><th>Critério adotado</th></tr></thead>
     <tbody>
-      <tr><td>Irradiação</td><td>Médias mensais no plano horizontal, sem ganho de inclinação{% if irradiacao.fonte %} (fonte: {{ irradiacao.fonte }}){% endif %}</td></tr>
+      <tr><td>Irradiação</td><td>Médias mensais no plano horizontal, sem ganho de inclinação{% if fonte_irradiacao %} (fonte: {{ fonte_irradiacao }}){% endif %}</td></tr>
       <tr><td>Perdas do sistema</td><td>{{ pct.perdas|floatformat:"-1" }}% — temperatura, sujeira, cabeamento, conversão e descasamento</td></tr>
       <tr><td>Limitação dos inversores</td><td>{{ pct.perda_clipping|floatformat:"-1" }}% adicional (razão CC/CA de {{ razao_cc_ca|floatformat:2 }})</td></tr>
       <tr><td>Fórmula</td><td>kWp × irradiação × dias do mês × (1 – perdas) × (1 – limitação)</td></tr>

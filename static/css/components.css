@@ -112,6 +112,20 @@
       outline: 2px solid var(--gold);
       outline-offset: -1px;
     }
+
+    & .campo__obrigatorio {
+      color: var(--erro);
+    }
+
+    & .campo__erro {
+      margin: var(--esp-1) 0 0;
+      font-size: var(--texto-sm);
+      color: var(--erro);
+    }
+
+    &.campo--erro input, &.campo--erro select, &.campo--erro textarea {
+      border-color: var(--erro);
+    }
   }
 
   .badge {

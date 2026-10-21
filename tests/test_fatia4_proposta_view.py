@@ -1,7 +1,7 @@
 """Teste de integração — cria a proposta do caso Alesio pela view de verdade
 (POST em propostas:nova) e confere economia mensal e payback contra
 docs/caso-referencia.md. Usa a carga inicial das migrations (irradiação de
-São Valério da Natividade, Fio B, ConfigEmpresa) — não recria esses dados.
+São Valério, Fio B, ConfigEmpresa) — não recria esses dados.
 """
 
 from datetime import date
@@ -11,6 +11,7 @@ from django.test import Client
 from django.urls import reverse
 
 from clientes.models import Cliente, UnidadeConsumidora
+from core.models import Municipio
 from propostas.models import FaturaReferencia, Proposta
 
 TOL = 0.005  # ±0,5%
@@ -27,8 +28,7 @@ def uc_alesio(db):
         cliente=cliente,
         numero_uc="20.008.015-05",
         endereco="Av. Tocantins, 1255, Qd. 40, Lt. 16 – Centro",
-        municipio="São Valério da Natividade",
-        uf="TO",
+        municipio=Municipio.objects.get(codigo_ibge=1720499),  # São Valério (antiga "da Natividade")
         classe=UnidadeConsumidora.Classe.B1,
         ligacao=UnidadeConsumidora.Ligacao.TRI,
     )

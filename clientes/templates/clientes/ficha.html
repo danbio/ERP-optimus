@@ -1,0 +1,68 @@
+{% extends "core/base.html" %}
+
+{% block titulo %}{{ cliente.nome }}{% endblock %}
+{% block titulo_pagina %}{{ cliente.nome }}{% endblock %}
+
+{% block conteudo %}
+  <div class="card">
+    <div class="barra-acoes barra-acoes--plana">
+      <h3>Dados</h3>
+      <span class="barra-acoes__espaco"></span>
+      <a href="{% url 'clientes:cliente_editar' cliente.pk %}" class="btn btn--secundario">Editar</a>
+    </div>
+    <dl class="dados">
+      <dt>Telefone</dt><dd>{{ cliente.telefone_formatado|default:"—" }}</dd>
+      <dt>Município</dt><dd>{{ cliente.municipio|default:"—" }}</dd>
+      <dt>CPF/CNPJ</dt><dd>{{ cliente.cpf_cnpj_formatado|default:"—" }}</dd>
+      {% if cliente.razao_social %}<dt>Razão social</dt><dd>{{ cliente.razao_social }}</dd>{% endif %}
+      {% if cliente.email %}<dt>E-mail</dt><dd>{{ cliente.email }}</dd>{% endif %}
+      {% if cliente.observacoes %}<dt>Observações</dt><dd>{{ cliente.observacoes|linebreaksbr }}</dd>{% endif %}
+    </dl>
+  </div>
+
+  <div class="card">
+    <div class="barra-acoes barra-acoes--plana">
+      <h3>Unidades consumidoras</h3>
+      <span class="barra-acoes__espaco"></span>
+      <a href="{% url 'clientes:uc_novo' %}?cliente={{ cliente.pk }}&next={{ request.path|urlencode }}" class="btn btn--secundario">+ nova UC</a>
+    </div>
+    <div class="itens-rolagem">
+      <table class="tabela">
+        <thead><tr><th>UC</th><th>Endereço</th><th>Município</th><th>Ligação</th></tr></thead>
+        <tbody>
+          {% for uc in ucs %}
+            <tr>
+              <td>{{ uc.numero_uc }}</td>
+              <td>{{ uc.endereco }}</td>
+              <td>{{ uc.municipio.nome|default:"—" }}</td>
+              <td>{{ uc.get_ligacao_display }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="4">Nenhuma UC. Ela só é necessária na proposta com fatura.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Propostas</h3>
+    <div class="itens-rolagem">
+      <table class="tabela">
+        <thead><tr><th>Número</th><th>kWp</th><th>Investimento</th><th>Status</th></tr></thead>
+        <tbody>
+          {% for proposta in propostas %}
+            <tr>
+              <td><a href="{% url 'propostas:editar' proposta.pk %}">{{ proposta.numero }} v{{ proposta.versao }}</a></td>
+              <td>{{ proposta.kwp|floatformat:2 }}</td>
+              <td>R$ {{ proposta.investimento|floatformat:"2g" }}</td>
+              <td><span class="badge">{{ proposta.get_status_display }}</span></td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="4">Nenhuma proposta para este cliente.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endblock %}

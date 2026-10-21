@@ -4,18 +4,14 @@
 {% block titulo_pagina %}{{ titulo }}{% endblock %}
 
 {% block conteudo %}
-  <div class="card">
+  <div class="card card--estreito">
     <form method="post" enctype="multipart/form-data" novalidate>
       {% csrf_token %}
-      {% for campo in form %}
-        <div class="campo">
-          <label for="{{ campo.id_for_label }}">{{ campo.label }}</label>
-          {{ campo }}
-          {% if campo.errors %}<p class="badge badge--erro">{{ campo.errors|join:" " }}</p>{% endif %}
-        </div>
-      {% endfor %}
-      <button type="submit" class="btn">Salvar</button>
-      <a href="javascript:history.back()" class="btn btn--secundario">Cancelar</a>
+      {% for campo in form %}{% include "core/_campo.html" %}{% endfor %}
+      <div class="barra-acoes">
+        <button type="submit" class="btn">Salvar</button>
+        <a href="javascript:history.back()" class="btn btn--secundario">Cancelar</a>
+      </div>
     </form>
   </div>
 {% endblock %}

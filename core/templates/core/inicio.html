@@ -4,9 +4,18 @@
 {% block titulo_pagina %}Início{% endblock %}
 
 {% block conteudo %}
-  <div class="card">
-    <h2>meu_erp — Optimus Energia Solar</h2>
-    <p>Esqueleto do sistema no ar. O módulo de Proposta Solar será construído aqui, fatia por fatia.</p>
-    <span class="badge badge--ok">Fatia 1 concluída</span>
+  <div class="atalhos">
+    <a href="{% url 'propostas:nova' %}" class="card atalho">
+      <b>Nova proposta solar</b>
+      <span>Com ou sem a fatura do cliente</span>
+    </a>
+    <a href="{% url 'clientes:cliente_novo' %}" class="card atalho">
+      <b>Novo cliente</b>
+      <span>Nome, telefone e município bastam</span>
+    </a>
+    <a href="{% url 'orcamentos:novo' %}" class="card atalho">
+      <b>Novo orçamento Intelbras</b>
+      <span>Revenda de produtos e serviços</span>
+    </a>
   </div>
 {% endblock %}

@@ -1,0 +1,30 @@
+{% extends "core/base.html" %}
+
+{% block titulo %}{{ titulo }}{% endblock %}
+{% block titulo_pagina %}{{ titulo }}{% endblock %}
+
+{% block conteudo %}
+  <div class="card card--estreito">
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% if form.non_field_errors %}<p class="campo__erro">{{ form.non_field_errors|join:" " }}</p>{% endif %}
+      <div class="grade-campos">
+        {% include "core/_campo.html" with campo=form.nome %}
+        {% include "core/_campo.html" with campo=form.telefone %}
+        {% include "core/_campo.html" with campo=form.municipio %}
+        {% include "core/_campo.html" with campo=form.cpf_cnpj %}
+      </div>
+      <p class="ajuda">Para uma estimativa bastam nome, telefone e município. CPF/CNPJ é pedido na proposta com fatura.</p>
+      <details class="mais-campos"{% if form.razao_social.errors or form.email.errors %} open{% endif %}>
+        <summary>Mais dados (razão social, e-mail, observações)</summary>
+        {% include "core/_campo.html" with campo=form.razao_social %}
+        {% include "core/_campo.html" with campo=form.email %}
+        {% include "core/_campo.html" with campo=form.observacoes %}
+      </details>
+      <div class="barra-acoes">
+        <button type="submit" class="btn">Salvar cliente</button>
+        <a href="{% if cliente %}{% url 'clientes:ficha' cliente.pk %}{% else %}{% url 'clientes:lista' %}{% endif %}" class="btn btn--secundario">Cancelar</a>
+      </div>
+    </form>
+  </div>
+{% endblock %}

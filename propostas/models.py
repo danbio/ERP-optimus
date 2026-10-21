@@ -32,24 +32,6 @@ class FaturaReferencia(models.Model):
         return f"Fatura {self.uc.numero_uc} — {self.competencia:%m/%Y}"
 
 
-class IrradiacaoMunicipio(models.Model):
-    municipio = models.CharField(max_length=120)
-    uf = models.CharField(max_length=2)
-    valores = models.JSONField(help_text="12 valores mensais, kWh/m²·dia, plano horizontal.")
-    fonte = models.CharField(max_length=255)
-
-    class Meta:
-        verbose_name = "Irradiação do município"
-        verbose_name_plural = "Irradiação por município"
-        constraints = [
-            models.UniqueConstraint(fields=["municipio", "uf"], name="irradiacao_municipio_uf_unico")
-        ]
-        ordering = ["municipio"]
-
-    def __str__(self):
-        return f"{self.municipio}/{self.uf}"
-
-
 class FioBEscalonamento(models.Model):
     ano = models.PositiveIntegerField(unique=True)
     percentual = models.DecimalField("percentual (%)", max_digits=5, decimal_places=2)

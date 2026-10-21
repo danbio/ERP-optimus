@@ -1,14 +1,20 @@
 from django.db import models
 
+from core.models import Municipio
+from core.validacoes import formatar_cpf_cnpj, formatar_telefone
+
 
 class Cliente(models.Model):
     nome = models.CharField(max_length=200)
-    razao_social = models.CharField(max_length=200, blank=True)
-    cpf_cnpj = models.CharField("CPF/CNPJ", max_length=20, blank=True)
-    telefone = models.CharField(max_length=30, blank=True)
-    email = models.EmailField(blank=True)
-    observacoes = models.TextField(blank=True)
-    criado_em = models.DateTimeField(auto_now_add=True)
+    razao_social = models.CharField("razão social", max_length=200, blank=True)
+    cpf_cnpj = models.CharField("CPF ou CNPJ", max_length=20, blank=True, help_text="Só os números.")
+    telefone = models.CharField(max_length=30, blank=True, help_text="DDD + número, só os números.")
+    email = models.EmailField("e-mail", blank=True)
+    municipio = models.ForeignKey(
+        Municipio, on_delete=models.PROTECT, null=True, blank=True, verbose_name="município"
+    )
+    observacoes = models.TextField("observações", blank=True)
+    criado_em = models.DateTimeField("cadastrado em", auto_now_add=True)
 
     class Meta:
         verbose_name = "Cliente"
@@ -17,6 +23,14 @@ class Cliente(models.Model):
 
     def __str__(self):
         return self.nome
+
+    @property
+    def cpf_cnpj_formatado(self):
+        return formatar_cpf_cnpj(self.cpf_cnpj)
+
+    @property
+    def telefone_formatado(self):
+        return formatar_telefone(self.telefone)
 
 
 class UnidadeConsumidora(models.Model):
@@ -34,12 +48,12 @@ class UnidadeConsumidora(models.Model):
 
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, related_name="unidades_consumidoras")
     numero_uc = models.CharField("número da UC", max_length=30)
-    endereco = models.CharField(max_length=255)
-    municipio = models.CharField(max_length=120)
-    uf = models.CharField(max_length=2)
-    concessionaria = models.CharField(max_length=120, default="Energisa TO")
+    endereco = models.CharField("endereço", max_length=255)
+    # null só para a migration de UCs antigas com município digitado errado; o formulário exige.
+    municipio = models.ForeignKey(Municipio, on_delete=models.PROTECT, null=True, verbose_name="município")
+    concessionaria = models.CharField("concessionária", max_length=120, default="Energisa TO")
     classe = models.CharField(max_length=2, choices=Classe.choices)
-    ligacao = models.CharField(max_length=4, choices=Ligacao.choices)
+    ligacao = models.CharField("ligação", max_length=4, choices=Ligacao.choices)
 
     class Meta:
         verbose_name = "Unidade consumidora"
@@ -47,6 +61,10 @@ class UnidadeConsumidora(models.Model):
 
     def __str__(self):
         return f"{self.numero_uc} — {self.cliente.nome}"
+
+    @property
+    def uf(self):
+        return self.municipio.uf if self.municipio else ""
 
     @property
     def disponibilidade_kwh(self):
