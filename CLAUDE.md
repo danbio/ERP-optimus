@@ -57,6 +57,7 @@ meu_erp/
 │   └── templates/orcamentos/pdf/
 ├── core/pdf.py          # html_para_pdf() — Playwright, usado por todos os PDFs
 ├── core/validacoes.py   # CPF/CNPJ, telefone, valores BR — FUNÇÕES PURAS
+├── core/dados/          # municipios_to.csv (carga IBGE, D26)
 ├── static/css/          # ver regras de CSS
 ├── static/fonts/        # Poppins local
 ├── tests/

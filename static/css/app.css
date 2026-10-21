@@ -257,4 +257,132 @@
       display: inline;
     }
   }
+
+  /* ---------- Clientes e início ---------- */
+
+  .busca.busca--linha {
+    flex: 1;
+    min-width: 200px;
+    margin-bottom: 0;
+  }
+
+  .dados {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: var(--esp-2) var(--esp-4);
+    margin: 0;
+
+    & dt {
+      color: var(--muted);
+      font-size: var(--texto-sm);
+    }
+
+    & dd {
+      margin: 0;
+    }
+  }
+
+  .mais-campos {
+    margin: var(--esp-4) 0;
+
+    & > summary {
+      color: var(--navy);
+      font-weight: 500;
+      margin-bottom: var(--esp-3);
+    }
+  }
+
+  .atalhos {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: var(--esp-4);
+  }
+
+  .card.atalho {
+    display: flex;
+    flex-direction: column;
+    gap: var(--esp-1);
+    color: var(--ink);
+
+    & b {
+      color: var(--navy);
+      font-size: var(--texto-lg);
+    }
+
+    & span {
+      color: var(--muted);
+      font-size: var(--texto-sm);
+    }
+
+    &:hover {
+      border-color: var(--gold);
+      text-decoration: none;
+    }
+  }
+
+  /* ---------- Celular ----------
+     Media query não aceita variável CSS; 800px é o único valor literal de layout. */
+  @media (max-width: 800px) {
+    .layout {
+      flex-direction: column;
+    }
+
+    .sidebar {
+      width: auto;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--esp-1);
+      padding: var(--esp-2) var(--esp-3);
+
+      & .sidebar__logo {
+        max-width: 90px;
+        margin: 0 var(--esp-2) 0 0;
+      }
+
+      & a {
+        white-space: nowrap;
+        margin: 0;
+      }
+    }
+
+    .conteudo {
+      padding: var(--esp-3);
+    }
+
+    .card {
+      padding: var(--esp-4);
+      overflow-x: auto;
+    }
+
+    .topbar {
+      flex-wrap: wrap;
+    }
+
+    .tabela td {
+      white-space: nowrap;
+    }
+
+    .proposta-editor, .orcamento-editor, .grade-campos {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .proposta-editor .proposta-editor__resultados,
+    .orcamento-editor .orcamento-editor__lateral {
+      position: static;
+    }
+
+    .kit-linhas .kit-linha {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .dados {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0;
+
+      & dd {
+        margin-bottom: var(--esp-2);
+      }
+    }
+  }
 }

@@ -149,6 +149,12 @@ Formato: data · decisão · motivo · alternativas descartadas.
 - **Decisão:** `Proposta.cliente` volta a ser FK obrigatória; `uc` e `fatura` passam a ser opcionais. O risco de inconsistência que motivou D11 é tratado no form: a UC escolhida precisa ser do mesmo cliente.
 - **Migração:** preencher `cliente` das propostas existentes a partir de `uc.cliente`.
 
+## D26 · 2026-10-21 · Detalhes da fatia v2.1 (municípios, CPF único, menu)
+- **Municípios:** a API de localidades do IBGE não traz coordenadas, e o PVGIS precisa delas. A carga inicial vem de `core/dados/municipios_to.csv` (139 municípios do TO, código IBGE, latitude e longitude), extraído de `kelvins/municipios-brasileiros` (licença MIT, dados do IBGE). Entra no banco por migration, sem rede. Outras UFs ficam para o comando `importar_municipios` (v2.2).
+- **Nome antigo:** "São Valério da Natividade" hoje se chama "São Valério" no IBGE. A migration reconhece o nome antigo ao converter UCs e irradiação.
+- **CPF/CNPJ único:** verificado no formulário, não por restrição no banco, para a migration não falhar se o banco do PC já tiver CPF repetido.
+- **Menu:** "Configurações" sai do menu até a tela existir (v2.2). O admin continua em /admin/ para manutenção.
+
 ## Pendências de validação
 - [ ] Regra de custo de disponibilidade para GD após a Lei 14.300 (item 3 de D08).
 - [ ] Valor da TUSD Fio B vigente na Energisa TO por subgrupo (B1/B2/B3).

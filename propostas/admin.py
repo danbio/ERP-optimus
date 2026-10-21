@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import FaturaReferencia, FioBEscalonamento, IrradiacaoMunicipio, ItemKit, Proposta
+from .models import FaturaReferencia, FioBEscalonamento, ItemKit, Proposta
 
 
 class ItemKitInline(admin.TabularInline):
@@ -24,11 +24,6 @@ class PropostaAdmin(admin.ModelAdmin):
 class FaturaReferenciaAdmin(admin.ModelAdmin):
     list_display = ["uc", "competencia", "kwh", "valor_total"]
     list_filter = ["uc__municipio"]
-
-
-@admin.register(IrradiacaoMunicipio)
-class IrradiacaoMunicipioAdmin(admin.ModelAdmin):
-    list_display = ["municipio", "uf", "fonte"]
 
 
 @admin.register(FioBEscalonamento)

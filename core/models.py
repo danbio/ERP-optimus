@@ -36,3 +36,26 @@ class ConfigEmpresa(models.Model):
     @classmethod
     def obter(cls):
         return cls.objects.first()
+
+
+class Municipio(models.Model):
+    """Município do IBGE, com coordenadas e irradiação (D21, D26)."""
+
+    codigo_ibge = models.PositiveIntegerField("código IBGE", unique=True)
+    nome = models.CharField(max_length=120)
+    uf = models.CharField("UF", max_length=2)
+    latitude = models.FloatField()
+    longitude = models.FloatField()
+    irradiacao = models.JSONField(
+        "irradiação", null=True, blank=True, help_text="12 valores mensais, kWh/m²·dia, plano horizontal."
+    )
+    fonte_irradiacao = models.CharField("fonte da irradiação", max_length=255, blank=True)
+    atualizado_em = models.DateField("irradiação atualizada em", null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Município"
+        verbose_name_plural = "Municípios"
+        ordering = ["uf", "nome"]
+
+    def __str__(self):
+        return f"{self.nome}/{self.uf}"

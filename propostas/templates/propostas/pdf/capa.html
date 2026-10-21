@@ -10,7 +10,7 @@
     <div class="doc-rotulo">Cliente</div>
     <div class="capa__nome">{{ cliente.nome }}</div>
     <p class="capa__dados">
-      {% if cliente.razao_social %}{{ cliente.razao_social }} · {% endif %}{{ uc.municipio }} – {{ uc.uf }}<br>
+      {% if cliente.razao_social %}{{ cliente.razao_social }} · {% endif %}{{ uc.municipio.nome }} – {{ uc.uf }}<br>
       UC {{ uc.numero_uc }} · {{ uc.endereco }}
     </p>
     <div class="capa__grade">

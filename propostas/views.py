@@ -13,7 +13,7 @@ from core.models import ConfigEmpresa
 from core.pdf import ErroPDF, html_para_pdf
 
 from .forms import FaturaReferenciaForm, ItemKitForm, PremissasForm, PropostaForm
-from .models import FaturaReferencia, FioBEscalonamento, IrradiacaoMunicipio, ItemKit, Proposta
+from .models import FaturaReferencia, FioBEscalonamento, ItemKit, Proposta
 from .services import graficos
 from .services.calculo import EntradaCalculo, calcular, fiob_fallback
 from .services.pdf import ErroAnexo, contar_paginas, ler_cores, mesclar_anexo
@@ -51,9 +51,10 @@ def _kwp_kw_ca(linhas):
 
 
 def _montar_entrada(uc, fatura, investimento, premissas, linhas):
-    irradiacao = IrradiacaoMunicipio.objects.filter(municipio=uc.municipio, uf=uc.uf).first()
-    if irradiacao is None:
-        return None, f"Cadastre a irradiação de {uc.municipio}/{uc.uf} (Admin → Irradiação do município)."
+    if uc.municipio is None:
+        return None, "Escolha o município da unidade consumidora (Clientes → ficha do cliente → UC)."
+    if not uc.municipio.irradiacao:
+        return None, f"Cadastre a irradiação de {uc.municipio} (Admin → Municípios)."
 
     kwp, kw_ca = _kwp_kw_ca(linhas)
     if kwp == 0 or kw_ca == 0:
@@ -74,7 +75,7 @@ def _montar_entrada(uc, fatura, investimento, premissas, linhas):
     entrada = EntradaCalculo(
         kwp=kwp,
         kw_ca=kw_ca,
-        irradiacao=irradiacao.valores,
+        irradiacao=uc.municipio.irradiacao,
         kwh_fatura=float(fatura.kwh),
         dias_ciclo=fatura.dias_ciclo,
         tarifa=float(fatura.tarifa_kwh),
@@ -357,7 +358,7 @@ def _contexto_documento(proposta, para_pdf, n_paginas_anexo):
         "texto_fiob": _texto_fiob(entrada.fiob_pct_por_ano, premissas["ano_conexao"]),
         "ligacao": LIGACAO_POR_EXTENSO.get(proposta.uc.ligacao, ""),
         "disponibilidade_kwh": entrada.disponibilidade_kwh,
-        "irradiacao": IrradiacaoMunicipio.objects.filter(municipio=proposta.uc.municipio, uf=proposta.uc.uf).first(),
+        "fonte_irradiacao": proposta.uc.municipio.fonte_irradiacao,
         "pct": {chave: valor * 100 for chave, valor in premissas.items() if isinstance(valor, float)},
         "premissas": premissas,
         "meses": meses,
