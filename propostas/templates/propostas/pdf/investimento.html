@@ -5,8 +5,21 @@
   <div class="doc-investimento">
     <div class="doc-rotulo">Investimento total</div>
     <div class="doc-investimento__valor">R$ {{ proposta.investimento|floatformat:"2g" }}</div>
-    <div class="doc-investimento__detalhe">Sistema completo, instalado e homologado · R$ {{ r.rs_por_wp|floatformat:2 }} por Wp</div>
+    <div class="doc-investimento__detalhe">Sistema completo, instalado e homologado{% if not v2 %} · R$ {{ r.rs_por_wp|floatformat:2 }} por Wp{% endif %}</div>
   </div>
+
+  {% if financiamento %}
+    <h3 class="doc-h3">Financiamento</h3>
+    <table class="doc-tabela doc-tabela--financiamento">
+      <thead><tr><th>Prazo</th><th class="num">Parcela aproximada</th><th>Banco</th></tr></thead>
+      <tbody>
+        {% for f in financiamento %}
+          <tr><td>{{ f.prazo }}×</td><td class="num">R$ {{ f.parcela|floatformat:"2g" }}</td><td>{{ f.banco }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p class="doc-nota">Melhor taxa entre os bancos parceiros em cada prazo. Parcelas aproximadas, sujeitas à análise de crédito e às taxas do dia da contratação.</p>
+  {% endif %}
 
   {% if etapas %}
     <h3 class="doc-h3">Etapas de execução</h3>
@@ -27,7 +40,11 @@
     <tbody>
       <tr><td>Validade da proposta</td><td>{{ proposta.validade_dias }} dias — até {{ validade_ate|date:"d/m/Y" }}</td></tr>
       <tr><td>Forma de pagamento</td><td>{{ proposta.forma_pagamento|default:"A combinar" }}</td></tr>
-      <tr><td>Documento de referência</td><td>Fatura {{ uc.concessionaria }} {{ fatura.competencia|date:"b/Y" }}{% if n_paginas_anexo %} (Anexo I){% endif %}</td></tr>
+      {% if fatura %}
+        <tr><td>Documento de referência</td><td>Fatura {{ uc.concessionaria }} {{ fatura.competencia|date:"b/Y" }}{% if n_paginas_anexo %} (Anexo I){% endif %}</td></tr>
+      {% else %}
+        <tr><td>Documento de referência</td><td>Consumo informado pelo cliente, sem fatura (estimativa)</td></tr>
+      {% endif %}
     </tbody>
   </table>
 

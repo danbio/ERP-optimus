@@ -30,7 +30,7 @@
       <tr><td>Unidade consumidora</td><td class="num">{{ uc.numero_uc }}</td></tr>
       <tr><td>Concessionária</td><td class="num">{{ uc.concessionaria }}</td></tr>
       <tr><td>Classificação</td><td class="num">Baixa tensão – {{ uc.get_classe_display }} · ligação {{ ligacao }}</td></tr>
-      <tr><td>Tarifa aplicada</td><td class="num">R$ {{ fatura.tarifa_kwh|floatformat:5 }}/kWh com tributos</td></tr>
+      <tr><td>Tarifa aplicada</td><td class="num">R$ {{ tarifa_kwh|floatformat:5 }}/kWh com tributos</td></tr>
       <tr><td>Consumo mensal equivalente</td><td class="num">{{ consumo_medio|floatformat:"0g" }} kWh</td></tr>
       <tr><td>Consumo anual projetado</td><td class="num">{{ r.consumo_anual|floatformat:"0g" }} kWh</td></tr>
     </tbody>

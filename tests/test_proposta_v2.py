@@ -319,3 +319,48 @@ def test_conta_de_hoje_e_o_valor_informado(base):
     _passo3(navegador, proposta)
     proposta.refresh_from_db()
     assert montar(proposta).conta_hoje == pytest.approx(500.0)
+
+
+# ---------- Fatia v2.6: PDF da v2 (D30)
+
+def _proposta_completa(base, **passo2):
+    navegador, proposta = _ate_passo2(base, **passo2)
+    _passo3(navegador, proposta)
+    proposta.refresh_from_db()
+    return navegador, proposta
+
+
+def test_preview_da_estimativa_tem_aviso_e_financiamento(base):
+    navegador, proposta = _proposta_completa(base)
+    html = navegador.get(reverse("propostas:preview", args=[proposta.pk])).content.decode()
+    aviso = ConfigEmpresa.obter().aviso_estimativa
+    assert html.count("faixa-estimativa") == 2 and aviso in html
+    assert "Consumo considerado" in html and "Análise da fatura" not in html
+    assert "Financiamento" in html and "60×" in html and "12×" in html
+    assert "por Wp" not in html  # R$/Wp é interno
+    assert "Anexo I" not in html
+    m = montar(proposta)
+    assert f"R$ {m.parcela['parcela']:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".") in html
+
+
+def test_preview_da_confirmada_usa_a_fatura(base):
+    navegador, proposta = _proposta_completa(
+        base, origem_consumo="fatura", conta_informada="", numero_uc="123456", endereco="Rua 1, Centro",
+        competencia="2026-09-01", fatura_kwh="620", dias_ciclo="31", valor_fatura="845,30", cpf_cnpj="529.982.247-25")
+    html = navegador.get(reverse("propostas:preview", args=[proposta.pk])).content.decode()
+    assert "faixa-estimativa" not in html
+    assert "Análise da fatura de referência" in html and "UC 123456" in html
+
+
+def test_preview_de_rascunho_incompleto_diz_o_que_falta(base):
+    navegador, proposta = _ate_passo2(base)
+    TarifaVigente.objects.update(fiob_kwh=None)
+    resposta = navegador.get(reverse("propostas:preview", args=[proposta.pk]))
+    assert resposta.status_code == 422
+    assert "Configurações → Tarifas" in resposta.content.decode()
+
+
+def test_passo4_tem_botao_do_pdf(base):
+    navegador, proposta = _proposta_completa(base)
+    html = navegador.get(reverse("propostas:passo", args=[proposta.pk, 4])).content.decode()
+    assert reverse("propostas:pdf", args=[proposta.pk]) in html

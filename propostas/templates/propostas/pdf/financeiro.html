@@ -5,7 +5,7 @@
   <div class="doc-kpis">
     <div class="doc-kpi">
       <div class="doc-kpi__valor">R$ {{ r.custo_mensal_atual|floatformat:"0g" }}</div>
-      <div class="doc-kpi__rotulo">Custo mensal de energia atual<br>(consumo × tarifa da fatura)</div>
+      <div class="doc-kpi__rotulo">Custo mensal de energia atual<br>(consumo × tarifa)</div>
     </div>
     <div class="doc-kpi">
       <div class="doc-kpi__valor">R$ {{ r.custo_mensal_com_sistema|floatformat:"0g" }}</div>
@@ -30,7 +30,7 @@
   </table>
 
   <p class="doc-nota">
-    <strong>Premissas:</strong> tarifa de R$ {{ fatura.tarifa_kwh|floatformat:5 }}/kWh com tributos (fatura {{ fatura.competencia|date:"b/Y" }}), sem bandeiras;
+    <strong>Premissas:</strong> tarifa de R$ {{ tarifa_kwh|floatformat:5 }}/kWh com tributos ({{ base_tarifa }}), sem bandeiras;
     reajuste de {{ pct.reajuste_anual|floatformat:"-1" }}% a.a.;
     {{ pct.simultaneidade|floatformat:"-1" }}% do consumo simultâneo à geração (autoconsumo instantâneo);
     Fio B de R$ {{ fiob_kwh|floatformat:2 }}/kWh aplicado à energia compensada na proporção de {{ texto_fiob }};

@@ -639,4 +639,27 @@
     border: 1px dashed var(--soft);
     color: var(--muted);
   }
+
+  /* Proposta v2 (D30): aviso da estimativa e financiamento na página de investimento */
+  .faixa-estimativa {
+    background: var(--aviso);
+    border-left: 2mm solid var(--gold);
+    color: var(--ink);
+    font-size: 8.5pt;
+    font-weight: 500;
+    padding: 2.5mm 4mm;
+    margin: 0 0 5mm;
+  }
+
+  .capa__cliente .faixa-estimativa {
+    margin-top: 5mm;
+  }
+
+  .doc-tabela.doc-tabela--financiamento {
+    font-size: 8pt;
+
+    & th, & td {
+      padding: 1.2mm 3mm;
+    }
+  }
 }
