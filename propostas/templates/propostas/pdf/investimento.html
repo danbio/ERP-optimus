@@ -1,0 +1,49 @@
+<section class="pagina">
+  {% include "propostas/pdf/_cabecalho.html" %}
+  <h2 class="doc-h2">Investimento e aceite</h2>
+
+  <div class="doc-investimento">
+    <div class="doc-rotulo">Investimento total</div>
+    <div class="doc-investimento__valor">R$ {{ proposta.investimento|floatformat:"2g" }}</div>
+    <div class="doc-investimento__detalhe">Sistema completo, instalado e homologado · R$ {{ r.rs_por_wp|floatformat:2 }} por Wp</div>
+  </div>
+
+  {% if etapas %}
+    <h3 class="doc-h3">Etapas de execução</h3>
+    <ol class="etapas">
+      {% for etapa in etapas %}
+        <li class="etapa">
+          <span class="etapa__numero">{{ forloop.counter }}</span>
+          <strong>{{ etapa.titulo }}</strong>
+          <span>{{ etapa.descricao }}</span>
+        </li>
+      {% endfor %}
+    </ol>
+  {% endif %}
+
+  <h3 class="doc-h3">Condições</h3>
+  <table class="doc-tabela doc-tabela--condicoes">
+    <thead><tr><th>Item</th><th>Descrição</th></tr></thead>
+    <tbody>
+      <tr><td>Validade da proposta</td><td>{{ proposta.validade_dias }} dias — até {{ validade_ate|date:"d/m/Y" }}</td></tr>
+      <tr><td>Forma de pagamento</td><td>{{ proposta.forma_pagamento|default:"A combinar" }}</td></tr>
+      <tr><td>Documento de referência</td><td>Fatura {{ uc.concessionaria }} {{ fatura.competencia|date:"b/Y" }}{% if n_paginas_anexo %} (Anexo I){% endif %}</td></tr>
+    </tbody>
+  </table>
+
+  <section class="doc-aceite">
+    <h3 class="doc-h3">Aceite da proposta</h3>
+    <div class="doc-aceite__grade">
+      <div class="doc-assinatura">
+        <strong>{{ empresa.razao_social|upper }}</strong>
+        <span>CNPJ {{ empresa.cnpj }}</span>
+      </div>
+      <div class="doc-assinatura">
+        <strong>{{ cliente.nome|upper }}</strong>
+        <span>CPF/CNPJ: {{ cliente.cpf_cnpj|default:"______________________" }}</span>
+        <span>Data: ____ / ____ / ________</span>
+      </div>
+    </div>
+  </section>
+  {% include "propostas/pdf/_rodape.html" %}
+</section>

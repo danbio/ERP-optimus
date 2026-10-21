@@ -1,0 +1,26 @@
+<section class="pagina pagina--capa">
+  <div class="capa__topo">
+    <img src="{{ base_estatico }}/img/logo.png" alt="{{ empresa.nome_fantasia }}" class="capa__logo">
+    <div class="doc-sobretitulo">Proposta comercial</div>
+    <h1 class="capa__titulo">Sistema Fotovoltaico<br>On-grid {{ kwp|floatformat:2 }} kWp</h1>
+    <p class="capa__subtitulo">Projeto, fornecimento, instalação e homologação de usina solar conectada à rede.</p>
+  </div>
+
+  <div class="capa__cliente">
+    <div class="doc-rotulo">Cliente</div>
+    <div class="capa__nome">{{ cliente.nome }}</div>
+    <p class="capa__dados">
+      {% if cliente.razao_social %}{{ cliente.razao_social }} · {% endif %}{{ uc.municipio }} – {{ uc.uf }}<br>
+      UC {{ uc.numero_uc }} · {{ uc.endereco }}
+    </p>
+    <div class="capa__grade">
+      <div><div class="doc-rotulo">Nº da proposta</div>{{ proposta.numero }}{% if proposta.versao > 1 %} v{{ proposta.versao }}{% endif %}</div>
+      <div><div class="doc-rotulo">Emissão</div>{{ emissao|date:"d/m/Y" }}</div>
+      <div><div class="doc-rotulo">Válida até</div>{{ validade_ate|date:"d/m/Y" }}</div>
+    </div>
+    <div class="capa__rodape">
+      <span>{{ empresa.nome_fantasia }} · {{ empresa.telefone }}</span>
+      <span>{% if empresa.projetos_entregues %}+{{ empresa.projetos_entregues }} projetos entregues{% endif %}{% if empresa.anos_atuacao %} · +{{ empresa.anos_atuacao }} anos de atuação{% endif %}</span>
+    </div>
+  </div>
+</section>

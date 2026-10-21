@@ -1,0 +1,45 @@
+<section class="pagina">
+  {% include "propostas/pdf/_cabecalho.html" %}
+  <h2 class="doc-h2">Geração estimada × consumo</h2>
+
+  <div class="grafico">{{ grafico_geracao|safe }}</div>
+
+  <table class="doc-tabela doc-tabela--meses">
+    <thead>
+      <tr><th>kWh</th>{% for m in meses %}<th class="num">{{ m.mes }}</th>{% endfor %}</tr>
+    </thead>
+    <tbody>
+      <tr><td>Geração</td>{% for m in meses %}<td class="num">{{ m.geracao|floatformat:"0g" }}</td>{% endfor %}</tr>
+      <tr><td>Consumo</td>{% for m in meses %}<td class="num">{{ m.consumo|floatformat:"0g" }}</td>{% endfor %}</tr>
+      <tr><td>Saldo</td>{% for m in meses %}<td class="num">{% if m.saldo >= 0 %}+{% endif %}{{ m.saldo|floatformat:"0g" }}</td>{% endfor %}</tr>
+    </tbody>
+  </table>
+
+  <div class="doc-kpis">
+    <div class="doc-kpi">
+      <div class="doc-kpi__valor">{{ r.geracao_anual|floatformat:"0g" }} kWh</div>
+      <div class="doc-kpi__rotulo">Geração anual estimada</div>
+    </div>
+    <div class="doc-kpi">
+      <div class="doc-kpi__valor">{{ r.consumo_anual|floatformat:"0g" }} kWh</div>
+      <div class="doc-kpi__rotulo">Consumo anual projetado</div>
+    </div>
+    <div class="doc-kpi">
+      <div class="doc-kpi__valor">{{ r.produtividade|floatformat:1 }} kWh/kWp</div>
+      <div class="doc-kpi__rotulo">Produtividade mensal média</div>
+    </div>
+  </div>
+
+  <h3 class="doc-h3">Metodologia de cálculo</h3>
+  <table class="doc-tabela doc-tabela--condicoes">
+    <thead><tr><th>Parâmetro</th><th>Critério adotado</th></tr></thead>
+    <tbody>
+      <tr><td>Irradiação</td><td>Médias mensais no plano horizontal, sem ganho de inclinação{% if irradiacao.fonte %} (fonte: {{ irradiacao.fonte }}){% endif %}</td></tr>
+      <tr><td>Perdas do sistema</td><td>{{ pct.perdas|floatformat:"-1" }}% — temperatura, sujeira, cabeamento, conversão e descasamento</td></tr>
+      <tr><td>Limitação dos inversores</td><td>{{ pct.perda_clipping|floatformat:"-1" }}% adicional (razão CC/CA de {{ razao_cc_ca|floatformat:2 }})</td></tr>
+      <tr><td>Fórmula</td><td>kWp × irradiação × dias do mês × (1 – perdas) × (1 – limitação)</td></tr>
+    </tbody>
+  </table>
+  <p class="doc-nota">Valores estimados. A geração real varia conforme o clima de cada ano, a orientação do telhado e a manutenção do sistema.</p>
+  {% include "propostas/pdf/_rodape.html" %}
+</section>

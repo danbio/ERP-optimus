@@ -23,7 +23,7 @@ python manage.py migrate
 python manage.py runserver 0.0.0.0:8000
 ```
 
-Para o PDF (orçamentos), instalar o Chromium do Playwright uma única vez:
+Para os PDFs (proposta e orçamento), instalar o Chromium do Playwright uma única vez:
 
 ```powershell
 python -m playwright install chromium

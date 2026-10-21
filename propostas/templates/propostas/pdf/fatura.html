@@ -1,0 +1,61 @@
+<section class="pagina">
+  {% include "propostas/pdf/_cabecalho.html" %}
+  <h2 class="doc-h2">Análise da fatura de referência</h2>
+  <p class="doc-intro">Dimensionamento baseado na fatura de {{ fatura.competencia|date:"b/Y" }}{% if fatura.arquivo %} (Anexo I){% endif %}. O consumo mensal foi obtido pela média diária do ciclo faturado.</p>
+
+  <div class="doc-kpis doc-kpis--4">
+    <div class="doc-kpi">
+      <div class="doc-kpi__valor">{{ fatura.kwh|floatformat:"0g" }} kWh</div>
+      <div class="doc-kpi__rotulo">Consumo faturado</div>
+    </div>
+    <div class="doc-kpi">
+      <div class="doc-kpi__valor">{{ fatura.dias_ciclo }} dias</div>
+      <div class="doc-kpi__rotulo">Ciclo de leitura</div>
+    </div>
+    <div class="doc-kpi">
+      <div class="doc-kpi__valor">{{ media_diaria|floatformat:"1g" }} kWh</div>
+      <div class="doc-kpi__rotulo">Média diária</div>
+    </div>
+    <div class="doc-kpi">
+      <div class="doc-kpi__valor">R$ {{ fatura.valor_total|floatformat:"2g" }}</div>
+      <div class="doc-kpi__rotulo">Valor da fatura<br>{{ fatura.competencia|date:"b/Y" }}</div>
+    </div>
+  </div>
+
+  <h3 class="doc-h3">Dados da unidade consumidora</h3>
+  <table class="doc-tabela">
+    <thead><tr><th>Item</th><th class="num">Valor</th></tr></thead>
+    <tbody>
+      <tr><td>Titular</td><td class="num">{{ cliente.nome }}</td></tr>
+      <tr><td>Unidade consumidora</td><td class="num">{{ uc.numero_uc }}</td></tr>
+      <tr><td>Concessionária</td><td class="num">{{ uc.concessionaria }}</td></tr>
+      <tr><td>Classificação</td><td class="num">Baixa tensão – {{ uc.get_classe_display }} · ligação {{ ligacao }}</td></tr>
+      <tr><td>Tarifa aplicada</td><td class="num">R$ {{ fatura.tarifa_kwh|floatformat:5 }}/kWh com tributos</td></tr>
+      <tr><td>Consumo mensal equivalente</td><td class="num">{{ consumo_medio|floatformat:"0g" }} kWh</td></tr>
+      <tr><td>Consumo anual projetado</td><td class="num">{{ r.consumo_anual|floatformat:"0g" }} kWh</td></tr>
+    </tbody>
+  </table>
+
+  {% if fatura.composicao %}
+    <h3 class="doc-h3">Composição do valor da fatura</h3>
+    <div class="composicao">
+      {% for parte in fatura.composicao %}
+        <span class="composicao__parte composicao__parte--{% cycle 1 2 3 4 5 6 %}" style="width: {{ parte.pct|stringformat:'.2f' }}%"></span>
+      {% endfor %}
+    </div>
+    <ul class="composicao__legenda">
+      {% for parte in fatura.composicao %}
+        <li><span class="composicao__cor composicao__parte--{% cycle 1 2 3 4 5 6 %}"></span>{{ parte.item }} {{ parte.pct|floatformat:2 }}%</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  <p class="doc-nota">
+    {% if fiob_informado %}
+      TUSD Fio B informada: R$ {{ fiob_kwh|floatformat:4 }}/kWh. É a parcela cobrada sobre a energia compensada, conforme a Lei 14.300/2022.
+    {% else %}
+      O serviço de distribuição (R$ {{ fatura.valor_distribuicao|floatformat:"2g" }} no mês, ≈ R$ {{ fiob_kwh|floatformat:2 }}/kWh com tributos) é a parcela usada como referência para a cobrança do Fio B sobre a energia compensada, conforme a Lei 14.300/2022.
+    {% endif %}
+  </p>
+  {% include "propostas/pdf/_rodape.html" %}
+</section>

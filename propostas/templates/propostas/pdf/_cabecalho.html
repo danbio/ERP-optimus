@@ -1,0 +1,4 @@
+<header class="pagina__cabecalho">
+  <img src="{{ base_estatico }}/img/logo.png" alt="{{ empresa.nome_fantasia }}" class="pagina__logo">
+  <span class="pagina__ref">Proposta nº {{ proposta.numero }}{% if proposta.versao > 1 %} v{{ proposta.versao }}{% endif %} · {{ cliente.nome }}</span>
+</header>

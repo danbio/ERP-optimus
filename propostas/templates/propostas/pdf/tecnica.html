@@ -1,0 +1,26 @@
+<section class="pagina">
+  {% include "propostas/pdf/_cabecalho.html" %}
+  <h2 class="doc-h2">Solução técnica e escopo</h2>
+
+  <div class="kit">
+    {% for item in itens_kit %}
+      <div class="kit__item">
+        <div class="kit__qtd">{{ item.quantidade }}×</div>
+        <div>
+          <strong>{{ item.descricao }}</strong>
+          {% if item.modelo %}<span>{{ item.modelo }}</span>{% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  {% if escopo %}
+    <h3 class="doc-h3">Escopo incluso</h3>
+    <ul class="doc-checks">
+      {% for linha in escopo %}<li>{{ linha }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+
+  <p class="doc-sobre">O valor da proposta contempla o sistema completo, instalado e homologado, sem custos adicionais.</p>
+  {% include "propostas/pdf/_rodape.html" %}
+</section>

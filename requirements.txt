@@ -13,6 +13,10 @@ pillow==12.3.0
 pyxlsb==1.0.10
 playwright==1.56.0
 
-# Demais dependências do stack (matplotlib, pypdf, waitress)
+# Fatia 5: gráficos SVG da proposta e mescla da fatura no Anexo I (D16).
+matplotlib==3.11.2
+pypdf==6.21.1
+
+# Demais dependências do stack (waitress)
 # entram nas fatias em que forem efetivamente usadas —
 # ver docs/decisoes.md para a justificativa de cada uma.

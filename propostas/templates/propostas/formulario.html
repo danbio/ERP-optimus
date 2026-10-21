@@ -97,6 +97,10 @@
 
       <button type="submit" class="btn">Salvar</button>
       <a href="{% url 'propostas:lista' %}" class="btn btn--secundario">Cancelar</a>
+      {% if proposta %}
+        <a href="{% url 'propostas:preview' proposta.pk %}" class="btn btn--secundario" target="_blank">Preview</a>
+        <a href="{% url 'propostas:pdf' proposta.pk %}" class="btn btn--ouro" target="_blank">Gerar PDF</a>
+      {% endif %}
     </form>
   </div>
 

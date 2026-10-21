@@ -87,6 +87,13 @@ Formato: data · decisão · motivo · alternativas descartadas.
 - **Instalação no Windows:** `pip install playwright` + `python -m playwright install chromium` (uma vez).
 - `MEDIA_ROOT` foi adicionado ao `settings.py`, porque já havia FileFields sem pasta definida.
 
+## D16 · 2026-10-21 · PDF da proposta: páginas A4 fixas, gráficos matplotlib, anexo com pypdf
+- **Páginas fixas:** cada página do PDF é um `<section class="pagina">` de 210 × 297 mm com cabeçalho e rodapé próprios, e o número `n/total` vem do template. Motivo: a capa não tem cabeçalho nem rodapé, o que o rodapé do Chromium (usado no orçamento) não permite, e o preview na tela fica idêntico ao PDF. Risco aceito: texto longo demais é cortado no fim da página em vez de passar para a seguinte; os textos da proposta são curtos.
+- **Gráficos:** `matplotlib` gera SVG (texto como texto, fonte Poppins da página). As cores são lidas de `tokens.css`, que continua o único lugar com cores literais.
+- **Anexo I:** o HTML já traz uma página "moldura" por página da fatura; depois do Playwright, o `pypdf` carimba cada página da fatura reduzida dentro da moldura. A numeração sai certa numa única renderização.
+- **Textos padrão:** migration `core/0003` preenche benefícios, escopo, etapas e "Sobre" da `ConfigEmpresa` com os textos da proposta Alesio v2, só onde estiverem vazios. Editáveis no admin.
+- **Nesta fatia o PDF é gerado sob demanda e não é guardado.** Gravar o PDF, congelar o snapshot e numerar versões é a fatia 6.
+
 ## Pendências de validação
 - [ ] Regra de custo de disponibilidade para GD após a Lei 14.300 (item 3 de D08).
 - [ ] Valor da TUSD Fio B vigente na Energisa TO por subgrupo (B1/B2/B3).
