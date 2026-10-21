@@ -161,6 +161,13 @@ Formato: data · decisão · motivo · alternativas descartadas.
 - **Tarifas ANEEL:** conjunto "Tarifas de Aplicação", distribuidora `ETO`, modalidade Convencional, linha sem detalhe (a linha "SCEE" é a da energia compensada). Valores em R$/MWh, convertidos para R$/kWh. B1 baixa renda usa a subclasse "Baixa Renda" (sem as faixas do desconto social).
 - **Bandeiras:** conjunto "Bandeira Tarifária - Adicional" da ANEEL (resolução mais recente), em vez de digitação.
 
+## D28 · 2026-10-21 · Catálogo solar e memória de cotações (fatia v2.4)
+- **Catálogo Belenus:** a listagem logada da Belenus traz preço unitário (conta Optimus, sem frete), foto e datasheet (URL pública). O comando `importar_belenus` lê o CSV gerado por `importar/extrair_belenus.py` (pasta fora do Git) e grava `Equipamento` com `preco_referencia` e a data. Fotos e datasheets são copiados de `importar/belenus/` para `media/`. O preço por item ainda **não** entra no custo do kit (D18 continua: custo do kit = cotação real ou R$/Wp da última cotação). Fica só como referência na tela.
+- **Tipo `microinversor`:** separado de `inversor`, para o dimensionamento (que escolhe um inversor string por sobrecarga) não sugerir microinversor.
+- **Fase e tensão** do inversor e **tipo de estrutura** são lidos da descrição do distribuidor ("Monofasico 220v", "Trifasico 380v", "Colonial", "Fibrocimento", "Telha Metalica", "Laje", "Solo"). O que não for reconhecido fica vazio e pode ser corrigido na tela.
+- **Cotação:** `rs_por_wp = total / (kWp × 1000)`, com frete. A referência de cada distribuidor é a cotação mais recente. Ela fica "velha" depois de `ConfigEmpresa.dias_preco_velho` dias (15).
+- **Menu:** "Catálogo solar" (equipamentos e cotações), separado do "Catálogo Intelbras" dos orçamentos.
+
 ## Pendências de validação
 - [ ] Regra de custo de disponibilidade para GD após a Lei 14.300 (item 3 de D08).
 - [ ] Valor da TUSD Fio B vigente na Energisa TO por subgrupo (B1/B2/B3).

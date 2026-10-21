@@ -1,0 +1,55 @@
+{% extends "propostas/catalogo/_base.html" %}
+
+{% block catalogo %}
+  <div class="card">
+    <div class="barra-acoes barra-acoes--plana">
+      <h3>Preço de referência do kit por distribuidor</h3>
+      <span class="barra-acoes__espaco"></span>
+      <a href="{% url 'propostas:solar_cotacao_nova' %}" class="btn">+ cotação</a>
+    </div>
+    <p class="ajuda">R$/Wp do kit inteiro, com frete, da cotação mais recente de cada distribuidor. É o que a proposta usa enquanto não há cotação própria. Mais de {{ dias_velho }} dias: peça cotação nova.</p>
+    <div class="itens-rolagem">
+      <table class="tabela">
+        <thead><tr><th>Distribuidor</th><th class="num">R$/Wp</th><th>Cotação</th><th class="num">kWp</th><th class="num">Total</th><th>Idade</th></tr></thead>
+        <tbody>
+          {% for c in referencias %}
+            <tr>
+              <td>{{ c.distribuidor }}</td>
+              <td class="num"><strong>{{ c.rs_por_wp|floatformat:2 }}</strong></td>
+              <td><a href="{% url 'propostas:solar_cotacao' c.pk %}">{{ c.numero|default:"sem número" }}</a></td>
+              <td class="num">{{ c.kwp|floatformat:2 }}</td>
+              <td class="num">R$ {{ c.total|floatformat:"2g" }}</td>
+              <td>{% if c.idade_dias > dias_velho %}<span class="situacao--alerta">{{ c.idade_dias }} dias: preço velho</span>{% elif c.idade_dias == 0 %}hoje{% else %}{{ c.idade_dias }} dia{{ c.idade_dias|pluralize }}{% endif %}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="6">Nenhuma cotação. Cadastre a primeira em "+ cotação".</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Todas as cotações</h3>
+    <div class="itens-rolagem">
+      <table class="tabela">
+        <thead><tr><th>Data</th><th>Distribuidor</th><th>Número</th><th class="num">kWp</th><th class="num">Produtos</th><th class="num">Frete</th><th class="num">Total</th><th class="num">R$/Wp</th><th>Proposta</th></tr></thead>
+        <tbody>
+          {% for c in cotacoes %}
+            <tr>
+              <td>{{ c.data|date:"d/m/Y" }}</td>
+              <td>{{ c.distribuidor }}</td>
+              <td><a href="{% url 'propostas:solar_cotacao' c.pk %}">{{ c.numero|default:"sem número" }}</a>{% if c.arquivo %} · <a href="{{ c.arquivo.url }}" target="_blank" rel="noopener">PDF</a>{% endif %}</td>
+              <td class="num">{{ c.kwp|floatformat:2 }}</td>
+              <td class="num">{{ c.total_produtos|floatformat:"2g" }}</td>
+              <td class="num">{{ c.frete|floatformat:"2g" }}</td>
+              <td class="num">{{ c.total|floatformat:"2g" }}</td>
+              <td class="num">{{ c.rs_por_wp|floatformat:2 }}</td>
+              <td>{{ c.proposta.numero|default:"—" }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endblock %}

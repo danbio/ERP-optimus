@@ -1,3 +1,5 @@
+from datetime import date
+
 from django.db import models
 from django.utils import timezone
 
@@ -235,3 +237,123 @@ class TaxaFinanciamento(models.Model):
 
     def __str__(self):
         return f"{self.banco} {self.prazo_meses}×: {self.taxa_mensal * 100:.2f}% a.m."
+
+
+class Equipamento(models.Model):
+    """Catálogo de referência dos distribuidores (D18, D28). Base da sugestão de módulo e inversor."""
+
+    class Tipo(models.TextChoices):
+        MODULO = "modulo", "Módulo"
+        INVERSOR = "inversor", "Inversor"
+        MICROINVERSOR = "microinversor", "Microinversor"
+        ESTRUTURA = "estrutura", "Estrutura"
+        CABO = "cabo", "Cabo"
+        CONECTOR = "conector", "Conector"
+        OUTRO = "outro", "Outro"
+
+    class Fase(models.TextChoices):
+        MONO = "mono", "Monofásico (220 V)"
+        TRI = "tri", "Trifásico (380 V)"
+
+    class TipoEstrutura(models.TextChoices):
+        CERAMICA = "ceramica", "Telha cerâmica"
+        FIBROCIMENTO = "fibrocimento", "Fibrocimento"
+        METALICA = "metalica", "Telha metálica"
+        LAJE = "laje", "Laje"
+        SOLO = "solo", "Solo"
+
+    tipo = models.CharField(max_length=15, choices=Tipo.choices)
+    distribuidor = models.CharField(max_length=60)
+    codigo = models.CharField("código", max_length=60)
+    fabricante = models.CharField(max_length=60, blank=True)
+    modelo = models.CharField(max_length=120, blank=True)
+    descricao = models.CharField("descrição", max_length=255)
+    potencia_w = models.PositiveIntegerField("potência (W)", null=True, blank=True)
+    fase = models.CharField(max_length=4, choices=Fase.choices, blank=True)
+    tensao = models.PositiveSmallIntegerField("tensão (V)", null=True, blank=True)
+    tipo_estrutura = models.CharField("tipo de estrutura", max_length=15, choices=TipoEstrutura.choices, blank=True)
+    area_m2 = models.DecimalField("área (m²)", max_digits=6, decimal_places=3, null=True, blank=True)
+    preco_referencia = models.DecimalField(
+        "preço de referência (R$)", max_digits=12, decimal_places=2, null=True, blank=True,
+        help_text="Preço unitário no site do distribuidor, sem frete. Só referência (D28).",
+    )
+    preco_em = models.DateField("preço consultado em", null=True, blank=True)
+    foto = models.FileField(upload_to="catalogo/fotos/", blank=True)
+    datasheet = models.FileField(upload_to="catalogo/datasheets/", blank=True)
+    ativo = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Equipamento"
+        verbose_name_plural = "Equipamentos"
+        ordering = ["tipo", "potencia_w", "descricao"]
+        constraints = [
+            models.UniqueConstraint(fields=["distribuidor", "codigo"], name="equipamento_distribuidor_codigo_unico")
+        ]
+
+    def __str__(self):
+        return f"{self.descricao} ({self.distribuidor})"
+
+    @property
+    def rs_por_wp(self):
+        if self.preco_referencia and self.potencia_w:
+            return self.preco_referencia / self.potencia_w
+        return None
+
+
+class Cotacao(models.Model):
+    """Memória de cotações (D18): o kit inteiro de um distribuidor, com frete."""
+
+    distribuidor = models.CharField(max_length=60)
+    numero = models.CharField("número", max_length=60, blank=True)
+    data = models.DateField()
+    validade = models.DateField("válida até", null=True, blank=True)
+    arquivo = models.FileField("PDF da cotação", upload_to="cotacoes/", blank=True)
+    kwp = models.DecimalField("kWp do kit", max_digits=8, decimal_places=3)
+    total_produtos = models.DecimalField("total dos produtos (R$)", max_digits=12, decimal_places=2)
+    frete = models.DecimalField("frete (R$)", max_digits=12, decimal_places=2, default=0)
+    total = models.DecimalField("total (R$)", max_digits=12, decimal_places=2)
+    proposta = models.ForeignKey(
+        Proposta, on_delete=models.SET_NULL, null=True, blank=True, related_name="cotacoes",
+    )
+    observacao = models.TextField("observação", blank=True)
+
+    class Meta:
+        verbose_name = "Cotação"
+        verbose_name_plural = "Cotações"
+        ordering = ["-data", "-pk"]
+
+    def __str__(self):
+        return f"{self.distribuidor} {self.numero} ({self.data:%d/%m/%Y})"
+
+    @property
+    def rs_por_wp(self):
+        return self.total / (self.kwp * 1000)
+
+    @property
+    def idade_dias(self):
+        return (date.today() - self.data).days
+
+    @classmethod
+    def referencias(cls):
+        """A cotação mais recente de cada distribuidor, a do menor R$/Wp primeiro."""
+        mais_recentes = {}
+        for cotacao in cls.objects.order_by("-data", "-pk"):
+            mais_recentes.setdefault(cotacao.distribuidor.lower(), cotacao)
+        return sorted(mais_recentes.values(), key=lambda c: c.rs_por_wp)
+
+
+class ItemCotado(models.Model):
+    cotacao = models.ForeignKey(Cotacao, on_delete=models.CASCADE, related_name="itens")
+    equipamento = models.ForeignKey(Equipamento, on_delete=models.SET_NULL, null=True, blank=True)
+    descricao = models.CharField("descrição", max_length=255)
+    codigo = models.CharField("código", max_length=60, blank=True)
+    quantidade = models.DecimalField(max_digits=10, decimal_places=2)
+    unidade = models.CharField(max_length=10, default="un")
+
+    class Meta:
+        verbose_name = "Item cotado"
+        verbose_name_plural = "Itens cotados"
+        ordering = ["pk"]
+
+    def __str__(self):
+        return f"{self.quantidade:g} {self.unidade} {self.descricao}"

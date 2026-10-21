@@ -1,0 +1,36 @@
+{% extends "propostas/catalogo/_base.html" %}
+
+{% block catalogo %}
+  <form method="post" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+    <div class="card">
+      <h3>{% if equipamento %}{{ equipamento.descricao }}{% else %}Novo equipamento{% endif %}</h3>
+      <div class="grade-campos grade-campos--3">
+        {% include "core/_campo.html" with campo=form.tipo %}
+        {% include "core/_campo.html" with campo=form.distribuidor %}
+        {% include "core/_campo.html" with campo=form.codigo %}
+        {% include "core/_campo.html" with campo=form.fabricante %}
+        {% include "core/_campo.html" with campo=form.modelo %}
+        {% include "core/_campo.html" with campo=form.potencia_w %}
+      </div>
+      {% include "core/_campo.html" with campo=form.descricao %}
+      <div class="grade-campos grade-campos--3">
+        {% include "core/_campo.html" with campo=form.fase %}
+        {% include "core/_campo.html" with campo=form.tensao %}
+        {% include "core/_campo.html" with campo=form.tipo_estrutura %}
+        {% include "core/_campo.html" with campo=form.area_m2 %}
+        {% include "core/_campo.html" with campo=form.preco_referencia %}
+        {% include "core/_campo.html" with campo=form.preco_em %}
+      </div>
+      <div class="grade-campos">
+        {% include "core/_campo.html" with campo=form.foto %}
+        {% include "core/_campo.html" with campo=form.datasheet %}
+      </div>
+      {% include "core/_campo.html" with campo=form.ativo %}
+    </div>
+    <div class="barra-acoes barra-acoes--plana">
+      <button type="submit" class="btn">Salvar</button>
+      <a href="{% url 'propostas:solar_equipamentos' %}" class="btn btn--secundario">Voltar</a>
+    </div>
+  </form>
+{% endblock %}

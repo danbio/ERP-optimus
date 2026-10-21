@@ -1,0 +1,44 @@
+{% extends "propostas/catalogo/_base.html" %}
+
+{% block catalogo %}
+  <div class="card">
+    <form method="get" class="barra-acoes barra-acoes--plana">
+      <select name="tipo" aria-label="Tipo">
+        <option value="">Todos os tipos</option>
+        {% for valor, rotulo in tipos %}<option value="{{ valor }}"{% if valor == tipo %} selected{% endif %}>{{ rotulo }}</option>{% endfor %}
+      </select>
+      <select name="distribuidor" aria-label="Distribuidor">
+        <option value="">Todos os distribuidores</option>
+        {% for d in distribuidores %}<option{% if d == distribuidor %} selected{% endif %}>{{ d }}</option>{% endfor %}
+      </select>
+      <input type="search" name="busca" class="busca busca--linha" placeholder="Descrição, código ou marca" value="{{ busca }}">
+      <button type="submit" class="btn btn--secundario">Filtrar</button>
+      <a href="{% url 'propostas:solar_equipamento_novo' %}" class="btn">+ equipamento</a>
+    </form>
+    <p class="ajuda">{{ equipamentos|length }} itens. Preço de referência é o do site do distribuidor, sem frete: o custo do kit vem da cotação.</p>
+
+    <div class="itens-rolagem">
+      <table class="tabela tabela--catalogo">
+        <thead>
+          <tr><th></th><th>Equipamento</th><th>Distribuidor</th><th class="num">Potência</th><th>Fase / estrutura</th><th class="num">Preço ref.</th><th class="num">R$/Wp</th><th>Datasheet</th></tr>
+        </thead>
+        <tbody>
+          {% for e in equipamentos %}
+            <tr{% if not e.ativo %} class="linha--inativa"{% endif %}>
+              <td>{% if e.foto %}<img src="{{ e.foto.url }}" alt="" class="miniatura" loading="lazy">{% endif %}</td>
+              <td><a href="{% url 'propostas:solar_equipamento' e.pk %}">{{ e.descricao }}</a><br><span class="ajuda">{{ e.codigo }}{% if e.fabricante %} · {{ e.fabricante }}{% endif %}{% if not e.ativo %} · inativo{% endif %}</span></td>
+              <td>{{ e.distribuidor }}</td>
+              <td class="num">{% if e.potencia_w %}{{ e.potencia_w }} W{% else %}—{% endif %}</td>
+              <td>{% if e.fase %}{{ e.get_fase_display }}{% elif e.tipo_estrutura %}{{ e.get_tipo_estrutura_display }}{% else %}—{% endif %}</td>
+              <td class="num">{% if e.preco_referencia %}R$ {{ e.preco_referencia|floatformat:"2g" }}{% else %}—{% endif %}</td>
+              <td class="num">{% if e.tipo == "modulo" and e.rs_por_wp %}{{ e.rs_por_wp|floatformat:3 }}{% else %}—{% endif %}</td>
+              <td>{% if e.datasheet %}<a href="{{ e.datasheet.url }}" target="_blank" rel="noopener">PDF</a>{% else %}—{% endif %}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="8">Nenhum equipamento com esse filtro.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endblock %}

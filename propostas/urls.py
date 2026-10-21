@@ -13,4 +13,10 @@ urlpatterns = [
     path("recalcular/", views.recalcular, name="recalcular"),
     path("kit/nova-linha/", views.kit_nova_linha, name="kit_nova_linha"),
     path("fatura/nova/", views.fatura_novo, name="fatura_novo"),
+    path("catalogo/", views.solar_equipamentos, name="solar_equipamentos"),
+    path("catalogo/novo/", views.solar_equipamento, name="solar_equipamento_novo"),
+    path("catalogo/<int:pk>/", views.solar_equipamento, name="solar_equipamento"),
+    path("cotacoes/", views.solar_cotacoes, name="solar_cotacoes"),
+    path("cotacoes/nova/", views.solar_cotacao, name="solar_cotacao_nova"),
+    path("cotacoes/<int:pk>/", views.solar_cotacao, name="solar_cotacao"),
 ]
