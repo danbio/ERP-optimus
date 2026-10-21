@@ -1,0 +1,39 @@
+<h2>Quanto ele consome?</h2>
+<p class="ajuda">Use o dado que o cliente tiver na hora.</p>
+
+<fieldset class="opcoes-consumo">
+  <legend class="sr-only">Como informar o consumo</legend>
+  {% for opcao in form.origem_consumo %}
+    <label class="opcoes-consumo__opcao">{{ opcao.tag }} {{ opcao.choice_label }}</label>
+  {% endfor %}
+  {% for erro in form.origem_consumo.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+</fieldset>
+
+<div class="grade-campos consumo-por consumo-por--rs">
+  {% include "core/_campo.html" with campo=form.conta_informada %}
+  {% include "core/_campo.html" with campo=form.iluminacao_publica %}
+  {% include "core/_campo.html" with campo=form.bandeira %}
+</div>
+<div class="grade-campos consumo-por consumo-por--kwh">
+  {% include "core/_campo.html" with campo=form.kwh_informado %}
+</div>
+<div class="consumo-por consumo-por--fatura">
+  <p class="ajuda">Com a fatura a proposta sai como <strong>confirmada</strong>, sem o aviso de estimativa. Copie os dados da conta.</p>
+  <div class="grade-campos">
+    {% include "core/_campo.html" with campo=form.numero_uc %}
+    {% include "core/_campo.html" with campo=form.endereco %}
+    {% include "core/_campo.html" with campo=form.competencia %}
+    {% include "core/_campo.html" with campo=form.fatura_kwh %}
+    {% include "core/_campo.html" with campo=form.dias_ciclo %}
+    {% include "core/_campo.html" with campo=form.valor_fatura %}
+    {% include "core/_campo.html" with campo=form.cpf_cnpj %}
+    {% include "core/_campo.html" with campo=form.arquivo_fatura %}
+  </div>
+</div>
+
+<div class="grade-campos">
+  {% include "core/_campo.html" with campo=form.folga %}
+  {% include "core/_campo.html" with campo=form.perfil_simultaneidade %}
+</div>
+
+{% include "propostas/v2/_destaque.html" %}

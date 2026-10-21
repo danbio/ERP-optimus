@@ -86,11 +86,11 @@ def _dados_formulario(uc, fatura):
 def test_criar_proposta_alesio_pela_view(uc_alesio, fatura_alesio):
     cliente_http = Client()
 
-    resposta_get = cliente_http.get(reverse("propostas:nova"))
+    resposta_get = cliente_http.get(reverse("propostas:legado_nova"))
     assert resposta_get.status_code == 200
 
     resposta_post = cliente_http.post(
-        reverse("propostas:nova"), data=_dados_formulario(uc_alesio, fatura_alesio)
+        reverse("propostas:legado_nova"), data=_dados_formulario(uc_alesio, fatura_alesio)
     )
     if resposta_post.status_code != 302:
         erros = resposta_post.context["proposta_form"].errors

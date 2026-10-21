@@ -1,0 +1,10 @@
+<h2>Quem é o cliente?</h2>
+<p class="ajuda">Para a estimativa bastam nome, telefone e município. CPF, UC e endereço só na proposta com fatura.</p>
+<div class="grade-campos">
+  {% include "core/_campo.html" with campo=form.nome %}
+  {% include "core/_campo.html" with campo=form.telefone %}
+  {% include "core/_campo.html" with campo=form.municipio %}
+  {% include "core/_campo.html" with campo=form.cpf_cnpj %}
+  {% include "core/_campo.html" with campo=form.ligacao %}
+  {% include "core/_campo.html" with campo=form.tipo_tarifa %}
+</div>

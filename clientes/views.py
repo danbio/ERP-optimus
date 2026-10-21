@@ -26,7 +26,7 @@ def ficha(request, pk):
     return render(request, "clientes/ficha.html", {
         "cliente": cliente,
         "ucs": cliente.unidades_consumidoras.select_related("municipio"),
-        "propostas": Proposta.objects.filter(uc__cliente=cliente).order_by("-pk"),
+        "propostas": Proposta.objects.filter(cliente=cliente).order_by("-pk"),
     })
 
 

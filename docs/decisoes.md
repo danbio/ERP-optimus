@@ -168,6 +168,17 @@ Formato: data · decisão · motivo · alternativas descartadas.
 - **Cotação:** `rs_por_wp = total / (kWp × 1000)`, com frete. A referência de cada distribuidor é a cotação mais recente. Ela fica "velha" depois de `ConfigEmpresa.dias_preco_velho` dias (15).
 - **Menu:** "Catálogo solar" (equipamentos e cotações), separado do "Catálogo Intelbras" dos orçamentos.
 
+## D29 · 2026-10-21 · Detalhes da tela de 4 passos (fatia v2.5)
+- **Rotas:** "Nova proposta" abre os 4 passos (`/propostas/nova/` → `/propostas/<id>/passo/<n>/`). Cada passo é um formulário normal que salva o rascunho e vai para o próximo; o resumo lateral e os números do passo são recalculados por HTMX enquanto o vendedor digita. As propostas antigas (fatia 4, com UC e fatura completas) continuam abrindo no formulário antigo (`origem_consumo` vazio).
+- **Cliente:** no passo 1, se o CPF/CNPJ ou o telefone já existem, a proposta usa a ficha existente (sem duplicar) e completa o que faltava. Ligação e tipo de tarifa ficam na proposta.
+- **Fatura (proposta confirmada):** no passo 2, a aba "Tenho a fatura" pede número da UC, endereço, mês, kWh, dias do ciclo, valor total e o PDF; cria a UC (se nova) e a `FaturaReferencia`. Tarifa, serviço de distribuição e tributos da fatura passam a ser opcionais: a v2 usa `TarifaVigente`. Exige CPF/CNPJ do cliente.
+- **Sem tributos ou sem Fio B na tarifa** (Configurações → Tarifas), o sistema não calcula a economia e diz onde preencher. Não há valor inventado.
+- **Módulo sugerido:** o da cotação de referência de menor R$/Wp (`Cotacao.referencias()`); inversor do mesmo distribuidor e da fase da ligação (se não houver, de qualquer distribuidor). Cabos: as metragens da mesma cotação.
+- **Custo do kit** em branco: `kWp × 1000 × R$/Wp` da cotação de referência do distribuidor do módulo, com aviso. Escolher uma cotação para a proposta usa o total dela.
+- **Desconto:** um campo só, em % ("5%") ou em reais ("300,00"), aplicado só na mão de obra e guardado em reais.
+- **Modo cliente:** chave guardada na sessão do navegador; esconde tudo marcado como interno.
+- **Prazo de comparação:** o vendedor toca num prazo da tabela de financiamento; fica salvo na proposta (`prazo_comparacao`) para o PDF.
+
 ## Pendências de validação
 - [ ] Regra de custo de disponibilidade para GD após a Lei 14.300 (item 3 de D08).
 - [ ] Valor da TUSD Fio B vigente na Energisa TO por subgrupo (B1/B2/B3).

@@ -6,8 +6,13 @@ app_name = "propostas"
 
 urlpatterns = [
     path("", views.lista, name="lista"),
-    path("nova/", views.formulario, name="nova"),
-    path("<int:pk>/editar/", views.formulario, name="editar"),
+    path("nova/", views.proposta_nova, name="nova"),
+    path("<int:pk>/", views.proposta_abrir, name="editar"),
+    path("<int:pk>/passo/<int:n>/", views.proposta_passo, name="passo"),
+    path("<int:pk>/passo/<int:n>/previa/", views.proposta_previa, name="previa"),
+    path("modo-cliente/", views.alternar_modo_cliente, name="modo_cliente"),
+    path("antiga/nova/", views.formulario, name="legado_nova"),
+    path("antiga/<int:pk>/editar/", views.formulario, name="legado_editar"),
     path("<int:pk>/preview/", views.preview, name="preview"),
     path("<int:pk>/pdf/", views.pdf, name="pdf"),
     path("recalcular/", views.recalcular, name="recalcular"),
