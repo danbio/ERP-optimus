@@ -3,6 +3,7 @@ from pathlib import Path
 
 from django.conf import settings
 from django.contrib import messages
+from django.db import transaction
 from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -17,6 +18,7 @@ from core.pdf import ErroPDF, html_para_pdf
 from core.validacoes import formatar_reais
 
 from .forms import (
+    AceiteForm,
     CotacaoForm,
     EquipamentoForm,
     FaturaReferenciaForm,
@@ -25,10 +27,12 @@ from .forms import (
     Passo1Form,
     Passo2Form,
     Passo3Form,
+    PerdaForm,
     PremissasForm,
     PropostaForm,
 )
 from .models import Cotacao, Equipamento, FaturaReferencia, FioBEscalonamento, ItemKit, Proposta
+from . import emissao
 from .montagem import gravar_resultado, montar, premissas_da_proposta
 from .services import graficos
 from .services.calculo import EntradaCalculo, calcular, fiob_fallback
@@ -162,9 +166,9 @@ def _recalcular_e_salvar(proposta):
 
 def lista(request):
     propostas = Proposta.objects.select_related("cliente").prefetch_related("itens_kit")
-    status = request.GET.get("status")
-    if status:
-        propostas = propostas.filter(status=status)
+    situacao = request.GET.get("status", "")
+    if situacao:
+        propostas = propostas.filter(status="emitida" if situacao == "vencida" else situacao)
     busca = " ".join(request.GET.get("busca", "").split())
     if busca:
         filtro = Q(cliente__nome__icontains=busca) | Q(numero__icontains=busca)
@@ -172,9 +176,12 @@ def lista(request):
         if len(digitos) >= 4:
             filtro |= Q(cliente__telefone__contains=digitos)
         propostas = propostas.filter(filtro)
+    propostas = propostas[:200]
+    if situacao in ("emitida", "vencida"):  # "vencida" não é gravada: separa na hora (D31)
+        propostas = [p for p in propostas if p.situacao == situacao]
     return render(request, "propostas/lista.html", {
-        "propostas": propostas[:200],
-        "status_choices": Proposta.Status.choices,
+        "propostas": propostas,
+        "status_choices": Proposta.Status.choices[:2] + [("vencida", "Vencida")] + Proposta.Status.choices[2:],
         "busca": busca,
     })
 
@@ -184,7 +191,7 @@ def formulario(request, pk=None):
     config = ConfigEmpresa.obter()
 
     if proposta and proposta.status != Proposta.Status.RASCUNHO:
-        return render(request, "propostas/somente_rascunho.html", {"proposta": proposta})
+        return redirect("propostas:detalhe", pk=proposta.pk)
 
     if request.method == "POST":
         proposta_form = PropostaForm(request.POST, instance=proposta)
@@ -480,7 +487,11 @@ def gerar_pdf(proposta):
 def pdf(request, pk):
     proposta = get_object_or_404(Proposta, pk=pk)
     try:
-        conteudo = gerar_pdf(proposta)
+        if proposta.status != Proposta.Status.RASCUNHO and proposta.pdf:
+            with proposta.pdf.open("rb") as arquivo:  # emitida: sempre o PDF guardado na emissão (D31)
+                conteudo = arquivo.read()
+        else:
+            conteudo = gerar_pdf(proposta)
     except (ErroPDF, ErroAnexo) as erro:
         return HttpResponse(str(erro), status=422, content_type="text/plain; charset=utf-8")
     nome = f"Proposta_{proposta.numero}_v{proposta.versao}_{proposta.cliente.nome}.pdf".replace(" ", "_")
@@ -640,7 +651,7 @@ def proposta_passo(request, pk, n):
     if proposta and proposta.eh_antiga:
         return redirect("propostas:legado_editar", pk=proposta.pk)
     if proposta and proposta.status != Proposta.Status.RASCUNHO:
-        return render(request, "propostas/somente_rascunho.html", {"proposta": proposta})
+        return redirect("propostas:detalhe", pk=proposta.pk)
     if not proposta and n != 1:
         return redirect("propostas:nova")
 
@@ -776,8 +787,81 @@ def alternar_modo_cliente(request):
 
 
 def proposta_abrir(request, pk):
-    """Proposta antiga (fatia 4) abre no formulário antigo; a v2, no passo em que parou."""
+    """Rascunho abre para editar (antiga no formulário antigo, v2 no passo em que parou); as outras, no detalhe."""
     proposta = get_object_or_404(Proposta, pk=pk)
+    if proposta.status != Proposta.Status.RASCUNHO:
+        return redirect("propostas:detalhe", pk=pk)
     if proposta.eh_antiga:
         return redirect("propostas:legado_editar", pk=pk)
     return redirect("propostas:passo", pk=pk, n=min(proposta.passo_atual, 4))
+
+
+# ---------- Emissão e versões (fatia v2.7, D31)
+
+def proposta_detalhe(request, pk):
+    proposta = get_object_or_404(Proposta.objects.select_related("cliente"), pk=pk)
+    return render(request, "propostas/detalhe.html", {
+        "proposta": proposta,
+        "versoes": Proposta.objects.filter(numero=proposta.numero).order_by("-versao"),
+        "rascunho_aberto": emissao.rascunho_aberto(proposta),
+        "aceite_form": AceiteForm(initial={"data_aceite": timezone.localdate()}),
+        "perda_form": PerdaForm(),
+    })
+
+
+def proposta_emitir(request, pk):
+    proposta = get_object_or_404(Proposta, pk=pk)
+    if request.method != "POST":
+        return redirect("propostas:detalhe", pk=pk)
+    try:
+        with transaction.atomic():
+            emissao.preparar_emissao(proposta)
+            emissao.concluir_emissao(proposta, gerar_pdf(proposta))
+    except (emissao.ErroEmissao, ErroPDF, ErroAnexo) as erro:
+        messages.error(request, f"Não foi possível emitir: {erro}")
+        return redirect("propostas:detalhe", pk=pk)
+    messages.success(request, f"Proposta {proposta.numero} v{proposta.versao} emitida.")
+    return redirect("propostas:detalhe", pk=pk)
+
+
+def proposta_revisar(request, pk):
+    proposta = get_object_or_404(Proposta, pk=pk)
+    if request.method != "POST":
+        return redirect("propostas:detalhe", pk=pk)
+    try:
+        nova = emissao.revisar(proposta)
+    except emissao.ErroEmissao as erro:
+        messages.error(request, str(erro))
+        return redirect("propostas:detalhe", pk=pk)
+    if nova.eh_antiga:
+        return redirect("propostas:legado_editar", pk=nova.pk)
+    passo = 2 if request.POST.get("para") == "fatura" else 4
+    return redirect("propostas:passo", pk=nova.pk, n=passo)
+
+
+def proposta_aceitar(request, pk):
+    proposta = get_object_or_404(Proposta, pk=pk)
+    form = AceiteForm(request.POST or None)
+    if form.is_valid():
+        try:
+            emissao.aceitar(proposta, form.cleaned_data["data_aceite"])
+            messages.success(request, f"Proposta {proposta.numero} v{proposta.versao} aceita.")
+        except emissao.ErroEmissao as erro:
+            messages.error(request, str(erro))
+    elif request.method == "POST":
+        messages.error(request, "Informe a data do aceite.")
+    return redirect("propostas:detalhe", pk=pk)
+
+
+def proposta_perdida(request, pk):
+    proposta = get_object_or_404(Proposta, pk=pk)
+    form = PerdaForm(request.POST or None)
+    if form.is_valid():
+        try:
+            emissao.marcar_perdida(proposta, form.cleaned_data["motivo_perda"], form.cleaned_data["obs_perda"])
+            messages.success(request, f"Proposta {proposta.numero} v{proposta.versao} marcada como perdida.")
+        except emissao.ErroEmissao as erro:
+            messages.error(request, str(erro))
+    elif request.method == "POST":
+        messages.error(request, "Escolha o motivo da perda.")
+    return redirect("propostas:detalhe", pk=pk)

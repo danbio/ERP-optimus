@@ -28,7 +28,7 @@
     {% endif %}
   </div>
 
-  {% for mensagem in messages %}<p class="aviso-salvo">{{ mensagem }}</p>{% endfor %}
+  {% for mensagem in messages %}<p class="{% if mensagem.level_tag == 'error' %}alerta alerta--erro{% else %}aviso-salvo{% endif %}">{{ mensagem }}</p>{% endfor %}
 
   <div class="assistente__grade">
     <section class="card assistente__painel">

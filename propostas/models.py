@@ -61,6 +61,15 @@ class Proposta(models.Model):
         EMITIDA = "emitida", "Emitida"
         ACEITA = "aceita", "Aceita"
         PERDIDA = "perdida", "Perdida"
+        SUBSTITUIDA = "substituida", "Substituída"
+
+    class MotivoPerda(models.TextChoices):
+        PRECO = "preco", "Preço"
+        CONCORRENTE = "concorrente", "Fechou com concorrente"
+        FINANCIAMENTO = "financiamento", "Financiamento negado"
+        DESISTIU = "desistiu", "Cliente desistiu ou adiou"
+        SEM_RETORNO = "sem_retorno", "Sem retorno do cliente"
+        OUTRO = "outro", "Outro"
 
     class Nivel(models.TextChoices):
         ESTIMATIVA = "estimativa", "Estimativa"
@@ -77,7 +86,7 @@ class Proposta(models.Model):
         LESTE_OESTE = "leste_oeste", "Leste ou oeste"
         SUL = "sul", "Sul"
 
-    numero = models.CharField(max_length=30, unique=True)
+    numero = models.CharField(max_length=30)  # o mesmo em todas as versões (D31)
     versao = models.PositiveIntegerField(default=1)
     origem = models.ForeignKey(
         "self", on_delete=models.SET_NULL, null=True, blank=True, related_name="revisoes"
@@ -89,8 +98,11 @@ class Proposta(models.Model):
     fatura = models.ForeignKey(
         FaturaReferencia, on_delete=models.PROTECT, related_name="propostas", null=True, blank=True
     )
-    status = models.CharField(max_length=10, choices=Status.choices, default=Status.RASCUNHO)
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.RASCUNHO)
     emissao = models.DateField(null=True, blank=True)
+    data_aceite = models.DateField("data do aceite", null=True, blank=True)
+    motivo_perda = models.CharField("motivo da perda", max_length=15, choices=MotivoPerda.choices, blank=True)
+    obs_perda = models.TextField("observação da perda", blank=True)
     validade_dias = models.PositiveIntegerField(default=15)
     investimento = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
 
@@ -149,9 +161,27 @@ class Proposta(models.Model):
         verbose_name = "Proposta"
         verbose_name_plural = "Propostas"
         ordering = ["-id"]
+        constraints = [models.UniqueConstraint(fields=["numero", "versao"], name="proposta_numero_versao_unica")]
 
     def __str__(self):
         return f"{self.numero} v{self.versao}"
+
+    @property
+    def validade_ate(self):
+        return self.emissao + timezone.timedelta(days=self.validade_dias) if self.emissao else None
+
+    @property
+    def vencida(self):
+        """Emitida com a validade passada. Não é gravada: é calculada na hora (D31)."""
+        return self.status == self.Status.EMITIDA and self.emissao is not None and timezone.localdate() > self.validade_ate
+
+    @property
+    def situacao(self):
+        return "vencida" if self.vencida else self.status
+
+    @property
+    def situacao_display(self):
+        return "Vencida" if self.vencida else self.get_status_display()
 
     @property
     def eh_antiga(self):

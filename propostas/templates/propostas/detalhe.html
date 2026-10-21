@@ -1,0 +1,112 @@
+{% extends "core/base.html" %}
+
+{% block titulo %}{{ proposta.numero }} v{{ proposta.versao }}{% endblock %}
+{% block titulo_pagina %}Proposta {{ proposta.numero }} v{{ proposta.versao }}{% endblock %}
+
+{% block conteudo %}
+  {% for mensagem in messages %}
+    <p class="{% if mensagem.level_tag == 'error' %}alerta alerta--erro{% else %}aviso-salvo{% endif %}">{{ mensagem }}</p>
+  {% endfor %}
+
+  <div class="card">
+    <div class="barra-acoes barra-acoes--plana">
+      <h3>{{ proposta.cliente.nome }}</h3>
+      {% include "propostas/_situacao.html" with p=proposta %}
+      {% if not proposta.eh_antiga %}<span class="badge">{{ proposta.get_nivel_display }}</span>{% endif %}
+      <span class="barra-acoes__espaco"></span>
+      {% if proposta.status == "rascunho" %}
+        <a href="{% url 'propostas:editar' proposta.pk %}" class="btn btn--secundario">Continuar editando</a>
+      {% else %}
+        <a href="{% url 'propostas:pdf' proposta.pk %}" class="btn btn--ouro" target="_blank">Baixar PDF</a>
+      {% endif %}
+    </div>
+    <dl class="dados">
+      <dt>Telefone</dt><dd>{{ proposta.cliente.telefone_formatado|default:"—" }}</dd>
+      <dt>Sistema</dt><dd>{% if proposta.kwp %}{{ proposta.kwp|floatformat:2 }} kWp{% else %}—{% endif %}</dd>
+      <dt>Investimento</dt><dd>{% if proposta.investimento %}R$ {{ proposta.investimento|floatformat:"2g" }}{% else %}—{% endif %}</dd>
+      {% if proposta.emissao %}
+        <dt>Emissão</dt><dd>{{ proposta.emissao|date:"d/m/Y" }}</dd>
+        <dt>Válida até</dt><dd>{{ proposta.validade_ate|date:"d/m/Y" }}</dd>
+      {% endif %}
+      {% if proposta.data_aceite %}<dt>Aceita em</dt><dd>{{ proposta.data_aceite|date:"d/m/Y" }}</dd>{% endif %}
+      {% if proposta.motivo_perda %}
+        <dt>Motivo da perda</dt><dd>{{ proposta.get_motivo_perda_display }}{% if proposta.obs_perda %}<br>{{ proposta.obs_perda|linebreaksbr }}{% endif %}</dd>
+      {% endif %}
+    </dl>
+  </div>
+
+  {% if rascunho_aberto and rascunho_aberto.pk != proposta.pk %}
+    <p class="alerta alerta--aviso">A versão {{ rascunho_aberto.versao }} desta proposta está em rascunho.
+      <a href="{% url 'propostas:editar' rascunho_aberto.pk %}">Continuar a v{{ rascunho_aberto.versao }}</a></p>
+  {% endif %}
+
+  {% if proposta.status == "rascunho" %}
+    <div class="card">
+      <h3>Emitir</h3>
+      <p class="ajuda">Emitir congela o kit e o preço, guarda o PDF e libera aceite ou perda. Para mudar depois, use "Revisar", que cria a versão seguinte.</p>
+      <form method="post" action="{% url 'propostas:emitir' proposta.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn--ouro">Emitir proposta</button>
+      </form>
+    </div>
+  {% endif %}
+
+  {% if proposta.status == "emitida" or proposta.status == "perdida" %}
+    {% if not rascunho_aberto %}
+      <div class="card">
+        <h3>Nova versão</h3>
+        <p class="ajuda">Cria a v{{ versoes.0.versao|add:1 }} com o mesmo número, copiando tudo, para alterar e emitir de novo.</p>
+        <div class="barra-acoes barra-acoes--plana">
+          <form method="post" action="{% url 'propostas:revisar' proposta.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn--secundario">Revisar</button>
+          </form>
+          {% if proposta.nivel == "estimativa" and not proposta.eh_antiga %}
+            <form method="post" action="{% url 'propostas:revisar' proposta.pk %}">
+              {% csrf_token %}
+              <input type="hidden" name="para" value="fatura">
+              <button type="submit" class="btn">Recebi a fatura</button>
+            </form>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+  {% endif %}
+
+  {% if proposta.status == "emitida" %}
+    <div class="cartoes-acao">
+      <form method="post" action="{% url 'propostas:aceitar' proposta.pk %}" class="card" novalidate>
+        {% csrf_token %}
+        <h3>Cliente aceitou</h3>
+        {% include "core/_campo.html" with campo=aceite_form.data_aceite %}
+        <button type="submit" class="btn">Marcar como aceita</button>
+      </form>
+      <form method="post" action="{% url 'propostas:perdida' proposta.pk %}" class="card" novalidate>
+        {% csrf_token %}
+        <h3>Não fechou</h3>
+        {% include "core/_campo.html" with campo=perda_form.motivo_perda %}
+        {% include "core/_campo.html" with campo=perda_form.obs_perda %}
+        <button type="submit" class="btn btn--secundario">Marcar como perdida</button>
+      </form>
+    </div>
+  {% endif %}
+
+  <div class="card">
+    <h3>Versões</h3>
+    <div class="itens-rolagem">
+      <table class="tabela">
+        <thead><tr><th>Versão</th><th>Situação</th><th>Emissão</th><th class="num">Investimento</th></tr></thead>
+        <tbody>
+          {% for v in versoes %}
+            <tr{% if v.pk == proposta.pk %} class="linha--escolhida"{% endif %}>
+              <td><a href="{% url 'propostas:editar' v.pk %}">v{{ v.versao }}</a></td>
+              <td>{% include "propostas/_situacao.html" with p=v %}</td>
+              <td>{{ v.emissao|date:"d/m/Y"|default:"—" }}</td>
+              <td class="num">{% if v.investimento %}R$ {{ v.investimento|floatformat:"2g" }}{% else %}—{% endif %}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endblock %}
