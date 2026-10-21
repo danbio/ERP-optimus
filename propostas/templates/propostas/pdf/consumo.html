@@ -1,0 +1,56 @@
+<section class="pagina">
+  {% include "propostas/pdf/_cabecalho.html" %}
+  <h2 class="doc-h2">Consumo considerado</h2>
+  <p class="doc-intro">
+    {% if proposta.origem_consumo == "rs" %}
+      O consumo foi estimado a partir do valor da conta de luz informado pelo cliente, descontando a iluminação pública{% if proposta.bandeira %} e a bandeira tarifária{% endif %}.
+    {% else %}
+      O consumo mensal foi informado pelo cliente.
+    {% endif %}
+    Os valores serão confirmados com a fatura de energia.
+  </p>
+
+  <div class="doc-kpis doc-kpis--4">
+    <div class="doc-kpi">
+      <div class="doc-kpi__valor">{{ m.consumo|floatformat:"0g" }} kWh</div>
+      <div class="doc-kpi__rotulo">Consumo médio mensal</div>
+    </div>
+    <div class="doc-kpi">
+      <div class="doc-kpi__valor">{{ m.consumo_alvo|floatformat:"0g" }} kWh</div>
+      <div class="doc-kpi__rotulo">Consumo com folga<br>de {{ folga_pct|floatformat:"-1" }}%</div>
+    </div>
+    <div class="doc-kpi">
+      <div class="doc-kpi__valor">R$ {{ tarifa_kwh|floatformat:"2g" }}</div>
+      <div class="doc-kpi__rotulo">Tarifa por kWh<br>com tributos</div>
+    </div>
+    <div class="doc-kpi">
+      <div class="doc-kpi__valor">R$ {{ m.conta_hoje|floatformat:"2g" }}</div>
+      <div class="doc-kpi__rotulo">Conta mensal estimada<br>hoje</div>
+    </div>
+  </div>
+
+  <h3 class="doc-h3">Dados usados no cálculo</h3>
+  <table class="doc-tabela">
+    <thead><tr><th>Item</th><th class="num">Valor</th></tr></thead>
+    <tbody>
+      <tr><td>Cliente</td><td class="num">{{ cliente.nome }}</td></tr>
+      <tr><td>Município</td><td class="num">{{ municipio.nome }} – {{ municipio.uf }}</td></tr>
+      <tr><td>Classificação</td><td class="num">Baixa tensão – {{ proposta.tipo_tarifa.get_tipo_display }} · ligação {{ ligacao }}</td></tr>
+      {% if proposta.origem_consumo == "rs" %}
+        <tr><td>Valor da conta informado</td><td class="num">R$ {{ proposta.conta_informada|floatformat:"2g" }}</td></tr>
+        <tr><td>Iluminação pública</td><td class="num">R$ {{ proposta.iluminacao_publica|default:0|floatformat:"2g" }}</td></tr>
+        {% if proposta.bandeira %}<tr><td>Bandeira tarifária</td><td class="num">{{ proposta.bandeira.nome }}</td></tr>{% endif %}
+      {% else %}
+        <tr><td>Consumo informado</td><td class="num">{{ proposta.kwh_informado|floatformat:"0g" }} kWh/mês</td></tr>
+      {% endif %}
+      <tr><td>Tarifa aplicada</td><td class="num">R$ {{ tarifa_kwh|floatformat:5 }}/kWh com tributos ({{ base_tarifa }})</td></tr>
+      <tr><td>Consumo anual projetado</td><td class="num">{{ r.consumo_anual|floatformat:"0g" }} kWh</td></tr>
+    </tbody>
+  </table>
+
+  <p class="doc-nota">
+    TUSD Fio B: R$ {{ fiob_kwh|floatformat:4 }}/kWh. É a parcela cobrada sobre a energia compensada, conforme a Lei 14.300/2022.
+    O consumo real pode variar de mês a mês; com a fatura em mãos, a proposta é refeita com os números confirmados.
+  </p>
+  {% include "propostas/pdf/_rodape.html" %}
+</section>

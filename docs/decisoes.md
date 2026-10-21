@@ -179,6 +179,14 @@ Formato: data · decisão · motivo · alternativas descartadas.
 - **Modo cliente:** chave guardada na sessão do navegador; esconde tudo marcado como interno.
 - **Prazo de comparação:** o vendedor toca num prazo da tabela de financiamento; fica salvo na proposta (`prazo_comparacao`) para o PDF.
 
+## D30 · 2026-10-21 · PDF da proposta v2 (fatia v2.6)
+- **Mesmas 7 páginas** da fatia 5. Os números vêm de `montagem.montar()` (os mesmos da tela de 4 passos), não de `_montar_entrada()` da proposta antiga.
+- **Página 3:** com fatura, continua "Análise da fatura de referência". Sem fatura, vira "Consumo considerado": de onde veio o consumo (valor da conta ou kWh informado), a tarifa vigente usada, a folga e a conta estimada de hoje.
+- **Estimativa:** faixa com `ConfigEmpresa.aviso_estimativa` na capa e no resumo.
+- **Investimento:** só o total, sem R$/Wp (é dado interno, como no modo cliente). Embaixo vem a tabela de financiamento 12–72× com o melhor banco em cada prazo e a parcela marcada como aproximada. Sem taxas cadastradas, a tabela não aparece.
+- **Anexo I** só quando a fatura tem PDF.
+- Enquanto a emissão (v2.7) não chega, o PDF sai do rascunho pelo botão do passo 4.
+
 ## Pendências de validação
 - [ ] Regra de custo de disponibilidade para GD após a Lei 14.300 (item 3 de D08).
 - [ ] Valor da TUSD Fio B vigente na Energisa TO por subgrupo (B1/B2/B3).

@@ -60,4 +60,8 @@
   <a href="{% url 'propostas:passo' proposta.pk 3 %}" class="btn btn--secundario interno">Voltar</a>
   <span class="barra-acoes__espaco"></span>
   <a href="{% url 'propostas:lista' %}" class="btn btn--secundario">Rascunho salvo · ver propostas</a>
+  {% if m.resultado %}
+    <a href="{% url 'propostas:preview' proposta.pk %}" class="btn btn--secundario" target="_blank">Ver proposta</a>
+    <a href="{% url 'propostas:pdf' proposta.pk %}" class="btn btn--ouro" target="_blank">Gerar PDF</a>
+  {% endif %}
 </div>

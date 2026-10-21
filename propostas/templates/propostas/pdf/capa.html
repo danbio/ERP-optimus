@@ -10,9 +10,10 @@
     <div class="doc-rotulo">Cliente</div>
     <div class="capa__nome">{{ cliente.nome }}</div>
     <p class="capa__dados">
-      {% if cliente.razao_social %}{{ cliente.razao_social }} · {% endif %}{{ uc.municipio.nome }} – {{ uc.uf }}<br>
-      UC {{ uc.numero_uc }} · {{ uc.endereco }}
+      {% if cliente.razao_social %}{{ cliente.razao_social }} · {% endif %}{{ municipio.nome }} – {{ municipio.uf }}
+      {% if uc %}<br>UC {{ uc.numero_uc }} · {{ uc.endereco }}{% endif %}
     </p>
+    {% if estimativa %}<p class="faixa-estimativa">{{ aviso_estimativa }}</p>{% endif %}
     <div class="capa__grade">
       <div><div class="doc-rotulo">Nº da proposta</div>{{ proposta.numero }}{% if proposta.versao > 1 %} v{{ proposta.versao }}{% endif %}</div>
       <div><div class="doc-rotulo">Emissão</div>{{ emissao|date:"d/m/Y" }}</div>

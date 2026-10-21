@@ -1,6 +1,7 @@
 <section class="pagina">
   {% include "propostas/pdf/_cabecalho.html" %}
   <h2 class="doc-h2">Resumo da proposta</h2>
+  {% if estimativa %}<p class="faixa-estimativa">{{ aviso_estimativa }}</p>{% endif %}
 
   <div class="doc-kpis">
     <div class="doc-kpi">
@@ -13,7 +14,7 @@
     </div>
     <div class="doc-kpi">
       <div class="doc-kpi__valor">{{ consumo_medio|floatformat:"0g" }} kWh</div>
-      <div class="doc-kpi__rotulo">Consumo médio mensal<br>(base: fatura {{ fatura.competencia|date:"b/Y" }})</div>
+      <div class="doc-kpi__rotulo">Consumo médio mensal<br>({% if fatura %}base: fatura {{ fatura.competencia|date:"b/Y" }}{% else %}estimado, sem fatura{% endif %})</div>
     </div>
     <div class="doc-kpi doc-kpi--escuro">
       <div class="doc-kpi__valor">R$ {{ r.economia_mensal_ano1|floatformat:"0g" }}</div>

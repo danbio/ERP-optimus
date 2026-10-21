@@ -9,6 +9,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.dateformat import format as date_format
 
 from clientes.models import Cliente, UnidadeConsumidora
 from core.models import ConfigEmpresa
@@ -28,7 +29,7 @@ from .forms import (
     PropostaForm,
 )
 from .models import Cotacao, Equipamento, FaturaReferencia, FioBEscalonamento, ItemKit, Proposta
-from .montagem import gravar_resultado, montar
+from .montagem import gravar_resultado, montar, premissas_da_proposta
 from .services import graficos
 from .services.calculo import EntradaCalculo, calcular, fiob_fallback
 from .services.pdf import ErroAnexo, contar_paginas, ler_cores, mesclar_anexo
@@ -330,60 +331,40 @@ def _texto_fiob(tabela, ano_conexao):
 
 def _paginas_da_fatura(fatura):
     """Bytes e número de páginas do PDF da fatura, ou (None, 0) se não houver arquivo."""
-    if not fatura.arquivo:
+    if not fatura or not fatura.arquivo:
         return None, 0
     with fatura.arquivo.open("rb") as arquivo:
         conteudo = arquivo.read()
     return conteudo, contar_paginas(conteudo)
 
 
-def _contexto_documento(proposta, para_pdf, n_paginas_anexo):
-    linhas = _linhas_do_kit(proposta)
-    entrada, erro = _montar_entrada(proposta.uc, proposta.fatura, proposta.investimento, proposta.premissas, linhas)
-    if erro:
-        return None, erro
-    resultado = calcular(entrada)
-
+def _contexto_comum(proposta, resultado, premissas, para_pdf, n_paginas_anexo):
+    """O que as páginas do PDF usam igual na proposta antiga e na v2."""
     estatico = Path(settings.BASE_DIR) / "static"
     cores = ler_cores(estatico / "css" / "tokens.css")
-    premissas = proposta.premissas
-    fatura = proposta.fatura
     emissao = proposta.emissao or timezone.localdate()
     empresa = ConfigEmpresa.obter()
-
     meses = [
         {"mes": mes, "geracao": g, "consumo": c, "saldo": g - c}
         for mes, g, c in zip(graficos.MESES, resultado.geracao_mensal, resultado.consumo_mensal)
     ]
-    fluxo_tabela = [linha for linha in resultado.fluxo if linha["ano"] in ANOS_DA_TABELA]
-    modulos = [l for l in linhas if l["tipo"] == ItemKit.Tipo.MODULO]
-
     return {
         "proposta": proposta,
         "empresa": empresa,
         "cliente": proposta.cliente,
         "uc": proposta.uc,
-        "fatura": fatura,
+        "fatura": proposta.fatura,
         "itens_kit": proposta.itens_kit.all(),
         "r": resultado,
-        "kwp": entrada.kwp,
-        "kw_ca": entrada.kw_ca,
-        "razao_cc_ca": entrada.kwp / entrada.kw_ca,
-        "qtd_modulos": sum(l["quantidade"] for l in modulos),
-        "potencia_modulo": modulos[0]["potencia_w"] if modulos else None,
         "geracao_media": resultado.geracao_anual / 12,
         "consumo_medio": resultado.consumo_anual / 12,
-        "media_diaria": fatura.kwh / fatura.dias_ciclo,
-        "fiob_kwh": entrada.fiob_kwh,
-        "fiob_informado": entrada.fiob_informado,
-        "texto_fiob": _texto_fiob(entrada.fiob_pct_por_ano, premissas["ano_conexao"]),
-        "ligacao": LIGACAO_POR_EXTENSO.get(proposta.uc.ligacao, ""),
-        "disponibilidade_kwh": entrada.disponibilidade_kwh,
-        "fonte_irradiacao": proposta.uc.municipio.fonte_irradiacao,
+        "texto_fiob": _texto_fiob(
+            {f.ano: float(f.percentual) / 100 for f in FioBEscalonamento.objects.all()}, premissas["ano_conexao"]
+        ),
         "pct": {chave: valor * 100 for chave, valor in premissas.items() if isinstance(valor, float)},
         "premissas": premissas,
         "meses": meses,
-        "fluxo_tabela": fluxo_tabela,
+        "fluxo_tabela": [linha for linha in resultado.fluxo if linha["ano"] in ANOS_DA_TABELA],
         "fluxo_final": resultado.fluxo[-1],
         "economia_total": sum(linha["economia"] for linha in resultado.fluxo),
         "grafico_geracao": graficos.grafico_geracao_consumo(resultado.geracao_mensal, resultado.consumo_mensal, cores),
@@ -398,7 +379,78 @@ def _contexto_documento(proposta, para_pdf, n_paginas_anexo):
         "total_paginas": PAGINAS_FIXAS + n_paginas_anexo,
         "base_estatico": estatico.as_uri() if para_pdf else "/" + settings.STATIC_URL.strip("/"),
         "para_pdf": para_pdf,
-    }, None
+    }
+
+
+def _contexto_antigo(proposta, para_pdf, n_paginas_anexo):
+    """Proposta da fatia 4/5: tudo vem da UC, da fatura e do kit digitado."""
+    linhas = _linhas_do_kit(proposta)
+    entrada, erro = _montar_entrada(proposta.uc, proposta.fatura, proposta.investimento, proposta.premissas, linhas)
+    if erro:
+        return None, erro
+    resultado = calcular(entrada)
+    fatura = proposta.fatura
+    modulos = [l for l in linhas if l["tipo"] == ItemKit.Tipo.MODULO]
+    contexto = _contexto_comum(proposta, resultado, proposta.premissas, para_pdf, n_paginas_anexo)
+    contexto |= {
+        "v2": False,
+        "municipio": proposta.uc.municipio,
+        "kwp": entrada.kwp,
+        "kw_ca": entrada.kw_ca,
+        "razao_cc_ca": entrada.kwp / entrada.kw_ca,
+        "qtd_modulos": sum(l["quantidade"] for l in modulos),
+        "potencia_modulo": modulos[0]["potencia_w"] if modulos else None,
+        "media_diaria": fatura.kwh / fatura.dias_ciclo,
+        "tarifa_kwh": fatura.tarifa_kwh,
+        "base_tarifa": f"fatura {date_format(fatura.competencia, 'b/Y')}",
+        "fiob_kwh": entrada.fiob_kwh,
+        "fiob_informado": entrada.fiob_informado,
+        "texto_fiob": _texto_fiob(entrada.fiob_pct_por_ano, proposta.premissas["ano_conexao"]),
+        "ligacao": LIGACAO_POR_EXTENSO.get(proposta.uc.ligacao, ""),
+        "disponibilidade_kwh": entrada.disponibilidade_kwh,
+        "fonte_irradiacao": proposta.uc.municipio.fonte_irradiacao,
+    }
+    return contexto, None
+
+
+def _contexto_v2(proposta, para_pdf, n_paginas_anexo):
+    """Proposta dos 4 passos (D30): os números são os mesmos da tela, vindos de montar()."""
+    config = ConfigEmpresa.obter()
+    m = montar(proposta, config)
+    if not m.resultado:
+        return None, m.mensagem or "Complete os passos da proposta antes de gerar o PDF."
+    tarifa = proposta.tipo_tarifa
+    fatura = proposta.fatura
+    contexto = _contexto_comum(proposta, m.resultado, premissas_da_proposta(proposta, config), para_pdf, n_paginas_anexo)
+    contexto |= {
+        "v2": True,
+        "m": m,
+        "estimativa": proposta.nivel == Proposta.Nivel.ESTIMATIVA,
+        "aviso_estimativa": config.aviso_estimativa,
+        "municipio": m.municipio,
+        "kwp": m.kwp,
+        "kw_ca": m.kw_ca,
+        "razao_cc_ca": m.sobrecarga,
+        "qtd_modulos": m.qtd_modulos,
+        "potencia_modulo": m.modulo.potencia_w,
+        "media_diaria": fatura.kwh / fatura.dias_ciclo if fatura else m.consumo / 30,
+        "tarifa_kwh": m.tarifa_kwh,
+        "base_tarifa": f"tarifa {tarifa.get_tipo_display()} vigente da Energisa TO, ANEEL",
+        "fiob_kwh": float(tarifa.fiob_kwh),
+        "fiob_informado": True,
+        "ligacao": LIGACAO_POR_EXTENSO.get(proposta.ligacao, ""),
+        "disponibilidade_kwh": m.disponibilidade,
+        "fonte_irradiacao": m.municipio.fonte_irradiacao,
+        "financiamento": m.financiamento,
+        "folga_pct": float(proposta.folga or 0) * 100,
+    }
+    return contexto, None
+
+
+def _contexto_documento(proposta, para_pdf, n_paginas_anexo):
+    if proposta.eh_antiga:
+        return _contexto_antigo(proposta, para_pdf, n_paginas_anexo)
+    return _contexto_v2(proposta, para_pdf, n_paginas_anexo)
 
 
 def preview(request, pk):

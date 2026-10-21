@@ -11,7 +11,11 @@
 <body class="proposta-doc">
   {% include "propostas/pdf/capa.html" %}
   {% include "propostas/pdf/resumo.html" with pagina=2 %}
-  {% include "propostas/pdf/fatura.html" with pagina=3 %}
+  {% if fatura %}
+    {% include "propostas/pdf/fatura.html" with pagina=3 %}
+  {% else %}
+    {% include "propostas/pdf/consumo.html" with pagina=3 %}
+  {% endif %}
   {% include "propostas/pdf/geracao.html" with pagina=4 %}
   {% include "propostas/pdf/financeiro.html" with pagina=5 %}
   {% include "propostas/pdf/tecnica.html" with pagina=6 %}
