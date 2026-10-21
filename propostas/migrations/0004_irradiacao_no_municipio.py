@@ -10,10 +10,17 @@ def copiar(apps, schema_editor):
     IrradiacaoMunicipio = apps.get_model("propostas", "IrradiacaoMunicipio")
 
     por_nome = {(chave_nome(m.nome), m.uf): m for m in Municipio.objects.all()}
-    for registro in IrradiacaoMunicipio.objects.all():
-        municipio = por_nome.get((chave_nome(registro.municipio), registro.uf.upper()))
-        if municipio is None:
-            continue
+    registros = list(IrradiacaoMunicipio.objects.all())
+    sem_par = [f"{r.municipio}/{r.uf}" for r in registros if (chave_nome(r.municipio), r.uf.upper()) not in por_nome]
+    if sem_par:
+        # Parar em vez de apagar: a tabela antiga só some quando todos os dados tiverem destino.
+        raise RuntimeError(
+            "Irradiação cadastrada para município fora da lista do IBGE: " + ", ".join(sem_par)
+            + ". Anote esses valores (tabela propostas_irradiacaomunicipio), corrija o nome do município"
+            " ou apague o registro, e rode o migrate de novo. Nada foi apagado."
+        )
+    for registro in registros:
+        municipio = por_nome[(chave_nome(registro.municipio), registro.uf.upper())]
         municipio.irradiacao = registro.valores
         municipio.fonte_irradiacao = registro.fonte
         municipio.save(update_fields=["irradiacao", "fonte_irradiacao"])
