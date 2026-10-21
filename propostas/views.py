@@ -10,7 +10,7 @@ from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
 
-from clientes.models import UnidadeConsumidora
+from clientes.models import Cliente, UnidadeConsumidora
 from core.models import ConfigEmpresa
 from core.pdf import ErroPDF, html_para_pdf
 
@@ -20,10 +20,14 @@ from .forms import (
     FaturaReferenciaForm,
     ItemKitForm,
     ItensCotadosFormSet,
+    Passo1Form,
+    Passo2Form,
+    Passo3Form,
     PremissasForm,
     PropostaForm,
 )
 from .models import Cotacao, Equipamento, FaturaReferencia, FioBEscalonamento, ItemKit, Proposta
+from .montagem import gravar_resultado, montar
 from .services import graficos
 from .services.calculo import EntradaCalculo, calcular, fiob_fallback
 from .services.pdf import ErroAnexo, contar_paginas, ler_cores, mesclar_anexo
@@ -155,16 +159,21 @@ def _recalcular_e_salvar(proposta):
 
 
 def lista(request):
-    propostas = Proposta.objects.select_related("uc", "uc__cliente").all()
+    propostas = Proposta.objects.select_related("cliente").prefetch_related("itens_kit")
     status = request.GET.get("status")
     if status:
         propostas = propostas.filter(status=status)
-    busca = request.GET.get("busca")
+    busca = " ".join(request.GET.get("busca", "").split())
     if busca:
-        propostas = propostas.filter(uc__cliente__nome__icontains=busca)
+        filtro = Q(cliente__nome__icontains=busca) | Q(numero__icontains=busca)
+        digitos = re.sub(r"\D", "", busca)
+        if len(digitos) >= 4:
+            filtro |= Q(cliente__telefone__contains=digitos)
+        propostas = propostas.filter(filtro)
     return render(request, "propostas/lista.html", {
-        "propostas": propostas,
+        "propostas": propostas[:200],
         "status_choices": Proposta.Status.choices,
+        "busca": busca,
     })
 
 
@@ -187,6 +196,7 @@ def formulario(request, pk=None):
                 salvo.versao = 1
                 salvo.status = Proposta.Status.RASCUNHO
             salvo.premissas = premissas_form.cleaned_data
+            salvo.cliente = salvo.uc.cliente
             salvo.save()
             salvo.itens_kit.all().delete()
             for ordem, linha in enumerate(linhas):
@@ -507,3 +517,191 @@ def solar_cotacao(request, pk=None):
     return render(request, "propostas/catalogo/cotacao.html", {
         "abas": ABAS_CATALOGO, "form": form, "itens": itens, "cotacao": cotacao,
     })
+
+
+# ---------- Proposta v2: os 4 passos (fatia v2.5, D29) ----------
+
+PASSOS = [(1, "Cliente"), (2, "Consumo"), (3, "Sistema e preço"), (4, "Proposta")]
+FORM_DO_PASSO = {2: Passo2Form, 3: Passo3Form}
+
+
+def _modo_cliente(request):
+    return bool(request.session.get("modo_cliente"))
+
+
+def _form_do_passo(n, proposta, dados=None, arquivos=None):
+    if n == 1:
+        cliente = proposta.cliente if proposta else None
+        inicial = {}
+        if cliente:
+            inicial = {"nome": cliente.nome, "telefone": cliente.telefone_formatado, "municipio": cliente.municipio_id,
+                       "cpf_cnpj": cliente.cpf_cnpj_formatado, "ligacao": proposta.ligacao,
+                       "tipo_tarifa": proposta.tipo_tarifa_id}
+        return Passo1Form(dados, initial=inicial)
+    if n == 2:
+        config = ConfigEmpresa.obter()
+        inicial = {} if proposta.origem_consumo else {"origem_consumo": Proposta.OrigemConsumo.CONTA}
+        return Passo2Form(dados, arquivos, instance=proposta, perfis=config.perfis_simultaneidade, initial=inicial)
+    if n == 3:
+        inicial = {} if proposta.orientacao else {"orientacao": Proposta.Orientacao.NORTE}
+        return Passo3Form(dados, instance=proposta, initial=inicial)
+    return None
+
+
+def _contexto_passos(request, proposta, n, form=None, m=None):
+    return {
+        "proposta": proposta,
+        "passo": n,
+        "passos": PASSOS,
+        "form": form,
+        "m": m if m is not None else (montar(proposta) if proposta else None),
+        "modo_cliente": _modo_cliente(request),
+        "aviso_estimativa": ConfigEmpresa.obter().aviso_estimativa,
+    }
+
+
+def _cliente_do_passo1(dados, proposta):
+    """Cliente da proposta: o já ligado a ela, ou um existente com o mesmo CPF/CNPJ ou telefone (D29)."""
+    cliente = proposta.cliente if proposta else None
+    if not cliente and dados["cpf_cnpj"]:
+        cliente = Cliente.objects.filter(cpf_cnpj=dados["cpf_cnpj"]).first()
+    if not cliente:
+        cliente = Cliente.objects.filter(telefone=dados["telefone"]).first()
+    reaproveitado = cliente is not None and proposta is None
+    cliente = cliente or Cliente()
+    cliente.nome = dados["nome"]
+    cliente.telefone = dados["telefone"]
+    cliente.municipio = dados["municipio"]
+    if dados["cpf_cnpj"]:
+        cliente.cpf_cnpj = dados["cpf_cnpj"]
+    cliente.save()
+    return cliente, reaproveitado
+
+
+def proposta_nova(request):
+    return proposta_passo(request, None, 1)
+
+
+def proposta_passo(request, pk, n):
+    proposta = get_object_or_404(Proposta, pk=pk) if pk else None
+    if proposta and proposta.eh_antiga:
+        return redirect("propostas:legado_editar", pk=proposta.pk)
+    if proposta and proposta.status != Proposta.Status.RASCUNHO:
+        return render(request, "propostas/somente_rascunho.html", {"proposta": proposta})
+    if not proposta and n != 1:
+        return redirect("propostas:nova")
+
+    if n == 4:
+        if request.method == "POST" and request.POST.get("prazo", "").isdigit():
+            proposta.prazo_comparacao = int(request.POST["prazo"])
+            proposta.save(update_fields=["prazo_comparacao"])
+            return redirect("propostas:passo", pk=proposta.pk, n=4)
+        return render(request, "propostas/v2/passos.html", _contexto_passos(request, proposta, 4))
+
+    form = _form_do_passo(n, proposta, request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid():
+        if n in (1, 2):
+            gravar = _gravar_passo1 if n == 1 else _gravar_passo2
+            proposta, erro = gravar(request, form, proposta)
+            if erro:
+                form.add_error("cpf_cnpj", erro)
+                return render(request, "propostas/v2/passos.html", _contexto_passos(request, proposta, n, form))
+        else:
+            form.save()
+        proposta.refresh_from_db()
+        proposta.passo_atual = max(proposta.passo_atual, n + 1)
+        proposta.save(update_fields=["passo_atual"])
+        gravar_resultado(proposta, montar(proposta))
+        return redirect("propostas:passo", pk=proposta.pk, n=n + 1)
+    return render(request, "propostas/v2/passos.html", _contexto_passos(request, proposta, n, form))
+
+
+def _gravar_passo1(request, form, proposta):
+    """Devolve (proposta, erro)."""
+    dados = form.cleaned_data
+    if dados["cpf_cnpj"] and proposta:
+        dono = Cliente.objects.filter(cpf_cnpj=dados["cpf_cnpj"]).exclude(pk=proposta.cliente_id).first()
+        if dono:
+            return proposta, f"Este CPF/CNPJ já é de {dono.nome}."
+    cliente, reaproveitado = _cliente_do_passo1(dados, proposta)
+    if reaproveitado:
+        messages.success(request, f"{cliente.nome} já estava cadastrado: usamos a ficha existente.")
+    config = ConfigEmpresa.obter()
+    if not proposta:
+        proposta = Proposta(
+            numero=Proposta.proximo_numero(), versao=1, status=Proposta.Status.RASCUNHO,
+            validade_dias=config.validade_padrao_dias, beneficios=config.beneficios_padrao,
+            escopo=config.escopo_padrao, texto_sobre=config.texto_sobre,
+            perfil_simultaneidade=(config.perfis_simultaneidade[0]["nome"] if config.perfis_simultaneidade else ""),
+        )
+    proposta.cliente = cliente
+    proposta.ligacao = dados["ligacao"]
+    proposta.tipo_tarifa = dados["tipo_tarifa"]
+    proposta.save()
+    return proposta, None
+
+
+def _gravar_passo2(request, form, proposta):
+    """Grava o consumo. Com fatura, cria UC e fatura e a proposta vira confirmada (D29). Devolve (proposta, erro)."""
+    dados = form.cleaned_data
+    proposta = form.save(commit=False)
+    if proposta.origem_consumo != Proposta.OrigemConsumo.FATURA:
+        proposta.nivel = Proposta.Nivel.ESTIMATIVA
+        proposta.save()
+        return proposta, None
+
+    cliente = proposta.cliente
+    dono = Cliente.objects.filter(cpf_cnpj=dados["cpf_cnpj"]).exclude(pk=cliente.pk).first()
+    if dono:
+        return proposta, f"Este CPF/CNPJ já é de {dono.nome}."
+    cliente.cpf_cnpj = dados["cpf_cnpj"]
+    cliente.save(update_fields=["cpf_cnpj"])
+    uc = UnidadeConsumidora.objects.filter(cliente=cliente, numero_uc=dados["numero_uc"]).first() or UnidadeConsumidora(
+        cliente=cliente, numero_uc=dados["numero_uc"])
+    uc.endereco = dados["endereco"]
+    uc.municipio = cliente.municipio
+    uc.classe = proposta.tipo_tarifa.tipo[:2]
+    uc.ligacao = proposta.ligacao
+    uc.save()
+    fatura = proposta.fatura if proposta.fatura and proposta.fatura.uc_id == uc.pk else FaturaReferencia(uc=uc)
+    fatura.competencia = dados["competencia"]
+    fatura.kwh = dados["fatura_kwh"]
+    fatura.dias_ciclo = dados["dias_ciclo"]
+    fatura.valor_total = dados["valor_fatura"]
+    if dados.get("arquivo_fatura"):
+        fatura.arquivo = dados["arquivo_fatura"]
+    fatura.save()
+    proposta.uc = uc
+    proposta.fatura = fatura
+    proposta.nivel = Proposta.Nivel.CONFIRMADA
+    proposta.save()
+    return proposta, None
+
+
+def proposta_previa(request, pk, n):
+    """Recalcula enquanto o vendedor digita (HTMX): devolve o resumo e os números do passo, sem gravar."""
+    proposta = get_object_or_404(Proposta, pk=pk)
+    form = _form_do_passo(n, proposta, request.POST)
+    if form is not None and form.is_valid():
+        proposta = form.save(commit=False)
+        if n == 2 and proposta.origem_consumo == Proposta.OrigemConsumo.FATURA:
+            proposta.fatura = FaturaReferencia(
+                kwh=form.cleaned_data.get("fatura_kwh") or 0, dias_ciclo=form.cleaned_data.get("dias_ciclo") or 0,
+            )
+    else:
+        proposta = get_object_or_404(Proposta, pk=pk)
+    return render(request, "propostas/v2/_previa.html", _contexto_passos(request, proposta, n))
+
+
+def alternar_modo_cliente(request):
+    request.session["modo_cliente"] = not _modo_cliente(request)
+    destino = request.POST.get("voltar") or reverse("propostas:lista")
+    return redirect(destino)
+
+
+def proposta_abrir(request, pk):
+    """Proposta antiga (fatia 4) abre no formulário antigo; a v2, no passo em que parou."""
+    proposta = get_object_or_404(Proposta, pk=pk)
+    if proposta.eh_antiga:
+        return redirect("propostas:legado_editar", pk=pk)
+    return redirect("propostas:passo", pk=pk, n=min(proposta.passo_atual, 4))

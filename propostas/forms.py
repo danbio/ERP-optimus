@@ -2,9 +2,21 @@ from decimal import Decimal
 
 from django import forms
 
-from core.forms import CampoReais
+from clientes.forms import MunicipioSelect, _limpar
+from clientes.models import UnidadeConsumidora
+from core.forms import CampoPercentual, CampoReais
+from core.models import Municipio
+from core.validacoes import (
+    formatar_percentual,
+    formatar_reais,
+    limpar_cpf_cnpj,
+    limpar_nome,
+    limpar_percentual,
+    limpar_reais,
+    limpar_telefone,
+)
 
-from .models import Cotacao, Equipamento, FaturaReferencia, ItemCotado, ItemKit, Proposta
+from .models import Cotacao, Equipamento, FaturaReferencia, ItemCotado, ItemKit, Proposta, TarifaVigente
 
 
 class FaturaReferenciaForm(forms.ModelForm):
@@ -140,3 +152,188 @@ class ItemCotadoForm(forms.ModelForm):
 ItensCotadosFormSet = forms.inlineformset_factory(
     Cotacao, ItemCotado, form=ItemCotadoForm, extra=3, can_delete=True,
 )
+
+
+# ---------- Proposta v2: os 4 passos (fatia v2.5, D29) ----------
+
+class Passo1Form(forms.Form):
+    nome = forms.CharField(label="Nome do cliente", max_length=200)
+    telefone = forms.CharField(
+        label="Telefone / WhatsApp", widget=forms.TextInput(attrs={"data-mascara": "telefone", "inputmode": "tel"}),
+    )
+    municipio = MunicipioSelect(
+        queryset=Municipio.objects.filter(uf="TO"), label="Município da instalação", empty_label="Escolha o município",
+    )
+    cpf_cnpj = forms.CharField(
+        label="CPF ou CNPJ (opcional agora)", required=False,
+        widget=forms.TextInput(attrs={"data-mascara": "cpf_cnpj", "inputmode": "numeric"}),
+    )
+    ligacao = forms.ChoiceField(label="Ligação", choices=UnidadeConsumidora.Ligacao.choices)
+    tipo_tarifa = forms.ModelChoiceField(
+        queryset=TarifaVigente.objects.none(), label="Tipo de tarifa", empty_label=None,
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["tipo_tarifa"].queryset = TarifaVigente.objects.filter(pk__in=[t.pk for t in TarifaVigente.vigentes()])
+        self.fields["tipo_tarifa"].label_from_instance = lambda t: t.get_tipo_display()
+
+    def clean_nome(self):
+        return _limpar(limpar_nome, self.cleaned_data["nome"])
+
+    def clean_telefone(self):
+        return _limpar(limpar_telefone, self.cleaned_data["telefone"])
+
+    def clean_cpf_cnpj(self):
+        return _limpar(limpar_cpf_cnpj, self.cleaned_data["cpf_cnpj"])
+
+
+class Passo2Form(forms.ModelForm):
+    conta_informada = CampoReais(label="Valor médio da conta (R$)", required=False)
+    iluminacao_publica = CampoReais(label="Iluminação pública na conta (R$, se souber)", required=False)
+    folga = CampoPercentual(label="Folga para consumo futuro (%)", required=False)
+    perfil_simultaneidade = forms.ChoiceField(label="Quando o cliente usa energia", choices=())
+
+    # Aba "Tenho a fatura": vira proposta confirmada (D29).
+    numero_uc = forms.CharField(label="Número da UC (na fatura)", max_length=30, required=False)
+    endereco = forms.CharField(label="Endereço da instalação", max_length=255, required=False)
+    competencia = forms.DateField(
+        label="Mês da fatura", required=False, widget=forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
+    )
+    fatura_kwh = forms.IntegerField(label="Consumo na fatura (kWh)", min_value=1, required=False)
+    dias_ciclo = forms.IntegerField(label="Dias do ciclo", min_value=15, max_value=45, required=False)
+    valor_fatura = CampoReais(label="Valor total da fatura (R$)", required=False)
+    arquivo_fatura = forms.FileField(label="PDF da fatura", required=False)
+    cpf_cnpj = forms.CharField(
+        label="CPF ou CNPJ do titular", required=False,
+        widget=forms.TextInput(attrs={"data-mascara": "cpf_cnpj", "inputmode": "numeric"}),
+    )
+
+    class Meta:
+        model = Proposta
+        fields = ["origem_consumo", "conta_informada", "iluminacao_publica", "bandeira", "kwh_informado",
+                  "folga", "perfil_simultaneidade"]
+        labels = {"bandeira": "Bandeira da conta", "kwh_informado": "Consumo médio (kWh/mês)"}
+        widgets = {"origem_consumo": forms.RadioSelect, "kwh_informado": forms.TextInput(attrs={"inputmode": "decimal"})}
+        localized_fields = ["kwh_informado"]
+
+    def __init__(self, *args, perfis=(), **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["origem_consumo"].required = True
+        self.fields["origem_consumo"].choices = [
+            ("rs", "Valor da conta (R$)"), ("kwh", "kWh por mês"), ("fatura", "Tenho a fatura"),
+        ]
+        self.fields["perfil_simultaneidade"].choices = [
+            (p["nome"], f"{p['nome']} ({p['simultaneidade'] * 100:.0f}%)") for p in perfis
+        ]
+        self.fields["bandeira"].empty_label = None
+        fatura = self.instance.fatura
+        if fatura and not self.is_bound:
+            self.initial |= {
+                "numero_uc": fatura.uc.numero_uc, "endereco": fatura.uc.endereco, "competencia": fatura.competencia,
+                "fatura_kwh": fatura.kwh, "dias_ciclo": fatura.dias_ciclo, "valor_fatura": fatura.valor_total,
+            }
+        if self.instance.cliente_id and not self.is_bound:
+            self.initial["cpf_cnpj"] = self.instance.cliente.cpf_cnpj_formatado
+
+    def clean_cpf_cnpj(self):
+        return _limpar(limpar_cpf_cnpj, self.cleaned_data["cpf_cnpj"])
+
+    def clean_folga(self):
+        folga = self.cleaned_data["folga"]
+        return None if folga is None else Decimal(str(round(folga, 4)))
+
+    def clean(self):
+        dados = super().clean()
+        origem = dados.get("origem_consumo")
+        obrigatorios = {
+            Proposta.OrigemConsumo.CONTA: ["conta_informada"],
+            Proposta.OrigemConsumo.KWH: ["kwh_informado"],
+            Proposta.OrigemConsumo.FATURA: ["numero_uc", "endereco", "competencia", "fatura_kwh", "dias_ciclo",
+                                            "valor_fatura", "cpf_cnpj"],
+        }.get(origem, [])
+        for campo in obrigatorios:
+            if dados.get(campo) in (None, ""):
+                self.add_error(campo, "Preencha este campo.")
+        if dados.get("kwh_informado") is not None and dados["kwh_informado"] <= 0:
+            self.add_error("kwh_informado", "O consumo precisa ser maior que zero.")
+        conta, iluminacao = dados.get("conta_informada"), dados.get("iluminacao_publica")
+        if origem == Proposta.OrigemConsumo.CONTA and conta is not None and iluminacao is not None and iluminacao >= conta:
+            self.add_error("iluminacao_publica", "A iluminação pública precisa ser menor que a conta.")
+        return dados
+
+
+class DescontoField(forms.CharField):
+    """"5%" → (None, 0.05); "300,00" → (Decimal("300.00"), None); vazio → (None, None)."""
+
+    def clean(self, value):
+        value = super().clean(value).strip()
+        if not value:
+            return None, None
+        try:
+            if "%" in value:
+                return None, Decimal(str(limpar_percentual(value)))
+            return limpar_reais(value), None
+        except ValueError as erro:
+            raise forms.ValidationError(str(erro))
+
+
+class Passo3Form(forms.ModelForm):
+    modulo = forms.ModelChoiceField(
+        queryset=Equipamento.objects.filter(tipo="modulo", ativo=True, potencia_w__isnull=False),
+        required=False, label="Módulo", empty_label="Sugestão do sistema",
+    )
+    inversor = forms.ModelChoiceField(
+        queryset=Equipamento.objects.filter(tipo="inversor", ativo=True, potencia_w__isnull=False),
+        required=False, label="Inversor", empty_label="Sugestão do sistema",
+    )
+    cotacao = forms.ModelChoiceField(
+        queryset=Cotacao.objects.all(), required=False, label="Cotação do kit para esta proposta",
+        empty_label="Ainda não cotei",
+    )
+    custo_kit = CampoReais(label="Custo do kit (R$, com frete)", required=False)
+    mao_de_obra = CampoReais(label="Mão de obra (R$)", required=False)
+    desconto_texto = DescontoField(label="Desconto na mão de obra (R$ ou %)", required=False)
+
+    class Meta:
+        model = Proposta
+        fields = ["orientacao", "tipo_estrutura", "modulo", "qtd_modulos", "inversor", "qtd_inversores",
+                  "cabo_preto_m", "cabo_vermelho_m", "cotacao", "custo_kit", "mao_de_obra"]
+        labels = {
+            "orientacao": "Orientação do telhado", "tipo_estrutura": "Estrutura",
+            "qtd_modulos": "Quantidade de módulos", "qtd_inversores": "Quantidade de inversores",
+            "cabo_preto_m": "Cabo solar preto 4 mm (m)", "cabo_vermelho_m": "Cabo solar vermelho 4 mm (m)",
+        }
+        widgets = {campo: forms.NumberInput(attrs={"inputmode": "numeric", "min": 0}) for campo in (
+            "qtd_modulos", "qtd_inversores", "cabo_preto_m", "cabo_vermelho_m")}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["orientacao"].required = True
+        self.fields["orientacao"].choices = Proposta.Orientacao.choices
+        self.fields["tipo_estrutura"] = forms.ChoiceField(label="Estrutura", choices=Equipamento.TipoEstrutura.choices)
+        self.fields["modulo"].label_from_instance = lambda e: f"{e.descricao} · {e.distribuidor}"
+        fase = "tri" if self.instance.ligacao == "tri" else "mono"
+        self.fields["inversor"].queryset = self.fields["inversor"].queryset.filter(fase=fase)
+        self.fields["inversor"].label_from_instance = lambda e: f"{e.descricao} · {e.distribuidor}"
+        self.fields["cotacao"].label_from_instance = (
+            lambda c: f"{c.distribuidor} {c.numero} · {c.data:%d/%m/%Y} · R$ {formatar_reais(c.total)}")
+        if not self.is_bound:
+            if self.instance.desconto_pct is not None:
+                self.initial["desconto_texto"] = f"{formatar_percentual(float(self.instance.desconto_pct))}%"
+            elif self.instance.desconto is not None:
+                self.initial["desconto_texto"] = formatar_reais(self.instance.desconto)
+
+    def clean(self):
+        dados = super().clean()
+        for campo in ("qtd_modulos", "qtd_inversores"):
+            if dados.get(campo) == 0:
+                self.add_error(campo, "Use pelo menos 1, ou deixe em branco para a sugestão.")
+        return dados
+
+    def save(self, commit=True):
+        proposta = super().save(commit=False)
+        proposta.desconto, proposta.desconto_pct = self.cleaned_data.get("desconto_texto") or (None, None)
+        if commit:
+            proposta.save()
+        return proposta

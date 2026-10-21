@@ -38,7 +38,7 @@ def _pdf_em_branco(n_paginas, largura=595, altura=842):
 def proposta_alesio(uc_alesio, fatura_alesio):  # noqa: F811
     config = ConfigEmpresa.obter()
     proposta = Proposta.objects.create(
-        numero="OPT-2026-0001", uc=uc_alesio, fatura=fatura_alesio, investimento="92502.81",
+        numero="OPT-2026-0001", cliente=uc_alesio.cliente, uc=uc_alesio, fatura=fatura_alesio, investimento="92502.81",
         forma_pagamento="A combinar", validade_dias=15, beneficios=config.beneficios_padrao,
         escopo=config.escopo_padrao, texto_sobre=config.texto_sobre, premissas=config.premissas_padrao,
         emissao=date(2026, 10, 15),

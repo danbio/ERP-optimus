@@ -1,0 +1,63 @@
+<h2>Proposta para {{ proposta.cliente.nome }}</h2>
+<p class="ajuda">{{ m.kwp|floatformat:2 }} kWp · {{ m.qtd_modulos }} módulos · {{ proposta.cliente.municipio.nome }}/TO · {{ proposta.tipo_tarifa.get_tipo_display }}</p>
+
+{% if proposta.nivel == "estimativa" %}<p class="aviso-estimativa">{{ aviso_estimativa }}</p>{% endif %}
+
+{% if m.mensagem %}
+  <p class="alerta alerta--erro">{{ m.mensagem }}</p>
+{% endif %}
+
+{% if m.resultado %}
+  <div class="cartoes">
+    <div class="cartao cartao--forte"><span class="cartao__rotulo">Investimento</span><span class="cartao__valor">R$ {{ m.investimento|floatformat:"2g" }}</span></div>
+    <div class="cartao"><span class="cartao__rotulo">Economia no 1º ano</span><span class="cartao__valor">R$ {{ m.resultado.economia_mensal_ano1|floatformat:"2g" }}</span><span class="cartao__rotulo">por mês, em média</span></div>
+    <div class="cartao"><span class="cartao__rotulo">Retorno estimado</span><span class="cartao__valor">{{ m.payback_texto }}</span></div>
+  </div>
+
+  <h3>Conta de luz por mês</h3>
+  <div class="compara">
+    {% with maior=m.barra_max %}
+    <div class="compara__linha"><span>Hoje</span><span class="compara__barra"><i style="width: {% widthratio m.conta_hoje maior 100 %}%"></i></span><b>R$ {{ m.conta_hoje|floatformat:"2g" }}</b></div>
+    <div class="compara__linha"><span>Com o sistema</span><span class="compara__barra"><i class="compara__barra--ouro" style="width: {% widthratio m.conta_com_sistema maior 100 %}%"></i></span><b>R$ {{ m.conta_com_sistema|floatformat:"2g" }}</b></div>
+    {% if m.parcela %}
+      <div class="compara__linha"><span>Com o sistema + parcela {{ m.parcela.prazo }}×</span><span class="compara__barra"><i class="compara__barra--ouro" style="width: {% widthratio m.conta_com_parcela maior 100 %}%"></i></span><b>R$ {{ m.conta_com_parcela|floatformat:"2g" }}</b></div>
+    {% endif %}
+    {% endwith %}
+  </div>
+
+  {% if m.financiamento %}
+    <h3>Financiamento</h3>
+    <form method="post" class="itens-rolagem">
+      {% csrf_token %}
+      <table class="tabela tabela--financiamento">
+        <thead><tr><th>Prazo</th><th class="num">Parcela</th><th>Banco</th><th class="num">Taxa</th><th></th></tr></thead>
+        <tbody>
+          {% for f in m.financiamento %}
+            <tr{% if f.prazo == m.prazo %} class="linha--escolhida"{% endif %}>
+              <td>{{ f.prazo }}×</td>
+              <td class="num"><b>R$ {{ f.parcela|floatformat:"2g" }}</b></td>
+              <td>{{ f.banco }}</td>
+              <td class="num">{{ f.taxa_pct|floatformat:2 }}% a.m.</td>
+              <td>{% if f.prazo != m.prazo %}<button type="submit" name="prazo" value="{{ f.prazo }}" class="btn btn--secundario btn--pequeno">Comparar</button>{% else %}na conta acima{% endif %}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </form>
+    <p class="ajuda">Melhor banco em cada prazo. Parcelas aproximadas, sujeitas à análise de crédito.</p>
+  {% else %}
+    <p class="ajuda interno">Sem taxas de financiamento. O gestor cadastra em Configurações → Financiamento.</p>
+  {% endif %}
+
+  {% if m.alertas %}
+    <div class="alertas">
+      {% for a in m.alertas %}<p class="alerta alerta--{{ a.tipo }}{% if a.interno %} interno{% endif %}">{{ a.texto }}</p>{% endfor %}
+    </div>
+  {% endif %}
+{% endif %}
+
+<div class="barra-acoes barra-acoes--plana assistente__acoes">
+  <a href="{% url 'propostas:passo' proposta.pk 3 %}" class="btn btn--secundario interno">Voltar</a>
+  <span class="barra-acoes__espaco"></span>
+  <a href="{% url 'propostas:lista' %}" class="btn btn--secundario">Rascunho salvo · ver propostas</a>
+</div>

@@ -13,6 +13,7 @@
     --ok: #2E7D4F;
     --erro: #B4442F;
     --aviso: #F6E7BF;
+    --erro-claro: #F8E6E2;
     --branco: #FFFFFF;
 
     /* Tipografia */
@@ -35,5 +36,6 @@
     --raio: 8px;
     --sombra: 0 1px 3px rgba(18, 54, 67, 0.12);
     --largura-sidebar: 220px;
+    --largura-resumo: 320px;
   }
 }

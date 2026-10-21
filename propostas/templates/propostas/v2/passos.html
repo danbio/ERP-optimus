@@ -1,0 +1,57 @@
+{% extends "core/base.html" %}
+
+{% block titulo %}{% if proposta %}Proposta {{ proposta.numero }}{% else %}Nova proposta{% endif %}{% endblock %}
+{% block titulo_pagina %}{% if proposta %}Proposta {{ proposta.numero }}{% else %}Nova proposta solar{% endif %}{% endblock %}
+
+{% block conteudo %}
+<div class="assistente{% if modo_cliente %} modo-cliente{% endif %}">
+  <div class="assistente__topo">
+    <ol class="passos">
+      {% for numero, rotulo in passos %}
+        <li>
+          {% if proposta and numero <= proposta.passo_atual %}
+            <a href="{% url 'propostas:passo' proposta.pk numero %}" class="passos__item{% if numero == passo %} passos__item--atual{% elif numero < passo %} passos__item--feito{% endif %}"{% if numero == passo %} aria-current="step"{% endif %}>
+              <span class="passos__n">{{ numero }}</span> {{ rotulo }}</a>
+          {% else %}
+            <span class="passos__item{% if numero == passo %} passos__item--atual{% endif %}"{% if numero == passo %} aria-current="step"{% endif %}><span class="passos__n">{{ numero }}</span> {{ rotulo }}</span>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ol>
+    {% if proposta %}
+      <form method="post" action="{% url 'propostas:modo_cliente' %}" class="modo-chave">
+        {% csrf_token %}
+        <input type="hidden" name="voltar" value="{% url 'propostas:passo' proposta.pk 4 %}">
+        <button type="submit" class="btn btn--secundario" aria-pressed="{{ modo_cliente|yesno:'true,false' }}">
+          {% if modo_cliente %}Sair do modo cliente{% else %}Modo cliente{% endif %}</button>
+      </form>
+    {% endif %}
+  </div>
+
+  {% for mensagem in messages %}<p class="aviso-salvo">{{ mensagem }}</p>{% endfor %}
+
+  <div class="assistente__grade">
+    <section class="card assistente__painel">
+      {% if passo == 4 %}
+        {% include "propostas/v2/_passo4.html" %}
+      {% else %}
+        <form method="post" enctype="multipart/form-data" novalidate
+              {% if proposta %}hx-post="{% url 'propostas:previa' proposta.pk passo %}" hx-trigger="input changed delay:500ms, change" hx-swap="none"{% endif %}>
+          {% csrf_token %}
+          {% if form.non_field_errors %}<p class="campo__erro">{{ form.non_field_errors|join:" " }}</p>{% endif %}
+          {% if passo == 1 %}{% include "propostas/v2/_passo1.html" %}
+          {% elif passo == 2 %}{% include "propostas/v2/_passo2.html" %}
+          {% else %}{% include "propostas/v2/_passo3.html" %}{% endif %}
+          <div class="barra-acoes barra-acoes--plana assistente__acoes">
+            {% if passo > 1 %}<a href="{% url 'propostas:passo' proposta.pk passo|add:'-1' %}" class="btn btn--secundario">Voltar</a>{% endif %}
+            <span class="barra-acoes__espaco"></span>
+            <button type="submit" class="btn">{% if passo == 3 %}Ver proposta{% else %}Continuar{% endif %}</button>
+          </div>
+        </form>
+      {% endif %}
+    </section>
+
+    {% include "propostas/v2/_resumo.html" %}
+  </div>
+</div>
+{% endblock %}

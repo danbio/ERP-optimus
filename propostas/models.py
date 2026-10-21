@@ -3,7 +3,7 @@ from datetime import date
 from django.db import models
 from django.utils import timezone
 
-from clientes.models import UnidadeConsumidora
+from clientes.models import Cliente, UnidadeConsumidora
 
 
 class FaturaReferencia(models.Model):
@@ -12,11 +12,14 @@ class FaturaReferencia(models.Model):
     kwh = models.PositiveIntegerField("consumo (kWh)")
     dias_ciclo = models.PositiveIntegerField("dias do ciclo")
     valor_total = models.DecimalField(max_digits=10, decimal_places=2)
-    tarifa_kwh = models.DecimalField("tarifa com tributos (R$/kWh)", max_digits=10, decimal_places=6)
-    valor_distribuicao = models.DecimalField(
-        "serviço de distribuição, sem tributos (R$)", max_digits=10, decimal_places=2
+    # Os três abaixo só a proposta antiga (fatia 4) usa; na v2 a tarifa vem de TarifaVigente (D29).
+    tarifa_kwh = models.DecimalField(
+        "tarifa com tributos (R$/kWh)", max_digits=10, decimal_places=6, null=True, blank=True
     )
-    impostos = models.DecimalField(max_digits=10, decimal_places=2)
+    valor_distribuicao = models.DecimalField(
+        "serviço de distribuição, sem tributos (R$)", max_digits=10, decimal_places=2, null=True, blank=True
+    )
+    impostos = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     tusd_fiob_kwh = models.DecimalField(
         "TUSD Fio B informada (R$/kWh)", max_digits=10, decimal_places=6, null=True, blank=True
     )
@@ -48,7 +51,10 @@ class FioBEscalonamento(models.Model):
 
 
 class Proposta(models.Model):
-    """Só `rascunho` é editável. "Revisar" uma emitida cria nova versão em rascunho copiando tudo."""
+    """Só `rascunho` é editável. "Revisar" uma emitida cria nova versão em rascunho copiando tudo.
+
+    Proposta v2 (D17–D29): `origem_consumo` preenchido. Proposta antiga (fatia 4): vazio.
+    """
 
     class Status(models.TextChoices):
         RASCUNHO = "rascunho", "Rascunho"
@@ -56,17 +62,81 @@ class Proposta(models.Model):
         ACEITA = "aceita", "Aceita"
         PERDIDA = "perdida", "Perdida"
 
+    class Nivel(models.TextChoices):
+        ESTIMATIVA = "estimativa", "Estimativa"
+        CONFIRMADA = "confirmada", "Confirmada"
+
+    class OrigemConsumo(models.TextChoices):
+        CONTA = "rs", "Valor da conta"
+        KWH = "kwh", "kWh por mês"
+        FATURA = "fatura", "Fatura"
+
+    class Orientacao(models.TextChoices):
+        NORTE = "norte", "Norte"
+        NORDESTE_NOROESTE = "nordeste_noroeste", "Nordeste ou noroeste"
+        LESTE_OESTE = "leste_oeste", "Leste ou oeste"
+        SUL = "sul", "Sul"
+
     numero = models.CharField(max_length=30, unique=True)
     versao = models.PositiveIntegerField(default=1)
     origem = models.ForeignKey(
         "self", on_delete=models.SET_NULL, null=True, blank=True, related_name="revisoes"
     )
-    uc = models.ForeignKey(UnidadeConsumidora, on_delete=models.PROTECT, related_name="propostas")
-    fatura = models.ForeignKey(FaturaReferencia, on_delete=models.PROTECT, related_name="propostas")
+    cliente = models.ForeignKey(Cliente, on_delete=models.PROTECT, related_name="propostas")
+    uc = models.ForeignKey(
+        UnidadeConsumidora, on_delete=models.PROTECT, related_name="propostas", null=True, blank=True
+    )
+    fatura = models.ForeignKey(
+        FaturaReferencia, on_delete=models.PROTECT, related_name="propostas", null=True, blank=True
+    )
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.RASCUNHO)
     emissao = models.DateField(null=True, blank=True)
     validade_dias = models.PositiveIntegerField(default=15)
-    investimento = models.DecimalField(max_digits=12, decimal_places=2)
+    investimento = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+
+    # ---- Proposta v2: entrada em 4 passos (D17–D29). Tudo opcional para salvar o rascunho a cada passo.
+    nivel = models.CharField("nível", max_length=10, choices=Nivel.choices, default=Nivel.ESTIMATIVA)
+    passo_atual = models.PositiveSmallIntegerField(default=1)
+    ligacao = models.CharField("ligação", max_length=4, choices=UnidadeConsumidora.Ligacao.choices, blank=True)
+    tipo_tarifa = models.ForeignKey(
+        "TarifaVigente", on_delete=models.PROTECT, null=True, blank=True, verbose_name="tipo de tarifa"
+    )
+    origem_consumo = models.CharField(
+        "origem do consumo", max_length=6, choices=OrigemConsumo.choices, blank=True
+    )
+    conta_informada = models.DecimalField("valor da conta (R$)", max_digits=10, decimal_places=2, null=True, blank=True)
+    iluminacao_publica = models.DecimalField(
+        "iluminação pública (R$)", max_digits=10, decimal_places=2, null=True, blank=True
+    )
+    bandeira = models.ForeignKey("Bandeira", on_delete=models.SET_NULL, null=True, blank=True)
+    kwh_informado = models.DecimalField("consumo (kWh/mês)", max_digits=10, decimal_places=2, null=True, blank=True)
+    folga = models.DecimalField("folga (fração)", max_digits=6, decimal_places=4, null=True, blank=True)
+    perfil_simultaneidade = models.CharField("perfil de uso", max_length=80, blank=True)
+    orientacao = models.CharField("orientação", max_length=20, choices=Orientacao.choices, blank=True)
+    tipo_estrutura = models.CharField("estrutura", max_length=15, blank=True)
+    # Kit: vazio = usar a sugestão do sistema (o vendedor só preenche o que quer mudar).
+    modulo = models.ForeignKey(
+        "Equipamento", on_delete=models.PROTECT, null=True, blank=True, related_name="+", verbose_name="módulo",
+    )
+    qtd_modulos = models.PositiveIntegerField("quantidade de módulos", null=True, blank=True)
+    inversor = models.ForeignKey(
+        "Equipamento", on_delete=models.PROTECT, null=True, blank=True, related_name="+",
+    )
+    qtd_inversores = models.PositiveSmallIntegerField("quantidade de inversores", null=True, blank=True)
+    cabo_preto_m = models.PositiveIntegerField("cabo solar preto (m)", null=True, blank=True)
+    cabo_vermelho_m = models.PositiveIntegerField("cabo solar vermelho (m)", null=True, blank=True)
+    cotacao = models.ForeignKey(
+        "Cotacao", on_delete=models.SET_NULL, null=True, blank=True, related_name="propostas_vinculadas",
+        verbose_name="cotação do kit",
+    )
+    custo_kit = models.DecimalField("custo do kit (R$)", max_digits=12, decimal_places=2, null=True, blank=True)
+    mao_de_obra = models.DecimalField("mão de obra (R$)", max_digits=12, decimal_places=2, null=True, blank=True)
+    desconto = models.DecimalField("desconto (R$)", max_digits=12, decimal_places=2, null=True, blank=True)
+    desconto_pct = models.DecimalField(
+        "desconto (fração da mão de obra)", max_digits=6, decimal_places=4, null=True, blank=True,
+        help_text="Preenchido quando o vendedor digitou o desconto em %.",
+    )
+    prazo_comparacao = models.PositiveSmallIntegerField("prazo para comparar (meses)", null=True, blank=True)
     forma_pagamento = models.CharField(max_length=255, blank=True)
     beneficios = models.TextField(blank=True)
     escopo = models.TextField(blank=True)
@@ -84,9 +154,9 @@ class Proposta(models.Model):
         return f"{self.numero} v{self.versao}"
 
     @property
-    def cliente(self):
-        """O cliente não tem FK própria: é sempre o dono da UC (ver D11)."""
-        return self.uc.cliente
+    def eh_antiga(self):
+        """Proposta da fatia 4: tem fatura completa e não passou pelos 4 passos."""
+        return not self.origem_consumo and self.fatura_id is not None
 
     @classmethod
     def proximo_numero(cls, ano=None):
@@ -127,6 +197,7 @@ class ItemKit(models.Model):
         OUTRO = "outro", "Outro"
 
     proposta = models.ForeignKey(Proposta, on_delete=models.CASCADE, related_name="itens_kit")
+    equipamento = models.ForeignKey("Equipamento", on_delete=models.SET_NULL, null=True, blank=True)
     tipo = models.CharField(max_length=12, choices=Tipo.choices)
     descricao = models.CharField(max_length=255)
     modelo = models.CharField(max_length=120, blank=True)

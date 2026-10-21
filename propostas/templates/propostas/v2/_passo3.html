@@ -1,0 +1,28 @@
+<h2>Sistema sugerido</h2>
+<p class="ajuda">O sistema escolhe o módulo da cotação de menor R$/Wp e o inversor da fase da ligação com sobrecarga de até {{ m.sobrecarga_max|floatformat:2 }}. Deixe em branco para usar a sugestão.</p>
+<div class="grade-campos">
+  {% include "core/_campo.html" with campo=form.orientacao %}
+  {% include "core/_campo.html" with campo=form.tipo_estrutura %}
+</div>
+
+{% include "propostas/v2/_destaque.html" %}
+
+<h3>Kit</h3>
+<div class="grade-campos">
+  {% include "core/_campo.html" with campo=form.modulo %}
+  {% include "core/_campo.html" with campo=form.qtd_modulos %}
+  {% include "core/_campo.html" with campo=form.inversor %}
+  {% include "core/_campo.html" with campo=form.qtd_inversores %}
+  {% include "core/_campo.html" with campo=form.cabo_preto_m %}
+  {% include "core/_campo.html" with campo=form.cabo_vermelho_m %}
+</div>
+
+<div class="interno">
+  <h3>Preço <span class="etiqueta-interna">só o vendedor vê</span></h3>
+  <div class="grade-campos">
+    {% include "core/_campo.html" with campo=form.cotacao %}
+    {% include "core/_campo.html" with campo=form.custo_kit %}
+    {% include "core/_campo.html" with campo=form.mao_de_obra %}
+    {% include "core/_campo.html" with campo=form.desconto_texto %}
+  </div>
+</div>
