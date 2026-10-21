@@ -1,0 +1,64 @@
+{% extends "core/_config_base.html" %}
+
+{% block config %}
+  <div class="card">
+    <div class="barra-acoes barra-acoes--plana">
+      <h3>Tarifas da Energisa TO (Grupo B)</h3>
+      <span class="barra-acoes__espaco"></span>
+      <form method="post" action="{% url 'core:config_tarifas_atualizar' %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn--secundario">Atualizar da ANEEL</button>
+      </form>
+    </div>
+    <p class="ajuda">TUSD e TE vêm da ANEEL{% if ultima_atualizacao %} (última consulta em {{ ultima_atualizacao|date:"d/m/Y" }}){% endif %}. Tributos e Fio B a ANEEL não publica: digite a partir de uma conta recente e confira a cada reajuste.</p>
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+      <div class="itens-rolagem">
+        <table class="tabela tabela--tarifas">
+          <thead>
+            <tr><th>Tipo</th><th>Vigência</th><th class="num">TUSD + TE</th><th>Tributos (%)</th><th class="num">Tarifa na conta</th><th>Fio B (R$/kWh)</th><th>Conferido</th></tr>
+          </thead>
+          <tbody>
+            {% for f in forms_tarifa %}
+              {% with t=f.instance %}
+              <tr>
+                <td>{{ t.get_tipo_display }}</td>
+                <td>{{ t.vigencia_inicio|date:"d/m/Y" }}</td>
+                <td class="num">{{ t.tusd|floatformat:"5g" }} + {{ t.te|floatformat:"5g" }}</td>
+                <td>{{ f.aliquota_tributos }}{% for e in f.aliquota_tributos.errors %}<p class="campo__erro">{{ e }}</p>{% endfor %}</td>
+                <td class="num">{% if t.aliquota_tributos %}R$ {{ t.tarifa_com_tributos|floatformat:"5g" }}{% else %}<span class="situacao--alerta">informe os tributos</span>{% endif %}</td>
+                <td>{{ f.fiob_kwh }}{% for e in f.fiob_kwh.errors %}<p class="campo__erro">{{ e }}</p>{% endfor %}</td>
+                <td>
+                  {% if t.fiob_desatualizado %}<span class="situacao--alerta">conferir</span> {{ f.fiob_conferido }}{% else %}{{ t.fiob_conferido_em|date:"d/m/Y" }}{% endif %}
+                </td>
+              </tr>
+              {% endwith %}
+            {% empty %}
+              <tr><td colspan="7">Nenhuma tarifa. Clique em "Atualizar da ANEEL".</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Bandeiras tarifárias</h3>
+      <p class="ajuda">Adicional por kWh de cada bandeira (ANEEL). Usado para converter o valor da conta em kWh.</p>
+      {{ bandeiras.management_form }}
+      <div class="itens-rolagem">
+        <table class="tabela tabela--tarifas">
+          <thead><tr><th>Bandeira</th><th>Adicional (R$/kWh)</th><th>Vigente desde</th></tr></thead>
+          <tbody>
+            {% for b in bandeiras %}
+              <tr>
+                <td>{{ b.id }}{{ b.instance.nome }}</td>
+                <td>{{ b.adicional_kwh }}{% for e in b.adicional_kwh.errors %}<p class="campo__erro">{{ e }}</p>{% endfor %}</td>
+                <td>{{ b.vigencia }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <button type="submit" class="btn">Salvar</button>
+    </form>
+  </div>
+{% endblock %}

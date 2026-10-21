@@ -129,3 +129,34 @@ def limpar_reais(texto):
     except InvalidOperation:
         raise ValueError("Valor inválido. Use o formato 1.234,56.")
     return valor.quantize(Decimal("0.01"))
+
+
+def limpar_percentual(texto, minimo=0.0, maximo=100.0):
+    """Converte "18", "18,5" ou "18,5%" na fração 0.185 (D24: mostrado em %, guardado em fração)."""
+    texto = (texto or "").replace("%", "").replace(" ", "").strip()
+    if not texto:
+        raise ValueError("Informe o percentual.")
+    if not re.fullmatch(r"-?\d+(,\d+)?", texto):
+        raise ValueError("Percentual inválido. Use, por exemplo, 18 ou 18,5.")
+    valor = float(texto.replace(",", "."))
+    if not minimo <= valor <= maximo:
+        raise ValueError(f"Use um valor entre {minimo:g}% e {maximo:g}%.")
+    return round(valor / 100, 6)
+
+
+def formatar_percentual(fracao, casas=2):
+    """0.185 → "18,5" (sem zeros sobrando)."""
+    texto = f"{fracao * 100:.{casas}f}".rstrip("0").rstrip(".")
+    return texto.replace(".", ",")
+
+
+def formatar_reais(valor):
+    """Decimal('1234.5') → "1.234,50"."""
+    inteiro, _, centavos = f"{valor:.2f}".partition(".")
+    negativo = inteiro.startswith("-")
+    inteiro = inteiro.lstrip("-")
+    grupos = []
+    while inteiro:
+        grupos.insert(0, inteiro[-3:])
+        inteiro = inteiro[:-3]
+    return ("-" if negativo else "") + ".".join(grupos or ["0"]) + "," + centavos

@@ -1,0 +1,32 @@
+{% extends "core/_config_base.html" %}
+
+{% block config %}
+  <div class="card">
+    <div class="barra-acoes barra-acoes--plana">
+      <h3>Irradiação dos municípios do Tocantins</h3>
+      <span class="barra-acoes__espaco"></span>
+      {% if pendentes %}
+        <form method="post" action="{% url 'core:config_municipios_atualizar' %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn--secundario">Buscar na NASA POWER ({{ pendentes }} pendentes)</button>
+        </form>
+      {% endif %}
+    </div>
+    <p class="ajuda">Média mensal de 2001 a 2025 no plano horizontal, por coordenada do município. Busca 20 municípios por clique; os que já têm dado de menos de um ano não são buscados de novo.</p>
+    <div class="itens-rolagem">
+      <table class="tabela tabela--compacta">
+        <thead><tr><th>Município</th><th class="num">Média (kWh/m²·dia)</th><th>Fonte</th><th>Atualizado em</th></tr></thead>
+        <tbody>
+          {% for m in municipios %}
+            <tr>
+              <td>{{ m.nome }}</td>
+              <td class="num">{% if m.irradiacao %}{{ m.media_irradiacao|floatformat:2 }}{% else %}<span class="situacao--alerta">sem dado</span>{% endif %}</td>
+              <td>{{ m.fonte_irradiacao|default:"—" }}</td>
+              <td>{{ m.atualizado_em|date:"d/m/Y"|default:"—" }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends "core/_config_base.html" %}
+
+{% block config %}
+  <div class="card">
+    <h3>Taxas de financiamento (% ao mês)</h3>
+    <p class="ajuda">Taxa de cada banco por prazo. A proposta mostra, em cada prazo, a parcela do banco mais barato, como valor aproximado. Para incluir um banco, use a última linha; para tirar, apague o nome e as taxas.</p>
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% if form.non_field_errors %}<p class="campo__erro">{{ form.non_field_errors|join:" " }}</p>{% endif %}
+      <div class="itens-rolagem">
+        <table class="tabela tabela--taxas">
+          <thead><tr><th>Banco</th>{% for prazo in prazos %}<th class="num">{{ prazo }}×</th>{% endfor %}</tr></thead>
+          <tbody>
+            {% for banco, taxas in form.linhas_renderizadas %}
+              <tr>
+                <td>{{ banco }}{% for erro in banco.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}</td>
+                {% for taxa in taxas %}<td>{{ taxa }}{% for erro in taxa.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}</td>{% endfor %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <button type="submit" class="btn">Salvar</button>
+    </form>
+  </div>
+{% endblock %}

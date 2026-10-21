@@ -6,9 +6,12 @@ import pytest
 
 from core.validacoes import (
     formatar_cpf_cnpj,
+    formatar_percentual,
+    formatar_reais,
     formatar_telefone,
     limpar_cpf_cnpj,
     limpar_nome,
+    limpar_percentual,
     limpar_reais,
     limpar_telefone,
 )
@@ -88,3 +91,23 @@ def test_formatacao():
     assert formatar_cpf_cnpj("11222333000181") == "11.222.333/0001-81"
     assert formatar_telefone("63999991234") == "(63) 99999-1234"
     assert formatar_telefone("6333124567") == "(63) 3312-4567"
+
+
+@pytest.mark.parametrize("digitado, esperado", [("18", 0.18), ("18,5", 0.185), ("1,5 %", 0.015), ("0", 0.0)])
+def test_percentual_aceito(digitado, esperado):
+    assert limpar_percentual(digitado) == pytest.approx(esperado)
+
+
+@pytest.mark.parametrize("digitado", ["", "abc", "18.5", "150", "-1"])
+def test_percentual_recusado(digitado):
+    with pytest.raises(ValueError):
+        limpar_percentual(digitado)
+
+
+def test_formatar_percentual_e_reais():
+    assert formatar_percentual(0.185) == "18,5"
+    assert formatar_percentual(0.0139) == "1,39"
+    assert formatar_percentual(0.5) == "50"
+    assert formatar_reais(Decimal("1234.5")) == "1.234,50"
+    assert formatar_reais(Decimal("500")) == "500,00"
+    assert formatar_reais(Decimal("1234567.891")) == "1.234.567,89"

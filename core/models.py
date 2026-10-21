@@ -1,5 +1,23 @@
 from django.db import models
 
+AVISO_ESTIMATIVA_PADRAO = (
+    "Valores estimados a partir de dados informados pelo cliente, sem análise da fatura. "
+    "Sujeitos a discrepâncias com os dados reais."
+)
+
+
+# Valores iniciais aprovados no protótipo (21/10/2026); o gestor ajusta em Configurações.
+def fatores_orientacao_padrao():
+    return {"norte": 1.0, "nordeste_noroeste": 0.97, "leste_oeste": 0.90, "sul": 0.80}
+
+
+def perfis_simultaneidade_padrao():
+    return [
+        {"nome": "Mais à noite (residencial)", "simultaneidade": 0.35},
+        {"nome": "Dia e noite (rural)", "simultaneidade": 0.50},
+        {"nome": "Mais de dia (comércio)", "simultaneidade": 0.65},
+    ]
+
 
 class ConfigEmpresa(models.Model):
     """Registro único com os dados da empresa. Usado no rodapé e capa da proposta."""
@@ -21,6 +39,17 @@ class ConfigEmpresa(models.Model):
     )
     validade_padrao_dias = models.PositiveIntegerField(default=15)
     premissas_padrao = models.JSONField(default=dict)
+
+    # Proposta v2 (D18, D19, D20, D23)
+    mo_por_kwp = models.DecimalField("mão de obra por kWp (R$)", max_digits=10, decimal_places=2, default=500)
+    mo_por_kwp_solo = models.DecimalField(
+        "mão de obra por kWp em solo (R$)", max_digits=10, decimal_places=2, default=700
+    )
+    mo_minima = models.DecimalField("mão de obra mínima (R$)", max_digits=10, decimal_places=2, default=4500)
+    fatores_orientacao = models.JSONField("fatores de orientação", default=fatores_orientacao_padrao)
+    perfis_simultaneidade = models.JSONField("perfis de simultaneidade", default=perfis_simultaneidade_padrao)
+    dias_preco_velho = models.PositiveIntegerField("dias para o preço do kit ficar velho", default=15)
+    aviso_estimativa = models.TextField("aviso da estimativa", default=AVISO_ESTIMATIVA_PADRAO)
 
     class Meta:
         verbose_name = "Configuração da empresa"
@@ -59,3 +88,7 @@ class Municipio(models.Model):
 
     def __str__(self):
         return f"{self.nome}/{self.uf}"
+
+    @property
+    def media_irradiacao(self):
+        return sum(self.irradiacao) / 12 if self.irradiacao else None

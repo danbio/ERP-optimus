@@ -1,0 +1,27 @@
+{% extends "core/_config_base.html" %}
+
+{% block config %}
+  <div class="card card--estreito">
+    <form method="post" enctype="multipart/form-data" novalidate>
+      {% csrf_token %}
+      <div class="grade-campos">
+        {% include "core/_campo.html" with campo=form.razao_social %}
+        {% include "core/_campo.html" with campo=form.nome_fantasia %}
+        {% include "core/_campo.html" with campo=form.cnpj %}
+        {% include "core/_campo.html" with campo=form.endereco %}
+        {% include "core/_campo.html" with campo=form.telefone %}
+        {% include "core/_campo.html" with campo=form.email %}
+        {% include "core/_campo.html" with campo=form.logo %}
+        {% include "core/_campo.html" with campo=form.projetos_entregues %}
+        {% include "core/_campo.html" with campo=form.anos_atuacao %}
+        {% include "core/_campo.html" with campo=form.validade_padrao_dias %}
+      </div>
+      {% include "core/_campo.html" with campo=form.texto_sobre %}
+      {% include "core/_campo.html" with campo=form.beneficios_padrao %}
+      {% include "core/_campo.html" with campo=form.escopo_padrao %}
+      {% include "core/_campo.html" with campo=form.etapas_padrao %}
+      {% include "core/_campo.html" with campo=form.aviso_estimativa %}
+      <button type="submit" class="btn">Salvar</button>
+    </form>
+  </div>
+{% endblock %}
