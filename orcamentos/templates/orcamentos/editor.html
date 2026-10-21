@@ -1,0 +1,107 @@
+{% extends "core/base.html" %}
+
+{% block titulo %}{{ orcamento.numero }}{% endblock %}
+{% block titulo_pagina %}{{ orcamento.numero }} v{{ orcamento.versao }} · {{ orcamento.cliente.nome }}{% endblock %}
+
+{% block conteudo %}
+<div class="orcamento-editor" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+  <div class="orcamento-editor__principal">
+
+    <div class="card barra-acoes">
+      <span class="badge status--{{ orcamento.status }}">{{ orcamento.get_status_display }}</span>
+      <span>{{ orcamento.titulo }}</span>
+      {% if orcamento.tabela_referencia %}<span class="ajuda">Tabela Intelbras: {{ orcamento.tabela_referencia }}</span>{% endif %}
+      <span class="barra-acoes__espaco"></span>
+      <a class="btn btn--secundario" href="{% url 'orcamentos:preview' orcamento.pk %}" target="_blank">Pré-visualizar</a>
+      {% if orcamento.editavel %}
+        <form method="post" action="{% url 'orcamentos:emitir' orcamento.pk %}">
+          {% csrf_token %}<button type="submit" class="btn btn--ouro">Emitir PDF</button>
+        </form>
+      {% else %}
+        {% if orcamento.pdf %}<a class="btn" href="{% url 'orcamentos:pdf' orcamento.pk %}" target="_blank">Abrir PDF</a>{% endif %}
+        <form method="post" action="{% url 'orcamentos:revisar' orcamento.pk %}">
+          {% csrf_token %}<button type="submit" class="btn btn--secundario">Revisar (nova versão)</button>
+        </form>
+        <form method="post" action="{% url 'orcamentos:status' orcamento.pk %}" class="barra-acoes__status">
+          {% csrf_token %}
+          <button type="submit" name="status" value="aceito" class="btn btn--secundario">Aceito</button>
+          <button type="submit" name="status" value="perdido" class="btn btn--secundario">Perdido</button>
+        </form>
+      {% endif %}
+    </div>
+
+    {% if erro_pdf %}<div class="card"><span class="badge badge--erro">{{ erro_pdf }}</span></div>{% endif %}
+
+    {% if versoes|length > 1 %}
+      <div class="card versoes">
+        Versões:
+        {% for v in versoes %}
+          <a href="{% url 'orcamentos:editor' v.pk %}" class="badge {% if v.pk == orcamento.pk %}badge--ok{% endif %}">v{{ v.versao }} · {{ v.get_status_display }}</a>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% if orcamento.editavel %}
+      <div class="card">
+        <h3>Adicionar equipamentos Intelbras</h3>
+        <input type="search" name="q" placeholder="Código ou descrição (ex.: VHD 1220, NVD 1416, bullet 2MP)" class="busca"
+               hx-get="{% url 'orcamentos:buscar_produtos' orcamento.pk %}" hx-trigger="input changed delay:300ms, search"
+               hx-target="#resultado-busca" autocomplete="off">
+        <div id="resultado-busca" class="busca-resultados"></div>
+
+        <h3>Serviços e materiais</h3>
+        <div class="barra-acoes barra-acoes--plana">
+          <button type="button" class="btn btn--secundario"
+                  hx-get="{% url 'orcamentos:buscar_proprios' orcamento.pk %}" hx-target="#resultado-proprios">Itens cadastrados</button>
+          <button type="button" class="btn btn--secundario" hx-post="{% url 'orcamentos:adicionar_avulso' orcamento.pk %}"
+                  hx-vals='{"tipo": "servico"}' hx-target="#itens" hx-swap="outerHTML">+ serviço avulso</button>
+          <button type="button" class="btn btn--secundario" hx-post="{% url 'orcamentos:adicionar_avulso' orcamento.pk %}"
+                  hx-vals='{"tipo": "material"}' hx-target="#itens" hx-swap="outerHTML">+ material avulso</button>
+        </div>
+        <div id="resultado-proprios" class="busca-resultados"></div>
+      </div>
+    {% endif %}
+
+    <div class="card">
+      <div class="barra-acoes barra-acoes--plana">
+        <h3>Itens</h3>
+        <span class="barra-acoes__espaco"></span>
+        {% if orcamento.editavel %}
+          <form method="post" action="{% url 'orcamentos:atualizar_precos' orcamento.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn--pequeno btn--secundario"
+                    title="Traz o custo da tabela atual, mantendo o markup de cada item">Atualizar preços pela tabela atual</button>
+          </form>
+        {% endif %}
+      </div>
+      {% include "orcamentos/_tabela_itens.html" %}
+    </div>
+
+    <details class="card" {% if not orcamento.itens.exists or salvo or form.errors %}open{% endif %}>
+      <summary><h3>Dados do orçamento</h3></summary>
+      <form method="post" novalidate>
+        {% csrf_token %}
+        <div class="grade-campos">
+          {% for campo in form %}
+            <div class="campo {% if campo.field.widget.input_type == 'checkbox' %}campo--checkbox{% endif %}">
+              <label for="{{ campo.id_for_label }}">{{ campo.label }}</label>
+              {% if orcamento.editavel %}{{ campo }}{% else %}<div>{{ campo.value|default:"—"|linebreaksbr }}</div>{% endif %}
+              {% if campo.errors %}<p class="badge badge--erro">{{ campo.errors|join:" " }}</p>{% endif %}
+            </div>
+          {% endfor %}
+        </div>
+        {% if orcamento.editavel %}
+          <button type="submit" class="btn">Salvar dados</button>
+          {% if salvo %}<span class="badge badge--ok">Salvo</span>{% endif %}
+        {% endif %}
+      </form>
+    </details>
+  </div>
+
+  <div class="orcamento-editor__lateral">
+    <div class="card">
+      {% include "orcamentos/_totais.html" %}
+    </div>
+  </div>
+</div>
+{% endblock %}

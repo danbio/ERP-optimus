@@ -1,0 +1,46 @@
+<section class="pagina">
+  {% include "propostas/pdf/_cabecalho.html" %}
+  <h2 class="doc-h2">Resumo da proposta</h2>
+
+  <div class="doc-kpis">
+    <div class="doc-kpi">
+      <div class="doc-kpi__valor">{{ kwp|floatformat:2 }} kWp</div>
+      <div class="doc-kpi__rotulo">Potência instalada{% if qtd_modulos %}<br>{{ qtd_modulos }} módulos de {{ potencia_modulo }} W{% endif %}</div>
+    </div>
+    <div class="doc-kpi">
+      <div class="doc-kpi__valor">{{ geracao_media|floatformat:"0g" }} kWh</div>
+      <div class="doc-kpi__rotulo">Geração média mensal estimada<br>({{ pct.perdas|floatformat:"-1" }}% de perdas)</div>
+    </div>
+    <div class="doc-kpi">
+      <div class="doc-kpi__valor">{{ consumo_medio|floatformat:"0g" }} kWh</div>
+      <div class="doc-kpi__rotulo">Consumo médio mensal<br>(base: fatura {{ fatura.competencia|date:"b/Y" }})</div>
+    </div>
+    <div class="doc-kpi doc-kpi--escuro">
+      <div class="doc-kpi__valor">R$ {{ r.economia_mensal_ano1|floatformat:"0g" }}</div>
+      <div class="doc-kpi__rotulo">Economia mensal estimada<br>no 1º ano</div>
+    </div>
+    <div class="doc-kpi doc-kpi--escuro">
+      <div class="doc-kpi__valor">≈ {{ r.payback_meses|floatformat:0 }} meses</div>
+      <div class="doc-kpi__rotulo">Retorno do investimento<br>(payback simples)</div>
+    </div>
+    <div class="doc-kpi doc-kpi--escuro">
+      <div class="doc-kpi__valor">R$ {{ proposta.investimento|floatformat:"2g" }}</div>
+      <div class="doc-kpi__rotulo">Investimento total<br>(instalado e homologado)</div>
+    </div>
+  </div>
+
+  {% if beneficios %}
+    <h3 class="doc-h3">Benefícios do sistema</h3>
+    <ul class="doc-lista">
+      {% for beneficio in beneficios %}<li>{{ beneficio }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+
+  {% if proposta.texto_sobre %}
+    <div class="doc-sobre">
+      <strong>Sobre a {{ empresa.nome_fantasia|default:empresa.razao_social }}</strong>
+      <p>{{ proposta.texto_sobre|linebreaksbr }}</p>
+    </div>
+  {% endif %}
+  {% include "propostas/pdf/_rodape.html" %}
+</section>

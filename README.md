@@ -23,9 +23,23 @@ python manage.py migrate
 python manage.py runserver 0.0.0.0:8000
 ```
 
+Para os PDFs (proposta e orçamento), instalar o Chromium do Playwright uma única vez:
+
+```powershell
+python -m playwright install chromium
+```
+
 Depois de rodar o passo 5, abra no navegador:
 - Neste PC: http://localhost:8000/
 - De outro PC na mesma rede: `http://<IP-deste-PC>:8000/` (ver o IP com `ipconfig`, procurar "Endereço IPv4").
+
+## Orçamentos Intelbras — primeiro uso
+
+1. **Catálogo Intelbras → Importar tabela**: enviar o `.xlsb` baixado do Portal Sou Parceiro (repetir a cada nova tabela, dias 1 e 15).
+2. **Admin → Parâmetros de orçamento**: conferir o markup padrão, a validade, a garantia e as observações.
+3. **Admin → Markups por segmento** (opcional): markup diferente por segmento (ex.: `CFTV IP` 40%).
+4. **Admin → Itens próprios**: cadastrar os serviços (instalação por ponto, configuração…) e os materiais de outras marcas.
+5. **Orçamentos → + novo orçamento**.
 
 ## Produção (PC dedicado na rede local)
 

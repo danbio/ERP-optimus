@@ -1,0 +1,86 @@
+<div id="itens" class="itens-rolagem">
+  {% if itens %}
+    <table class="tabela tabela-itens">
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th class="num">Qtd.</th>
+          <th>Un.</th>
+          <th class="num">Custo unit.</th>
+          <th class="num">Markup %</th>
+          <th class="num">Preço unit.</th>
+          <th class="num">Total</th>
+          {% if orcamento.editavel %}<th></th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in itens %}
+          <tr class="{% if item.alertas %}tabela-itens__linha--alerta{% endif %}">
+            <td>
+              <span class="badge tipo--{{ item.tipo }}">{% if item.tipo == "intelbras" %}Intelbras{% else %}{{ item.get_tipo_display }}{% endif %}</span>
+              {% if item.codigo %}<span class="ajuda">{{ item.codigo }}</span>{% endif %}
+              {% if orcamento.editavel and item.tipo != "intelbras" %}
+                <input type="text" name="valor" value="{{ item.descricao }}" class="tabela-itens__descricao"
+                       hx-post="{% url 'orcamentos:item_atualizar' item.pk %}" hx-vals='{"campo": "descricao"}'
+                       hx-trigger="change" hx-target="#itens" hx-swap="outerHTML">
+              {% else %}
+                <div>{{ item.descricao }}</div>
+              {% endif %}
+              {% for alerta in item.alertas %}<div class="alerta-item">{{ alerta }}</div>{% endfor %}
+            </td>
+            {% if orcamento.editavel %}
+              <td class="num">
+                <input type="text" inputmode="decimal" name="valor" value="{{ item.quantidade|floatformat:"-2" }}"
+                       hx-post="{% url 'orcamentos:item_atualizar' item.pk %}" hx-vals='{"campo": "quantidade"}'
+                       hx-trigger="change" hx-target="#itens" hx-swap="outerHTML">
+              </td>
+              <td>
+                <input type="text" name="valor" value="{{ item.unidade }}" class="tabela-itens__unidade"
+                       hx-post="{% url 'orcamentos:item_atualizar' item.pk %}" hx-vals='{"campo": "unidade"}'
+                       hx-trigger="change" hx-target="#itens" hx-swap="outerHTML">
+              </td>
+              <td class="num">
+                {% if item.tipo == "intelbras" and item.custo_unitario %}
+                  {{ item.custo_unitario|floatformat:"2g" }}
+                {% else %}
+                  <input type="text" inputmode="decimal" name="valor" value="{{ item.custo_unitario|floatformat:2 }}"
+                         hx-post="{% url 'orcamentos:item_atualizar' item.pk %}" hx-vals='{"campo": "custo"}'
+                         hx-trigger="change" hx-target="#itens" hx-swap="outerHTML">
+                {% endif %}
+              </td>
+              <td class="num">
+                {% if item.markup is not None %}
+                  <input type="text" inputmode="decimal" name="valor" value="{{ item.markup|floatformat:2 }}"
+                         hx-post="{% url 'orcamentos:item_atualizar' item.pk %}" hx-vals='{"campo": "markup"}'
+                         hx-trigger="change" hx-target="#itens" hx-swap="outerHTML">
+                {% else %}—{% endif %}
+              </td>
+              <td class="num">
+                <input type="text" inputmode="decimal" name="valor" value="{{ item.preco_unitario|floatformat:2 }}"
+                       hx-post="{% url 'orcamentos:item_atualizar' item.pk %}" hx-vals='{"campo": "preco"}'
+                       hx-trigger="change" hx-target="#itens" hx-swap="outerHTML">
+                {% if item.pscf_unitario %}<div class="ajuda">PSCF {{ item.pscf_unitario|floatformat:"2g" }}</div>{% endif %}
+              </td>
+            {% else %}
+              <td class="num">{{ item.quantidade|floatformat:"-2" }}</td>
+              <td>{{ item.unidade }}</td>
+              <td class="num">{{ item.custo_unitario|floatformat:"2g" }}</td>
+              <td class="num">{{ item.markup|floatformat:2|default:"—" }}</td>
+              <td class="num">{{ item.preco_unitario|floatformat:"2g" }}</td>
+            {% endif %}
+            <td class="num"><strong>{{ item.total|floatformat:"2g" }}</strong></td>
+            {% if orcamento.editavel %}
+              <td>
+                <button type="button" class="btn btn--pequeno btn--secundario" title="Remover"
+                        hx-post="{% url 'orcamentos:item_remover' item.pk %}"
+                        hx-target="#itens" hx-swap="outerHTML">×</button>
+              </td>
+            {% endif %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="ajuda">Nenhum item ainda. Busque produtos Intelbras acima ou adicione serviços e materiais.</p>
+  {% endif %}
+</div>

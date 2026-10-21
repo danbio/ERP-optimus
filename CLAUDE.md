@@ -2,6 +2,7 @@
 
 ERP interno da **Optimus Energia Solar** (Gurupi-TO). Uso interno, 2–5 usuários, rede local.
 Fase atual: **módulo de Proposta Solar** (ver `docs/spec-fase1.md`).
+Módulo paralelo: **Orçamentos da revenda Intelbras** (ver `docs/spec-orcamentos.md`, D12–D15).
 
 ## Princípio número 1
 
@@ -48,6 +49,13 @@ meu_erp/
 │   └── templates/propostas/
 │       ├── ...          # telas
 │       └── pdf/         # 1 template por página do PDF
+├── orcamentos/          # revenda Intelbras: catálogo, orçamento, PDF
+│   ├── services/
+│   │   ├── tabela_intelbras.py  # leitura do .xlsb — FUNÇÃO PURA
+│   │   └── calculo.py           # preço/markup/totais — FUNÇÕES PURAS
+│   ├── importacao.py    # grava a leitura no banco
+│   └── templates/orcamentos/pdf/
+├── core/pdf.py          # html_para_pdf() — Playwright, usado por todos os PDFs
 ├── static/css/          # ver regras de CSS
 ├── static/fonts/        # Poppins local
 ├── tests/

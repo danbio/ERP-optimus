@@ -1,0 +1,42 @@
+<section class="pagina">
+  {% include "propostas/pdf/_cabecalho.html" %}
+  <h2 class="doc-h2">Análise financeira</h2>
+
+  <div class="doc-kpis">
+    <div class="doc-kpi">
+      <div class="doc-kpi__valor">R$ {{ r.custo_mensal_atual|floatformat:"0g" }}</div>
+      <div class="doc-kpi__rotulo">Custo mensal de energia atual<br>(consumo × tarifa da fatura)</div>
+    </div>
+    <div class="doc-kpi">
+      <div class="doc-kpi__valor">R$ {{ r.custo_mensal_com_sistema|floatformat:"0g" }}</div>
+      <div class="doc-kpi__rotulo">Custo mensal estimado com o<br>sistema (1º ano)</div>
+    </div>
+    <div class="doc-kpi doc-kpi--escuro">
+      <div class="doc-kpi__valor">R$ {{ r.economia_mensal_ano1|floatformat:"0g" }}</div>
+      <div class="doc-kpi__rotulo">Economia mensal estimada<br>(1º ano)</div>
+    </div>
+  </div>
+
+  <h3 class="doc-h3">Fluxo de caixa acumulado ({{ premissas.horizonte_anos }} anos)</h3>
+  <div class="grafico">{{ grafico_fluxo|safe }}</div>
+
+  <table class="doc-tabela">
+    <thead><tr><th>Período</th><th class="num">Economia no ano</th><th class="num">Saldo acumulado</th></tr></thead>
+    <tbody>
+      {% for linha in fluxo_tabela %}
+        <tr><td>Ano {{ linha.ano }}</td><td class="num">R$ {{ linha.economia|floatformat:"0g" }}</td><td class="num">R$ {{ linha.acumulado|floatformat:"0g" }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p class="doc-nota">
+    <strong>Premissas:</strong> tarifa de R$ {{ fatura.tarifa_kwh|floatformat:5 }}/kWh com tributos (fatura {{ fatura.competencia|date:"b/Y" }}), sem bandeiras;
+    reajuste de {{ pct.reajuste_anual|floatformat:"-1" }}% a.a.;
+    {{ pct.simultaneidade|floatformat:"-1" }}% do consumo simultâneo à geração (autoconsumo instantâneo);
+    Fio B de R$ {{ fiob_kwh|floatformat:2 }}/kWh aplicado à energia compensada na proporção de {{ texto_fiob }};
+    {% if premissas.cobrar_disponibilidade %}custo de disponibilidade {{ ligacao }} ({{ disponibilidade_kwh }} kWh/mês);{% endif %}
+    degradação dos módulos de {{ pct.degradacao_ano1|floatformat:"-1" }}% no 1º ano e {{ pct.degradacao_anual|floatformat:"-1" }}% a.a. depois.
+    Créditos excedentes não foram considerados como economia.
+  </p>
+  {% include "propostas/pdf/_rodape.html" %}
+</section>

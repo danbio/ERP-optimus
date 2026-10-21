@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Proposta {{ proposta.numero }}{% if proposta.versao > 1 %} v{{ proposta.versao }}{% endif %} · {{ cliente.nome }}</title>
+  <link rel="stylesheet" href="{{ base_estatico }}/css/tokens.css">
+  <link rel="stylesheet" href="{{ base_estatico }}/css/base.css">
+  <link rel="stylesheet" href="{{ base_estatico }}/css/components.css">
+  <link rel="stylesheet" href="{{ base_estatico }}/css/proposta.css">
+</head>
+<body class="proposta-doc">
+  {% include "propostas/pdf/capa.html" %}
+  {% include "propostas/pdf/resumo.html" with pagina=2 %}
+  {% include "propostas/pdf/fatura.html" with pagina=3 %}
+  {% include "propostas/pdf/geracao.html" with pagina=4 %}
+  {% include "propostas/pdf/financeiro.html" with pagina=5 %}
+  {% include "propostas/pdf/tecnica.html" with pagina=6 %}
+  {% include "propostas/pdf/investimento.html" with pagina=7 %}
+  {% for n in paginas_anexo %}
+    {% include "propostas/pdf/anexo.html" with pagina=forloop.counter|add:7 n=n %}
+  {% endfor %}
+</body>
+</html>

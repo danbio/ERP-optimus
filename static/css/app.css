@@ -87,4 +87,174 @@
       }
     }
   }
+
+  /* ---------- Orçamentos Intelbras ---------- */
+
+  .topbar input[type="text"],
+  .topbar input[type="search"],
+  .topbar select {
+    padding: var(--esp-2) var(--esp-3);
+    border: 1px solid var(--soft);
+    border-radius: var(--raio);
+    font-family: var(--fonte);
+    font-size: var(--texto-sm);
+    background: var(--branco);
+  }
+
+  .conteudo > .card {
+    margin-bottom: var(--esp-4);
+  }
+
+  .card.card--estreito {
+    max-width: 640px;
+  }
+
+  .orcamento-editor {
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(260px, 1fr);
+    gap: var(--esp-5);
+    align-items: start;
+
+    & .card {
+      margin-bottom: var(--esp-4);
+    }
+
+    & .orcamento-editor__lateral {
+      position: sticky;
+      top: var(--esp-5);
+    }
+  }
+
+  .barra-acoes {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--esp-2);
+
+    & form {
+      margin: 0;
+    }
+
+    & h3 {
+      margin: 0;
+    }
+
+    & .barra-acoes__espaco {
+      flex: 1;
+    }
+
+    &.barra-acoes--plana {
+      margin-bottom: var(--esp-3);
+    }
+  }
+
+  .busca {
+    width: 100%;
+    padding: var(--esp-2) var(--esp-3);
+    border: 1px solid var(--soft);
+    border-radius: var(--raio);
+    font-family: var(--fonte);
+    font-size: var(--texto-base);
+    margin-bottom: var(--esp-3);
+  }
+
+  .busca-resultados {
+    max-height: 360px;
+    overflow-y: auto;
+    margin-bottom: var(--esp-4);
+  }
+
+  .itens-rolagem {
+    overflow-x: auto;
+  }
+
+  .tabela-itens {
+    & td {
+      vertical-align: top;
+    }
+
+    & td:first-child {
+      min-width: 240px;
+      width: 40%;
+    }
+
+    & input {
+      width: 5.5rem;
+      padding: var(--esp-1) var(--esp-2);
+      border: 1px solid var(--soft);
+      border-radius: var(--raio);
+      font-family: var(--fonte);
+      font-size: var(--texto-sm);
+      text-align: right;
+    }
+
+    & input.tabela-itens__descricao {
+      width: 100%;
+      text-align: left;
+      margin-top: var(--esp-1);
+    }
+
+    & input.tabela-itens__unidade {
+      width: 3.5rem;
+      text-align: left;
+    }
+
+    & .tabela-itens__linha--alerta {
+      background: var(--light);
+    }
+  }
+
+  .alerta-item {
+    font-size: var(--texto-xs);
+    color: var(--erro);
+  }
+
+  .totais {
+    margin-top: var(--esp-3);
+
+    & .totais__desconto {
+      width: 4rem;
+      padding: var(--esp-1);
+      border: 1px solid var(--soft);
+      border-radius: var(--raio);
+      text-align: right;
+    }
+
+    & .totais__interno td {
+      color: var(--muted);
+    }
+  }
+
+  .badge.tipo--intelbras { background: var(--navy); color: var(--branco); }
+  .badge.tipo--material { background: var(--soft); }
+  .badge.tipo--servico { background: var(--gold); }
+  .badge.status--emitido { background: var(--navy); color: var(--branco); }
+  .badge.status--aceito { background: var(--ok); color: var(--branco); }
+  .badge.status--perdido { background: var(--erro); color: var(--branco); }
+
+  .versoes {
+    display: flex;
+    gap: var(--esp-2);
+    align-items: center;
+  }
+
+  .grade-campos {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 var(--esp-4);
+  }
+
+  .campo.campo--checkbox input,
+  .campo--checkbox input {
+    width: auto;
+  }
+
+  details > summary {
+    cursor: pointer;
+    list-style: none;
+
+    & h3 {
+      display: inline;
+    }
+  }
 }

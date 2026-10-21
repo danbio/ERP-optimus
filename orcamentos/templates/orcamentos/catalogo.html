@@ -1,0 +1,59 @@
+{% extends "core/base.html" %}
+
+{% block titulo %}Catálogo Intelbras{% endblock %}
+{% block titulo_pagina %}Catálogo Intelbras{% endblock %}
+
+{% block conteudo %}
+  <div class="card barra-acoes">
+    {% if ultima_tabela %}
+      <span>Tabela <strong>{{ ultima_tabela.referencia }}</strong> · UF {{ ultima_tabela.uf_destino }} · importada em {{ ultima_tabela.importada_em|date:"d/m/Y H:i" }}</span>
+      <span class="badge">{{ total_ativos }} produtos ativos</span>
+    {% else %}
+      <span class="badge badge--erro">Nenhuma tabela importada ainda.</span>
+    {% endif %}
+    <span class="barra-acoes__espaco"></span>
+    <a href="{% url 'orcamentos:importar' %}" class="btn">Importar tabela</a>
+  </div>
+
+  <div class="card">
+    <form method="get" class="topbar">
+      <input type="search" name="q" placeholder="Código ou descrição" value="{{ termo }}">
+      <select name="segmento">
+        <option value="">Todos os segmentos</option>
+        {% for s in segmentos %}<option value="{{ s }}" {% if s == segmento %}selected{% endif %}>{{ s }}</option>{% endfor %}
+      </select>
+      <label class="campo--checkbox"><input type="checkbox" name="inativos" value="1" {% if request.GET.inativos %}checked{% endif %}> incluir fora da tabela</label>
+      <button type="submit" class="btn btn--secundario">Filtrar</button>
+    </form>
+
+    <table class="tabela tabela--compacta">
+      <thead>
+        <tr>
+          <th>Código</th><th>Produto</th><th>Segmento</th>
+          <th class="num">Custo (PSD)</th><th class="num">Markup</th><th class="num">Venda</th><th class="num">PSCF</th><th>Mult.</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in produtos %}
+          <tr>
+            <td>{{ p.codigo }}</td>
+            <td>
+              {{ p.nome }}
+              {% if not p.ativo %}<span class="badge badge--erro">fora da tabela</span>{% endif %}
+              {% if p.em_encerramento %}<span class="badge badge--aviso" title="{{ p.substituto }}">em encerramento</span>{% endif %}
+            </td>
+            <td>{{ p.segmento }}</td>
+            <td class="num">{% if p.psd %}{{ p.psd|floatformat:"2g" }}{% else %}—{% endif %}</td>
+            <td class="num">{% if p.psd %}{{ p.markup|floatformat:"-2" }}%{% else %}—{% endif %}</td>
+            <td class="num">{{ p.preco_venda|floatformat:"2g" }}</td>
+            <td class="num">{{ p.pscf|floatformat:"2g" }}</td>
+            <td>{{ p.qtd_multipla }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="8">Nenhum produto encontrado.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% if produtos|length == 200 %}<p class="ajuda">Mostrando os 200 primeiros. Refine a busca.</p>{% endif %}
+  </div>
+{% endblock %}

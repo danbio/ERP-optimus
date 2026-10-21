@@ -1,7 +1,642 @@
 @layer proposta {
-  /* Carregado só nos templates de PDF. Conteúdo chega na fatia 5. */
+  /* Carregado só nos templates de documento (PDF). A proposta solar chega na fatia 5;
+     as classes .doc-* são compartilhadas com o orçamento Intelbras (D15). */
   @page {
     size: A4;
     margin: 0;
+  }
+
+  @page orcamento {
+    size: A4;
+    margin: 12mm 14mm 18mm 14mm;
+  }
+
+  .doc {
+    background: var(--branco);
+    color: var(--ink);
+    font-size: 10pt;
+    line-height: 1.45;
+  }
+
+  .doc--orcamento {
+    page: orcamento;
+  }
+
+  @media screen {
+    .doc {
+      max-width: 210mm;
+      margin: var(--esp-5) auto;
+      padding: 12mm 14mm;
+      box-shadow: var(--sombra);
+    }
+  }
+
+  .doc-cabecalho {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 4mm;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 8mm;
+
+    & .doc-cabecalho__logo {
+      height: 13mm;
+    }
+
+    & .doc-cabecalho__ref {
+      font-size: 7.5pt;
+      font-weight: 500;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+  }
+
+  .doc-sobretitulo,
+  .doc-rotulo {
+    font-size: 7pt;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--gold);
+  }
+
+  .doc-rotulo.doc-rotulo--ouro {
+    color: var(--gold);
+  }
+
+  .doc-titulo {
+    font-size: 22pt;
+    font-weight: 700;
+    line-height: 1.15;
+    color: var(--navy);
+    margin: 1mm 0 2mm;
+  }
+
+  .doc-subtitulo {
+    color: var(--muted);
+  }
+
+  .doc-cliente {
+    background: var(--navy);
+    color: var(--branco);
+    border-top: 3px solid var(--gold);
+    border-radius: 0 0 var(--raio) var(--raio);
+    padding: 6mm 7mm;
+    margin: 6mm 0 8mm;
+    break-inside: avoid;
+
+    & .doc-cliente__nome {
+      font-size: 15pt;
+      font-weight: 700;
+    }
+
+    & .doc-cliente__dados {
+      color: var(--soft);
+      font-size: 9pt;
+      margin-bottom: 5mm;
+    }
+
+    & .doc-cliente__grade {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4mm;
+      font-weight: 500;
+    }
+  }
+
+  .doc-secao {
+    margin-bottom: 7mm;
+  }
+
+  .doc-h2 {
+    font-size: 13pt;
+    font-weight: 700;
+    color: var(--navy);
+    margin: 0 0 3mm;
+    break-after: avoid;
+
+    &::before {
+      content: "";
+      display: block;
+      width: 12mm;
+      height: 1mm;
+      background: var(--gold);
+      margin-bottom: 2mm;
+    }
+  }
+
+  .doc-tabela {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 8.5pt;
+
+    & thead th {
+      background: var(--navy);
+      color: var(--branco);
+      font-weight: 500;
+      text-align: left;
+      padding: 2mm 3mm;
+    }
+
+    & td {
+      padding: 2mm 3mm;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+
+    & tbody tr:nth-child(even) td {
+      background: var(--light);
+    }
+
+    & tr {
+      break-inside: avoid;
+    }
+
+    & .num {
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    & .doc-tabela__qtd {
+      width: 18mm;
+      white-space: nowrap;
+    }
+
+    & .doc-codigo {
+      display: block;
+      font-size: 7pt;
+      color: var(--muted);
+    }
+
+    &.doc-tabela--condicoes td:first-child {
+      width: 40mm;
+      font-weight: 500;
+    }
+  }
+
+  .doc-investimento {
+    background: var(--navy);
+    color: var(--branco);
+    border-top: 3px solid var(--gold);
+    border-radius: 0 0 var(--raio) var(--raio);
+    padding: 6mm 7mm;
+    margin-bottom: 8mm;
+    break-inside: avoid;
+
+    & .doc-investimento__valor {
+      font-size: 24pt;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    & .doc-investimento__detalhe {
+      font-size: 8pt;
+      color: var(--soft);
+    }
+  }
+
+  .doc-nota {
+    font-size: 8pt;
+    color: var(--muted);
+    margin-top: 3mm;
+  }
+
+  .doc-aceite {
+    break-inside: avoid;
+    margin-top: 6mm;
+
+    & .doc-aceite__grade {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12mm;
+      margin-top: 18mm;
+    }
+
+    & .doc-assinatura {
+      display: flex;
+      flex-direction: column;
+      border-top: 1px solid var(--ink);
+      padding-top: 2mm;
+      font-size: 8pt;
+      color: var(--muted);
+
+      & strong {
+        color: var(--navy);
+      }
+    }
+  }
+
+  /* ------------------------------------------------------------ Proposta solar (fatia 5)
+     Páginas A4 fixas: cada <section class="pagina"> é exatamente uma folha, com
+     cabeçalho e rodapé próprios (a numeração n/total vem do template). Assim a
+     capa fica sem cabeçalho e o preview na tela é igual ao PDF. */
+
+  .proposta-doc {
+    background: var(--soft);
+
+    @media print {
+      background: var(--branco);
+    }
+  }
+
+  .pagina {
+    position: relative;
+    width: 210mm;
+    height: 297mm;
+    overflow: hidden;
+    padding: 30mm 14mm 18mm;
+    background: var(--branco);
+    color: var(--ink);
+    font-size: 9pt;
+    line-height: 1.45;
+    break-after: page;
+
+    &:last-child {
+      break-after: auto;
+    }
+
+    @media screen {
+      margin: var(--esp-5) auto;
+      box-shadow: var(--sombra);
+    }
+
+    & .doc-h2 {
+      font-size: 16pt;
+      margin-bottom: 5mm;
+    }
+  }
+
+  .pagina__cabecalho {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 22mm;
+    padding: 0 14mm;
+    border-top: 2mm solid var(--navy);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    & .pagina__logo {
+      height: 9mm;
+    }
+
+    & .pagina__ref {
+      font-size: 7pt;
+      font-weight: 500;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+  }
+
+  .pagina__rodape {
+    position: absolute;
+    left: 14mm;
+    right: 14mm;
+    bottom: 0;
+    height: 12mm;
+    border-top: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4mm;
+    font-size: 6.5pt;
+    color: var(--muted);
+  }
+
+  /* Capa */
+  .pagina.pagina--capa {
+    padding: 0;
+  }
+
+  .capa__topo {
+    padding: 22mm 18mm 0;
+
+    & .capa__logo {
+      width: 62mm;
+      margin-bottom: 38mm;
+    }
+
+    & .capa__titulo {
+      font-size: 30pt;
+      font-weight: 700;
+      line-height: 1.12;
+      color: var(--navy);
+      margin: 2mm 0 4mm;
+    }
+
+    & .capa__subtitulo {
+      font-size: 10pt;
+      color: var(--muted);
+      max-width: 120mm;
+    }
+  }
+
+  .capa__cliente {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 120mm;
+    padding: 18mm 18mm 0;
+    background: var(--navy);
+    color: var(--branco);
+
+    & .capa__nome {
+      font-size: 20pt;
+      font-weight: 700;
+      margin-top: 1mm;
+    }
+
+    & .capa__dados {
+      color: var(--soft);
+      font-size: 9pt;
+      margin: 1mm 0 14mm;
+    }
+
+    & .capa__grade {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4mm;
+      font-size: 11pt;
+      font-weight: 500;
+    }
+
+    & .capa__rodape {
+      position: absolute;
+      left: 18mm;
+      right: 18mm;
+      bottom: 12mm;
+      padding-top: 4mm;
+      border-top: 1px solid var(--muted);
+      display: flex;
+      justify-content: space-between;
+      font-size: 7.5pt;
+      color: var(--soft);
+    }
+  }
+
+  /* Blocos comuns às páginas */
+  .doc-h3 {
+    font-size: 11pt;
+    font-weight: 700;
+    color: var(--navy);
+    margin: 6mm 0 3mm;
+  }
+
+  .doc-intro {
+    color: var(--muted);
+    margin-bottom: 5mm;
+  }
+
+  .doc-kpis {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 3mm;
+    margin-bottom: 4mm;
+
+    &.doc-kpis--4 {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+
+  .doc-kpi {
+    background: var(--light);
+    border-top: 1mm solid var(--gold);
+    padding: 3.5mm 4mm;
+
+    & .doc-kpi__valor {
+      font-size: 13pt;
+      font-weight: 700;
+      color: var(--navy);
+      white-space: nowrap;
+    }
+
+    & .doc-kpi__rotulo {
+      font-size: 7pt;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    &.doc-kpi--escuro {
+      background: var(--navy);
+
+      & .doc-kpi__valor {
+        color: var(--branco);
+      }
+
+      & .doc-kpi__rotulo {
+        color: var(--soft);
+      }
+    }
+  }
+
+  .doc-lista li {
+    position: relative;
+    padding-left: 5mm;
+    margin-bottom: 2mm;
+
+    &::before {
+      content: "";
+      position: absolute;
+      left: 0.5mm;
+      top: 1.6mm;
+      width: 1.6mm;
+      height: 1.6mm;
+      background: var(--gold);
+      transform: rotate(45deg);
+    }
+  }
+
+  .doc-sobre {
+    background: var(--light);
+    border-left: 1mm solid var(--navy);
+    padding: 4mm 5mm;
+    margin-top: 6mm;
+
+    & p {
+      margin: 1mm 0 0;
+    }
+  }
+
+  .doc-checks {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2.5mm 8mm;
+
+    & li {
+      display: flex;
+      align-items: center;
+      gap: 2.5mm;
+
+      &::before {
+        content: "✓";
+        flex: none;
+        width: 4.5mm;
+        height: 4.5mm;
+        border-radius: 50%;
+        background: var(--gold);
+        color: var(--branco);
+        font-size: 7pt;
+        font-weight: 700;
+        display: grid;
+        place-items: center;
+      }
+    }
+  }
+
+  .grafico svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    margin-bottom: 4mm;
+  }
+
+  .doc-tabela.doc-tabela--meses {
+    font-size: 7pt;
+    margin-bottom: 5mm;
+
+    & th, & td {
+      padding: 1.5mm 1.2mm;
+    }
+  }
+
+  /* Composição da fatura: a largura de cada parte é inline (valor calculado) */
+  .composicao {
+    display: flex;
+    height: 6mm;
+    margin-bottom: 3mm;
+  }
+
+  .composicao__legenda {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5mm 4mm;
+    font-size: 7.5pt;
+
+    & li {
+      display: flex;
+      align-items: center;
+      gap: 2mm;
+    }
+  }
+
+  .composicao__cor {
+    width: 3mm;
+    height: 3mm;
+    flex: none;
+  }
+
+  .composicao__parte--1 { background: var(--navy); }
+  .composicao__parte--2 { background: var(--gold); }
+  .composicao__parte--3 { background: var(--muted); }
+  .composicao__parte--4 { background: var(--soft); }
+  .composicao__parte--5 { background: var(--aviso); }
+  .composicao__parte--6 { background: var(--line); }
+
+  /* Kit */
+  .kit__item {
+    display: grid;
+    grid-template-columns: 16mm 1fr;
+    align-items: center;
+    gap: 4mm;
+    background: var(--light);
+    margin-bottom: 3mm;
+
+    & .kit__qtd {
+      align-self: stretch;
+      display: grid;
+      place-items: center;
+      background: var(--navy);
+      color: var(--gold);
+      font-size: 12pt;
+      font-weight: 700;
+      padding: 4mm 0;
+    }
+
+    & strong {
+      display: block;
+      color: var(--navy);
+    }
+
+    & span {
+      font-size: 7.5pt;
+      color: var(--muted);
+    }
+  }
+
+  /* Etapas de execução */
+  .etapas {
+    display: flex;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .etapa {
+    position: relative;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    font-size: 8pt;
+
+    & span:last-child {
+      color: var(--muted);
+      font-size: 7pt;
+    }
+
+    &:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      top: 4mm;
+      left: 50%;
+      width: 100%;
+      height: 0.5mm;
+      background: var(--line);
+    }
+
+    & .etapa__numero {
+      position: relative;
+      z-index: 1;
+      width: 8mm;
+      height: 8mm;
+      border-radius: 50%;
+      background: var(--navy);
+      color: var(--branco);
+      font-weight: 700;
+      display: grid;
+      place-items: center;
+      margin-bottom: 2mm;
+    }
+  }
+
+  .pagina .doc-aceite .doc-aceite__grade {
+    margin-top: 16mm;
+  }
+
+  /* Anexo: a área livre abaixo do título recebe a fatura no PDF final.
+     Posição em mm fixada em propostas/services/pdf.py (AREA_ANEXO_MM: topo 38, altura 239). */
+  .anexo__titulo {
+    font-size: 10pt;
+    font-weight: 700;
+    color: var(--navy);
+    margin: 0;
+  }
+
+  .anexo__area {
+    position: absolute;
+    top: 38mm;
+    left: 14mm;
+    right: 14mm;
+    height: 239mm;
+    display: grid;
+    place-items: center;
+    border: 1px dashed var(--soft);
+    color: var(--muted);
   }
 }

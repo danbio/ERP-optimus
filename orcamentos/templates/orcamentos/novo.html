@@ -1,0 +1,22 @@
+{% extends "core/base.html" %}
+
+{% block titulo %}Novo orçamento{% endblock %}
+{% block titulo_pagina %}Novo orçamento{% endblock %}
+
+{% block conteudo %}
+  <div class="card card--estreito">
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% for campo in form %}
+        <div class="campo">
+          <label for="{{ campo.id_for_label }}">{{ campo.label }}</label>
+          {{ campo }}
+          {% if campo.help_text %}<p class="ajuda">{{ campo.help_text }}</p>{% endif %}
+          {% if campo.errors %}<p class="badge badge--erro">{{ campo.errors|join:" " }}</p>{% endif %}
+        </div>
+      {% endfor %}
+      <button type="submit" class="btn">Criar e adicionar itens</button>
+      <a class="btn btn--secundario" href="{% url 'clientes:cliente_novo' %}?next={{ request.path }}">+ novo cliente</a>
+    </form>
+  </div>
+{% endblock %}

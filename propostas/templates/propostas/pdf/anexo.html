@@ -1,0 +1,8 @@
+<section class="pagina pagina--anexo">
+  {% include "propostas/pdf/_cabecalho.html" %}
+  <h2 class="anexo__titulo">Anexo I – Fatura de energia de referência ({{ fatura.competencia|date:"b/Y" }}) · {{ n }}/{{ n_paginas_anexo }}</h2>
+  {% if not para_pdf %}
+    <div class="anexo__area">A página {{ n }} da fatura entra aqui no PDF final.</div>
+  {% endif %}
+  {% include "propostas/pdf/_rodape.html" %}
+</section>

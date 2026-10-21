@@ -1,0 +1,34 @@
+<div id="totais" {% if oob %}hx-swap-oob="true"{% endif %}>
+  <div class="kpi kpi--escuro">
+    <div class="kpi__rotulo">Total do orçamento</div>
+    <div class="kpi__valor">R$ {{ resumo.total|floatformat:"2g" }}</div>
+  </div>
+  <table class="tabela tabela--compacta totais">
+    <tr><td>Equipamentos Intelbras</td><td class="num">{{ resumo.total_intelbras|floatformat:"2g" }}</td></tr>
+    <tr><td>Materiais</td><td class="num">{{ resumo.total_materiais|floatformat:"2g" }}</td></tr>
+    <tr><td>Serviços</td><td class="num">{{ resumo.total_servicos|floatformat:"2g" }}</td></tr>
+    <tr><td><strong>Subtotal</strong></td><td class="num"><strong>{{ resumo.subtotal|floatformat:"2g" }}</strong></td></tr>
+    <tr>
+      <td>
+        Desconto
+        {% if orcamento.editavel %}
+          <input type="text" inputmode="decimal" name="desconto_pct" class="totais__desconto"
+                 value="{{ orcamento.desconto_pct|floatformat:"-2" }}"
+                 hx-post="{% url 'orcamentos:desconto' orcamento.pk %}" hx-trigger="change"
+                 hx-target="#itens" hx-swap="outerHTML"> %
+        {% else %}({{ orcamento.desconto_pct|floatformat:"-2" }}%){% endif %}
+      </td>
+      <td class="num">− {{ resumo.desconto_valor|floatformat:"2g" }}</td>
+    </tr>
+    <tr class="totais__interno"><td>Custo total</td><td class="num">{{ resumo.custo_total|floatformat:"2g" }}</td></tr>
+    <tr class="totais__interno">
+      <td>Margem bruta <span class="ajuda">(antes de impostos)</span></td>
+      <td class="num">{{ resumo.margem_valor|floatformat:"2g" }} · {{ resumo.margem_pct|floatformat:1 }}%</td>
+    </tr>
+  </table>
+  {% if resumo.alertas %}
+    <div class="alertas">
+      {% for alerta in resumo.alertas %}<span class="badge badge--erro">{{ alerta }}</span>{% endfor %}
+    </div>
+  {% endif %}
+</div>
