@@ -228,7 +228,7 @@ body.cliente .interno { display: none }
             <div class="campo"><label>Enviar PDF da cotação</label><button class="btn btn--2" disabled title="No ERP, com a chave da API">Ler PDF com IA (no ERP)</button></div>
           </div>
         </div>
-        <div class="alertas" id="alertas"></div>
+        <div class="alertas interno" id="alertas"></div>
       </div>
 
       <!-- PASSO 4 -->
@@ -434,7 +434,7 @@ body.cliente .interno { display: none }
     if (!kitEditado) al.push(['aviso', `Custo do kit estimado pela última cotação (${mod.data}). Cote na plataforma ${mod.dist} e informe o valor real.`]);
     if (origem !== 'fat') al.push(['aviso', 'Proposta de estimativa: vai com o aviso de dados não confirmados.']);
     if (mo - desc < MO_MIN) al.push(['aviso', `Mão de obra com desconto (${brl(mo - desc)}) abaixo do mínimo de ${brl(MO_MIN)}.`]);
-    $('alertas').innerHTML = al.map(([t, m]) => `<div class="alerta alerta--${t} ${t === 'aviso' && m.includes('kit') ? 'interno' : ''}">${m}</div>`).join('');
+    $('alertas').innerHTML = al.map(([t, m]) => `<div class="alerta alerta--${t}">${m}</div>`).join('');
 
     // Passo 4
     $('p-nome').textContent = $('nome').value.trim() || 'cliente';
