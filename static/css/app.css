@@ -774,11 +774,20 @@
     color: var(--erro);
   }
 
+  /* ---------- Proposta emitida: aceite e perda lado a lado (D31) ---------- */
+  .cartoes-acao {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--esp-4);
+    align-items: start;
+  }
+
   /* ---------- Celular ----------
      Media query não aceita variável CSS; 800px é o único valor literal de layout. */
   @media (max-width: 800px) {
     .assistente__grade,
-    .cartoes {
+    .cartoes,
+    .cartoes-acao {
       grid-template-columns: 1fr;
     }
 

@@ -382,3 +382,14 @@ class Passo3Form(forms.ModelForm):
         if commit:
             proposta.save()
         return proposta
+
+
+# ---------- Emissão e versões (fatia v2.7, D31)
+
+class AceiteForm(forms.Form):
+    data_aceite = forms.DateField(label="Data do aceite", widget=forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"))
+
+
+class PerdaForm(forms.Form):
+    motivo_perda = forms.ChoiceField(label="Motivo", choices=Proposta.MotivoPerda.choices)
+    obs_perda = forms.CharField(label="Observação (opcional)", required=False, widget=forms.Textarea(attrs={"rows": 2}))

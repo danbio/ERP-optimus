@@ -187,6 +187,21 @@ Formato: data · decisão · motivo · alternativas descartadas.
 - **Anexo I** só quando a fatura tem PDF.
 - Enquanto a emissão (v2.7) não chega, o PDF sai do rascunho pelo botão do passo 4.
 
+## D31 · 2026-10-21 · Emissão e versões (fatia v2.7, antiga fatia 6)
+Detalha D07 com o alinhamento de 21/10 (versão nova mantém o número, aceite substitui as outras versões, motivo da perda, data do aceite, "vencida" automática).
+- **Número e versão:** a revisão mantém o número e soma 1 à versão (`OPT-2026-0008 v2`). A unicidade passa a ser de número + versão.
+- **Emitir** (só rascunho com resultado calculado):
+  - congela o kit e o preço da tela: módulo, inversor, quantidades, cabos, custo do kit, mão de obra e investimento;
+  - grava o snapshot de premissas e resultados;
+  - gera o PDF e o guarda na proposta.
+  Se o PDF não sair, a proposta continua rascunho. A versão emitida anterior do mesmo número passa a "substituída".
+- **PDF da emitida:** é sempre o arquivo guardado na emissão; não se recalcula.
+- **Revisar** (emitida, vencida ou perdida): cria uma cópia em rascunho com a versão seguinte e abre no passo 4 (ou no formulário antigo, se for proposta da fatia 4). "Recebi a fatura" faz o mesmo e abre no passo 2, para a estimativa virar confirmada.
+- **Aceita:** grava a data do aceite (hoje, editável), e todas as outras versões do mesmo número passam a "substituída".
+- **Perdida:** grava o motivo (preço, concorrente, financiamento negado, cliente desistiu ou adiou, sem retorno, outro) e uma observação opcional.
+- **Vencida:** não é gravada. É a emitida com a validade (emissão + dias) já passada, calculada na hora em que se mostra; continua podendo ser aceita ou revisada.
+- **Tela da proposta emitida:** resumo, PDF e os botões acima. A lista mostra a situação, inclusive "vencida", e filtra por ela.
+
 ## Pendências de validação
 - [ ] Regra de custo de disponibilidade para GD após a Lei 14.300 (item 3 de D08).
 - [ ] Valor da TUSD Fio B vigente na Energisa TO por subgrupo (B1/B2/B3).
