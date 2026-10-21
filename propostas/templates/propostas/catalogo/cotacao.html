@@ -1,0 +1,65 @@
+{% extends "propostas/catalogo/_base.html" %}
+{% load static %}
+
+{% block catalogo %}
+  <script src="{% static 'js/formset.js' %}" defer></script>
+  <form method="post" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+    <div class="card">
+      <h3>{% if cotacao %}Cotação {{ cotacao.distribuidor }} {{ cotacao.numero }}{% else %}Nova cotação de kit{% endif %}</h3>
+      <p class="ajuda">Copie do PDF do distribuidor. O total já com frete vira o R$/Wp de referência. Deixe o total em branco para somar produtos e frete.</p>
+      {% if form.non_field_errors %}<p class="campo__erro">{{ form.non_field_errors|join:" " }}</p>{% endif %}
+      <div class="grade-campos grade-campos--3">
+        {% include "core/_campo.html" with campo=form.distribuidor %}
+        {% include "core/_campo.html" with campo=form.numero %}
+        {% include "core/_campo.html" with campo=form.data %}
+        {% include "core/_campo.html" with campo=form.validade %}
+        {% include "core/_campo.html" with campo=form.kwp %}
+        {% include "core/_campo.html" with campo=form.total_produtos %}
+        {% include "core/_campo.html" with campo=form.frete %}
+        {% include "core/_campo.html" with campo=form.total %}
+        {% include "core/_campo.html" with campo=form.arquivo %}
+      </div>
+      {% include "core/_campo.html" with campo=form.observacao %}
+      {% if cotacao %}<p><strong>R$ {{ cotacao.rs_por_wp|floatformat:2 }}/Wp</strong> com frete.</p>{% endif %}
+    </div>
+
+    <div class="card">
+      <h3>Itens do kit</h3>
+      <p class="ajuda">Cabos em metros. Com o código do distribuidor, o item fica ligado ao catálogo.</p>
+      {{ itens.management_form }}
+      {% if itens.non_form_errors %}<p class="campo__erro">{{ itens.non_form_errors|join:" " }}</p>{% endif %}
+      <div class="itens-rolagem">
+        <table class="tabela tabela--itens-cotados">
+          <thead><tr><th>Código</th><th>Descrição</th><th class="num">Qtd.</th><th>Unid.</th><th>Tirar</th></tr></thead>
+          <tbody>
+            {% for f in itens %}
+              <tr>
+                <td>{{ f.id }}{{ f.codigo }}{% for e in f.codigo.errors %}<p class="campo__erro">{{ e }}</p>{% endfor %}</td>
+                <td>{{ f.descricao }}{% for e in f.descricao.errors %}<p class="campo__erro">{{ e }}</p>{% endfor %}</td>
+                <td>{{ f.quantidade }}{% for e in f.quantidade.errors %}<p class="campo__erro">{{ e }}</p>{% endfor %}</td>
+                <td>{{ f.unidade }}{% for e in f.unidade.errors %}<p class="campo__erro">{{ e }}</p>{% endfor %}</td>
+                <td>{% if f.instance.pk %}{{ f.DELETE }}{% endif %}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <template id="item-vazio">
+        <tr>
+          <td>{{ itens.empty_form.id }}{{ itens.empty_form.codigo }}</td>
+          <td>{{ itens.empty_form.descricao }}</td>
+          <td>{{ itens.empty_form.quantidade }}</td>
+          <td>{{ itens.empty_form.unidade }}</td>
+          <td></td>
+        </tr>
+      </template>
+      <button type="button" class="btn btn--secundario btn--pequeno" data-incluir-linha="item">+ item</button>
+    </div>
+
+    <div class="barra-acoes barra-acoes--plana">
+      <button type="submit" class="btn">Salvar cotação</button>
+      <a href="{% url 'propostas:solar_cotacoes' %}" class="btn btn--secundario">Voltar</a>
+    </div>
+  </form>
+{% endblock %}

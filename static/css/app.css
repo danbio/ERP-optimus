@@ -391,6 +391,41 @@
     margin-top: var(--esp-4);
   }
 
+  /* ---------- Catálogo solar ---------- */
+
+  .barra-acoes select,
+  .tabela.tabela--itens-cotados input {
+    padding: var(--esp-2) var(--esp-3);
+    border: 1px solid var(--soft);
+    border-radius: var(--raio);
+    font-family: var(--fonte);
+    background: var(--branco);
+  }
+
+  .tabela.tabela--itens-cotados input {
+    width: 100%;
+    min-width: 6rem;
+  }
+
+  .tabela.tabela--itens-cotados td:nth-child(2) input {
+    min-width: 16rem;
+  }
+
+  .tabela.tabela--itens-cotados input[type="checkbox"] {
+    width: auto;
+    min-width: 0;
+  }
+
+  .miniatura {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+  }
+
+  .linha--inativa {
+    color: var(--muted);
+  }
+
   .situacao--alerta {
     color: var(--erro);
   }

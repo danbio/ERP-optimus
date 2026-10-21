@@ -18,9 +18,10 @@
       <img src="{% static 'img/logo-branco.png' %}" alt="Optimus Energia Solar" class="sidebar__logo">
       {% with app=request.resolver_match.app_name rota=request.resolver_match.url_name %}
       <a href="{% url 'core:inicio' %}"{% if rota == "inicio" %} class="ativo"{% endif %}>Início</a>
-      <a href="{% url 'propostas:lista' %}"{% if app == "propostas" %} class="ativo"{% endif %}>Propostas</a>
+      <a href="{% url 'propostas:lista' %}"{% if app == "propostas" and rota|slice:":6" != "solar_" %} class="ativo"{% endif %}>Propostas</a>
       <a href="{% url 'clientes:lista' %}"{% if app == "clientes" %} class="ativo"{% endif %}>Clientes</a>
       <a href="{% url 'orcamentos:lista' %}"{% if app == "orcamentos" and rota != "catalogo" %} class="ativo"{% endif %}>Orçamentos</a>
+      <a href="{% url 'propostas:solar_equipamentos' %}"{% if rota|slice:":6" == "solar_" %} class="ativo"{% endif %}>Catálogo solar</a>
       <a href="{% url 'orcamentos:catalogo' %}"{% if rota == "catalogo" %} class="ativo"{% endif %}>Catálogo Intelbras</a>
       <a href="{% url 'core:config_empresa' %}"{% if app == "core" and rota|slice:":7" == "config_" %} class="ativo"{% endif %}>Configurações</a>
       {% endwith %}
