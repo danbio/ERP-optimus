@@ -198,9 +198,11 @@ def sugerir_inversor(kwp: float, inversores: list[dict], fase: str,
     """(inversor, quantidade) para o kWp, só entre os da fase da ligação (D19).
 
     `inversores`: dicts com "kw" (potência CA) e "fase" ("mono" ou "tri").
+    `fase` é a ligação do cliente: "mono" e "bi" usam inversor 220 V ("mono"); "tri", 380 V.
     Escolhe o menor com kWp / kW ≤ sobrecarga_max. Se nenhum couber sozinho, usa o
     maior em quantas unidades forem precisas. Sem inversor da fase: (None, 0).
     """
+    fase = "mono" if fase == "bi" else fase
     da_fase = sorted((i for i in inversores if i["fase"] == fase), key=lambda i: i["kw"])
     if not da_fase:
         return None, 0

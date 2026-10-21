@@ -63,6 +63,7 @@ def test_quantidade_modulos(kwp, potencia, esperado):
     (12.81, "mono", "Mono 10 kW", 1),  # caso Belenus: Deye 10 kW, 1,28
     (16.12, "tri", "Tri 12 kW", 1),    # caso Intelbras: 1,34
     (20.0, "mono", "Mono 10 kW", 2),   # nenhum sozinho: 2 × 10 kW
+    (5.49, "bi", "Mono 5 kW", 1),      # bifásica usa inversor 220 V
 ])
 def test_sugerir_inversor(kwp, fase, nome, quantidade):
     inversor, qtd = sugerir_inversor(kwp, INVERSORES, fase)
