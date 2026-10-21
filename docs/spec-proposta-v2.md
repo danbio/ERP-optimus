@@ -17,7 +17,7 @@ Uma tela, 4 passos, rascunho salvo a cada passo. Resumo lateral sempre visível.
 | Passo | O vendedor informa | O sistema faz |
 |---|---|---|
 | 1. Cliente | Nome*, telefone*, município* (lista), ligação, tipo de tarifa. CPF/CNPJ opcional | Valida CPF/CNPJ e telefone; acha cliente já cadastrado pelo CPF ou telefone |
-| 2. Consumo | Um destes: valor da conta + iluminação pública + bandeira, **ou** kWh/mês, **ou** fatura. Folga (%) e perfil de uso | Converte R$ em kWh; mostra consumo estimado e com folga |
+| 2. Consumo | Um destes: valor da conta + iluminação pública + bandeira, **ou** kWh/mês, **ou** fatura (o vendedor digita kWh, dias do ciclo e valor total, e anexa o PDF; a leitura por IA da v2.8 só preenche esses campos). Folga (%) e perfil de uso | Converte R$ em kWh; mostra consumo estimado e com folga |
 | 3. Sistema e preço | Orientação do telhado, estrutura. Ajusta quantidade de módulos, cabos, módulo/inversor pelo catálogo, custo real do kit, mão de obra, desconto | Sugere kWp, módulo (menor R$/Wp), quantidade, inversor (fase + sobrecarga ≤ 1,5), estrutura, custo do kit pela memória, mão de obra; mostra alertas |
 | 4. Proposta | Escolhe o prazo de financiamento para comparar | Investimento, economia, retorno, conta hoje × com sistema × com parcela, tabela de financiamento 12–72×; gera o PDF |
 
@@ -77,7 +77,7 @@ Uma tela, 4 passos, rascunho salvo a cada passo. Resumo lateral sempre visível.
 | `Cotacao` (memória) | `distribuidor`, `numero`, `data`, `validade`, `arquivo` (PDF), `kwp`, `total_produtos`, `frete`, `total`, `rs_por_wp` (calculado), `proposta` (FK opcional) |
 | `ItemCotado` | `cotacao`, `equipamento` (FK opcional), `descricao`, `codigo`, `quantidade`, `unidade` |
 | `TaxaFinanciamento` | `banco`, `prazo_meses`, `taxa_mensal`, `vigente_desde` |
-| `Proposta` (+) | `nivel` (estimativa/confirmada), `origem_consumo` (rs/kwh/fatura), `conta_informada`, `iluminacao_publica`, `bandeira`, `kwh_informado`, `folga`, `perfil_simultaneidade`, `tipo_tarifa` (FK `TarifaVigente`), `orientacao`, `tipo_estrutura`, `custo_kit`, `cotacao` (FK opcional), `mao_de_obra`, `desconto`, `passo_atual`; `uc` e `fatura` passam a ser opcionais |
+| `Proposta` (+) | `nivel` (estimativa/confirmada), `origem_consumo` (rs/kwh/fatura), `conta_informada`, `iluminacao_publica`, `bandeira`, `kwh_informado`, `folga`, `perfil_simultaneidade`, `tipo_tarifa` (FK `TarifaVigente`), `orientacao`, `tipo_estrutura`, `custo_kit`, `cotacao` (FK opcional), `mao_de_obra`, `desconto`, `passo_atual`; `uc` e `fatura` passam a ser opcionais. Rascunho: os campos de consumo e de preço (`custo_kit`, `mao_de_obra`, `desconto`, `investimento`) são opcionais (`null=True, blank=True`) para salvar os passos 1–2 sem preço; emitir exige preço preenchido |
 | `ItemKit` (+) | `equipamento` (FK opcional); cabos com `quantidade` em metros |
 
 `Proposta.cliente` deixa de ser só `uc.cliente` (D11): na estimativa não há UC. Volta a FK `cliente`, e a UC, quando existir, precisa ser do mesmo cliente (validado no form). Ver D25.
@@ -132,7 +132,7 @@ Mesma estrutura da fatia 5, com:
 | v2.2 | **Configurações e dados oficiais:** `TarifaVigente`, `Bandeira`, `TaxaFinanciamento`, campos novos de `ConfigEmpresa`, comandos de atualização, tela de Configurações | Tarifas da ANEEL e irradiação do PVGIS gravadas, com fonte e data |
 | v2.3 | **Motor:** funções puras da seção 4 + testes | Testes novos e caso Alesio passando |
 | v2.4 | **Catálogo e memória de cotações:** `Equipamento`, `Cotacao`, `ItemCotado`, telas, carga inicial com as cotações de 21/10 | R$/Wp do kit aparece com a idade |
-| v2.5 | **Nova proposta em 4 passos** (seção 1), rascunho automático, modo cliente | Os 3 cenários da auditoria (com fatura, R$ 500, 800 kWh) terminam em menos de 3 minutos |
+| v2.5 | **Nova proposta em 4 passos** (seção 1), rascunho automático, modo cliente | Os 3 cenários da auditoria (com fatura digitada, R$ 500, 800 kWh) terminam em menos de 3 minutos |
 | v2.6 | **PDF da v2** (seção 7) | PDF de estimativa com aviso e tabela de financiamento |
 | v2.7 | **Emissão e versões** (antiga fatia 6) | Emitir, revisar, estimativa → confirmada, aceita/perdida/vencida |
 | v2.8 | **IA:** leitura do PDF da cotação e da fatura (chave da API da Anthropic) | Cotação Belenus e Intelbras lidas e conferidas |
@@ -144,4 +144,4 @@ Cada fatia: testes passando → instruções de teste no navegador → commit �
 | Distribuidor | Documento | Equipamentos | kWp | Total | R$/Wp |
 |---|---|---|---|---|---|
 | Belenus | WEB-007005988 | 21 × Huansheng HSM-ND66-GR610-Y 610 W; 1 × Deye SUN-10K-G02P1-EU-CM2-P 10 kW mono 220 V 2 MPPT; estrutura de solo mesa 8 módulos isopleta 45 m/s; cabos 4 mm 100 m preto + 100 m vermelho; 10 pares de conectores | 12,81 | R$ 27.666,44 (produtos R$ 25.683,58 + frete R$ 1.982,86) | 2,16 |
-| Intelbras | PROJ26101627017 | 26 × Intelbras EMSC-620B 620 W; 1 × Intelbras IONS-12K T2 AFCI tri 380 V; 5 × mesa modular Dynamo 6 módulos 45 m/s + 1 finalizador de solo; cabos 4 mm 100 m + 100 m; 3 pares MC4 | 16,12 | R$ 46.158,60, **com** a mão de obra da Optimus (R$ 700/kWp em solo) | ≈ 2,16 só o kit |
+| Intelbras | PROJ26101627017 | 26 × Intelbras EMSC-620B 620 W; 1 × Intelbras IONS-12K T2 AFCI tri 380 V; 5 × mesa modular Dynamo 6 módulos 45 m/s + 1 finalizador de solo; cabos 4 mm 100 m + 100 m; 3 pares MC4 | 16,12 | Só o kit: R$ 34.874,60 (a plataforma mostra R$ 46.158,60, que inclui a mão de obra da Optimus: 16,12 × R$ 700 = R$ 11.284,00). Na carga inicial, `total` = só o kit | 2,16 |
