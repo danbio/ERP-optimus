@@ -72,6 +72,12 @@ class EquipamentoForm(forms.ModelForm):
         widgets = {"preco_em": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d")}
         localized_fields = ["area_m2"]
 
+    def clean_preco_referencia(self):
+        preco = self.cleaned_data["preco_referencia"]
+        if preco is not None and preco < 0:
+            raise forms.ValidationError("O preço não pode ser negativo.")
+        return preco
+
     def clean(self):
         dados = super().clean()
         if dados.get("tipo") in ("modulo", "inversor", "microinversor") and not dados.get("potencia_w"):
@@ -104,8 +110,14 @@ class CotacaoForm(forms.ModelForm):
         dados = super().clean()
         frete = dados.get("frete") or Decimal("0")
         dados["frete"] = frete
+        if frete < 0:
+            self.add_error("frete", "O frete não pode ser negativo.")
+        if dados.get("total_produtos") is not None and dados["total_produtos"] <= 0:
+            self.add_error("total_produtos", "O total dos produtos precisa ser maior que zero.")
         if dados.get("total_produtos") is not None and dados.get("total") is None:
             dados["total"] = dados["total_produtos"] + frete  # total em branco: produtos + frete
+        if dados.get("total") is not None and dados["total"] <= 0:
+            self.add_error("total", "O total precisa ser maior que zero.")
         if dados.get("kwp") is not None and dados["kwp"] <= 0:
             self.add_error("kwp", "O kWp precisa ser maior que zero.")
         return dados
@@ -117,6 +129,12 @@ class ItemCotadoForm(forms.ModelForm):
         fields = ["codigo", "descricao", "quantidade", "unidade"]
         widgets = {"quantidade": forms.TextInput(attrs={"inputmode": "decimal"})}
         localized_fields = ["quantidade"]
+
+    def clean_quantidade(self):
+        quantidade = self.cleaned_data["quantidade"]
+        if quantidade is not None and quantidade <= 0:
+            raise forms.ValidationError("A quantidade precisa ser maior que zero.")
+        return quantidade
 
 
 ItensCotadosFormSet = forms.inlineformset_factory(

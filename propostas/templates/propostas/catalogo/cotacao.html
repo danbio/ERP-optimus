@@ -1,6 +1,8 @@
 {% extends "propostas/catalogo/_base.html" %}
+{% load static %}
 
 {% block catalogo %}
+  <script src="{% static 'js/formset.js' %}" defer></script>
   <form method="post" enctype="multipart/form-data" novalidate>
     {% csrf_token %}
     <div class="card">
@@ -33,16 +35,26 @@
           <tbody>
             {% for f in itens %}
               <tr>
-                <td>{{ f.id }}{{ f.codigo }}</td>
+                <td>{{ f.id }}{{ f.codigo }}{% for e in f.codigo.errors %}<p class="campo__erro">{{ e }}</p>{% endfor %}</td>
                 <td>{{ f.descricao }}{% for e in f.descricao.errors %}<p class="campo__erro">{{ e }}</p>{% endfor %}</td>
                 <td>{{ f.quantidade }}{% for e in f.quantidade.errors %}<p class="campo__erro">{{ e }}</p>{% endfor %}</td>
-                <td>{{ f.unidade }}</td>
+                <td>{{ f.unidade }}{% for e in f.unidade.errors %}<p class="campo__erro">{{ e }}</p>{% endfor %}</td>
                 <td>{% if f.instance.pk %}{{ f.DELETE }}{% endif %}</td>
               </tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
+      <template id="item-vazio">
+        <tr>
+          <td>{{ itens.empty_form.id }}{{ itens.empty_form.codigo }}</td>
+          <td>{{ itens.empty_form.descricao }}</td>
+          <td>{{ itens.empty_form.quantidade }}</td>
+          <td>{{ itens.empty_form.unidade }}</td>
+          <td></td>
+        </tr>
+      </template>
+      <button type="button" class="btn btn--secundario btn--pequeno" data-incluir-linha="item">+ item</button>
     </div>
 
     <div class="barra-acoes barra-acoes--plana">

@@ -479,12 +479,15 @@ def solar_cotacoes(request):
 
 
 def _ligar_itens_ao_catalogo(cotacao):
-    """Item com código do catálogo do mesmo distribuidor fica ligado ao equipamento."""
-    for item in cotacao.itens.filter(equipamento__isnull=True).exclude(codigo=""):
-        item.equipamento = Equipamento.objects.filter(
-            distribuidor__iexact=cotacao.distribuidor, codigo__iexact=item.codigo,
-        ).first()
-        if item.equipamento:
+    """Cada item fica ligado ao equipamento do mesmo distribuidor e código; sem correspondência, sem vínculo."""
+    for item in cotacao.itens.all():
+        equipamento = None
+        if item.codigo:
+            equipamento = Equipamento.objects.filter(
+                distribuidor__iexact=cotacao.distribuidor, codigo__iexact=item.codigo,
+            ).first()
+        if item.equipamento_id != (equipamento.pk if equipamento else None):
+            item.equipamento = equipamento
             item.save(update_fields=["equipamento"])
 
 

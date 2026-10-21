@@ -117,7 +117,10 @@ def test_item_ligado_ao_catalogo_pelo_codigo(db):
     assert cotacao.itens.get(codigo="MFTF-0.4-BF-132-610W").equipamento.potencia_w == 610
 
 
-@pytest.mark.parametrize("campo, valor", [("kwp", "0"), ("kwp", "abc"), ("total_produtos", "1,234.00"), ("item-0-quantidade", "x")])
+@pytest.mark.parametrize("campo, valor", [
+    ("kwp", "0"), ("kwp", "abc"), ("total_produtos", "1,234.00"), ("item-0-quantidade", "x"),
+    ("item-0-quantidade", "0"), ("item-1-quantidade", "-2"), ("total_produtos", "-100"), ("frete", "-1"), ("total", "0"),
+])
 def test_cotacao_recusa_dado_malformado(db, campo, valor):
     assert _post_cotacao(**{campo: valor}).status_code == 200
     assert not Cotacao.objects.filter(distribuidor="Aldo").exists()
@@ -138,3 +141,45 @@ def test_filtro_do_catalogo(db):
     assert "Huansheng" in html and "Inversor Intelbras" not in html  # padrão: módulos
     html = navegador.get(reverse("propostas:solar_equipamentos"), {"tipo": "inversor", "busca": "intelbras"}).content.decode()
     assert "Inversor Intelbras" in html and "Deye" not in html
+
+
+def test_equipamento_recusa_preco_negativo(db):
+    resposta = Navegador().post(reverse("propostas:solar_equipamento_novo"), {
+        "tipo": "modulo", "distribuidor": "Aldo", "codigo": "M1", "descricao": "Módulo 600 W", "potencia_w": "600",
+        "preco_referencia": "-517,89", "ativo": "on",
+    })
+    assert resposta.status_code == 200
+    assert "não pode ser negativo" in resposta.content.decode()
+
+
+def test_equipamento_repetido_mostra_o_motivo(db):
+    resposta = Navegador().post(reverse("propostas:solar_equipamento_novo"), {
+        "tipo": "modulo", "distribuidor": "Intelbras", "codigo": "EMSC-620B", "descricao": "Outro", "potencia_w": "620",
+        "ativo": "on",
+    })
+    assert resposta.status_code == 200
+    assert "já existe" in resposta.content.decode()
+
+
+def test_trocar_o_codigo_desfaz_o_vinculo(db):
+    _post_cotacao(distribuidor="Belenus")
+    cotacao = Cotacao.objects.get(numero="123")
+    item = cotacao.itens.get(codigo="MFTF-0.4-BF-132-610W")
+    dados = {
+        "distribuidor": "Belenus", "numero": "123", "data": "2026-10-21", "kwp": "5,49",
+        "total_produtos": "11.000,00", "frete": "500", "total": "",
+        "item-TOTAL_FORMS": "1", "item-INITIAL_FORMS": "1", "item-MIN_NUM_FORMS": "0", "item-MAX_NUM_FORMS": "1000",
+        "item-0-id": str(item.pk), "item-0-codigo": "OUTRO", "item-0-descricao": "Módulo", "item-0-quantidade": "9",
+        "item-0-unidade": "un",
+    }
+    Navegador().post(reverse("propostas:solar_cotacao", args=[cotacao.pk]), dados)
+    item.refresh_from_db()
+    assert item.equipamento is None
+
+
+def test_arquivos_de_midia_sao_servidos(db, settings, tmp_path):
+    settings.MEDIA_ROOT = tmp_path
+    (tmp_path / "catalogo").mkdir()
+    (tmp_path / "catalogo" / "x.pdf").write_bytes(b"%PDF-1.4")
+    resposta = Navegador().get("/media/catalogo/x.pdf")
+    assert resposta.status_code == 200
