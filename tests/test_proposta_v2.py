@@ -223,3 +223,99 @@ def test_lista_busca_por_telefone(base):
     _passo1(navegador, base)
     html = navegador.get(reverse("propostas:lista"), {"busca": "99999-1234"}).content.decode()
     assert "Maria Souza" in html
+
+
+# ---------- Correções da revisão do PR #7
+
+def _ate_passo2(base, **mudancas):
+    navegador = Navegador()
+    _passo1(navegador, base)
+    proposta = Proposta.objects.get()
+    _passo2(navegador, proposta, base, **mudancas)
+    proposta.refresh_from_db()
+    return navegador, proposta
+
+
+def test_formulario_antigo_exige_uc_fatura_e_investimento(uc_alesio, fatura_alesio):
+    from propostas.forms import FaturaReferenciaForm, PropostaForm
+
+    form = PropostaForm({"uc": "", "fatura": "", "investimento": "", "validade_dias": "15"})
+    assert not form.is_valid()
+    assert {"uc", "fatura", "investimento"} <= set(form.errors)
+    fatura_v2 = type(fatura_alesio).objects.create(
+        uc=uc_alesio, competencia="2026-09-01", kwh=500, dias_ciclo=30, valor_total=Decimal("700"))
+    assert fatura_v2 not in PropostaForm().fields["fatura"].queryset
+    assert {"tarifa_kwh", "valor_distribuicao", "impostos"} <= set(FaturaReferenciaForm({}).errors)
+
+
+def test_campos_da_aba_nao_escolhida_sao_ignorados(base):
+    _, proposta = _ate_passo2(base, origem_consumo="kwh", kwh_informado="800", conta_informada="abc",
+                              fatura_kwh="xyz")
+    assert proposta.passo_atual == 3
+    assert proposta.kwh_informado == 800 and proposta.conta_informada is None
+
+
+@pytest.mark.parametrize("mudancas", [
+    {"conta_informada": "0,00", "iluminacao_publica": ""},
+    {"conta_informada": "-500,00", "iluminacao_publica": ""},
+    {"iluminacao_publica": "-30,00"},
+])
+def test_passo2_recusa_conta_ou_iluminacao_invalidas(base, mudancas):
+    _, proposta = _ate_passo2(base, **mudancas)
+    assert proposta.passo_atual == 2
+
+
+@pytest.mark.parametrize("mudancas", [
+    {"custo_kit": "-10.000,00"}, {"mao_de_obra": "-1,00"}, {"desconto_texto": "-300"}, {"desconto_texto": "120%"},
+    {"mao_de_obra": "4.500,00", "desconto_texto": "5.000,00"},
+    {"desconto_texto": "999.999,00"},  # maior que a mão de obra sugerida
+])
+def test_passo3_recusa_valores_negativos_e_desconto_acima_da_mao_de_obra(base, mudancas):
+    navegador, proposta = _ate_passo2(base)
+    assert _passo3(navegador, proposta, **mudancas).status_code == 200
+    proposta.refresh_from_db()
+    assert proposta.passo_atual == 3
+
+
+def test_telefone_de_outro_cpf_nao_sobrescreve_o_cadastro(base):
+    Cliente.objects.create(nome="João", telefone="63999991234", cpf_cnpj="52998224725")
+    resposta = _passo1(Navegador(), base, cpf_cnpj="111.444.777-35")
+    assert resposta.status_code == 200
+    assert "Este telefone já é de João" in resposta.content.decode()
+    assert Cliente.objects.get().cpf_cnpj == "52998224725"
+    assert not Proposta.objects.exists()
+
+
+def test_previa_do_passo1_nao_quebra(base):
+    navegador, proposta = _ate_passo2(base)
+    resposta = navegador.post(reverse("propostas:previa", args=[proposta.pk, 1]), {
+        "nome": "Maria", "telefone": "(63) 99999-1234", "municipio": base["gurupi"].pk, "cpf_cnpj": "",
+        "ligacao": "mono", "tipo_tarifa": base["b1"].pk,
+    })
+    assert resposta.status_code == 200
+
+
+def test_municipio_corrigido_no_passo1_vale_para_a_uc(base):
+    navegador = Navegador()
+    _passo1(navegador, base)
+    proposta = Proposta.objects.get()
+    _passo2(navegador, proposta, base, origem_consumo="fatura", conta_informada="", numero_uc="123456",
+            endereco="Rua 1", competencia="2026-09-01", fatura_kwh="620", dias_ciclo="31", valor_fatura="845,30",
+            cpf_cnpj="529.982.247-25")
+    palmas = Municipio.objects.get(codigo_ibge=1721000)
+    navegador.post(reverse("propostas:passo", args=[proposta.pk, 1]), {
+        "nome": "Maria Souza", "telefone": "(63) 99999-1234", "municipio": palmas.pk, "cpf_cnpj": "529.982.247-25",
+        "ligacao": "mono", "tipo_tarifa": base["b1"].pk,
+    })
+    proposta.refresh_from_db()
+    assert proposta.uc.municipio == palmas
+    _passo2(navegador, proposta, base)  # volta para valor da conta: deixa de ter UC e fatura
+    proposta.refresh_from_db()
+    assert proposta.uc is None and proposta.fatura is None and proposta.nivel == "estimativa"
+
+
+def test_conta_de_hoje_e_o_valor_informado(base):
+    navegador, proposta = _ate_passo2(base)
+    _passo3(navegador, proposta)
+    proposta.refresh_from_db()
+    assert montar(proposta).conta_hoje == pytest.approx(500.0)

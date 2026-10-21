@@ -13,6 +13,7 @@ from django.utils import timezone
 from clientes.models import Cliente, UnidadeConsumidora
 from core.models import ConfigEmpresa
 from core.pdf import ErroPDF, html_para_pdf
+from core.validacoes import formatar_reais
 
 from .forms import (
     CotacaoForm,
@@ -599,6 +600,8 @@ def proposta_passo(request, pk, n):
         return render(request, "propostas/v2/passos.html", _contexto_passos(request, proposta, 4))
 
     form = _form_do_passo(n, proposta, request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid() and n == 3:
+        _conferir_desconto(form)
     if request.method == "POST" and form.is_valid():
         if n in (1, 2):
             gravar = _gravar_passo1 if n == 1 else _gravar_passo2
@@ -616,6 +619,17 @@ def proposta_passo(request, pk, n):
     return render(request, "propostas/v2/passos.html", _contexto_passos(request, proposta, n, form))
 
 
+def _conferir_desconto(form):
+    """O desconto vale só na mão de obra (D18): recusa desconto maior que ela, mesmo a sugerida pelo sistema."""
+    m = montar(form.save(commit=False))
+    if m.mao_de_obra is None:
+        return
+    desconto, pct = form.cleaned_data.get("desconto_texto") or (None, None)
+    valor = m.mao_de_obra * float(pct) if pct is not None else float(desconto or 0)
+    if valor > m.mao_de_obra + 0.005:
+        form.add_error("desconto_texto", f"O desconto passa da mão de obra (R$ {formatar_reais(m.mao_de_obra)}).")
+
+
 def _gravar_passo1(request, form, proposta):
     """Devolve (proposta, erro)."""
     dados = form.cleaned_data
@@ -623,6 +637,11 @@ def _gravar_passo1(request, form, proposta):
         dono = Cliente.objects.filter(cpf_cnpj=dados["cpf_cnpj"]).exclude(pk=proposta.cliente_id).first()
         if dono:
             return proposta, f"Este CPF/CNPJ já é de {dono.nome}."
+    if dados["cpf_cnpj"] and not proposta and not Cliente.objects.filter(cpf_cnpj=dados["cpf_cnpj"]).exists():
+        outro = Cliente.objects.filter(telefone=dados["telefone"]).exclude(cpf_cnpj="").first()
+        if outro:
+            return proposta, (f"Este telefone já é de {outro.nome}, com outro CPF/CNPJ. "
+                              "Confira o CPF/CNPJ e o telefone.")
     cliente, reaproveitado = _cliente_do_passo1(dados, proposta)
     if reaproveitado:
         messages.success(request, f"{cliente.nome} já estava cadastrado: usamos a ficha existente.")
@@ -638,6 +657,9 @@ def _gravar_passo1(request, form, proposta):
     proposta.ligacao = dados["ligacao"]
     proposta.tipo_tarifa = dados["tipo_tarifa"]
     proposta.save()
+    if proposta.uc and proposta.uc.municipio_id != cliente.municipio_id:
+        proposta.uc.municipio = cliente.municipio  # na v2 a instalação fica no município do passo 1
+        proposta.uc.save(update_fields=["municipio"])
     return proposta, None
 
 
@@ -647,6 +669,8 @@ def _gravar_passo2(request, form, proposta):
     proposta = form.save(commit=False)
     if proposta.origem_consumo != Proposta.OrigemConsumo.FATURA:
         proposta.nivel = Proposta.Nivel.ESTIMATIVA
+        proposta.uc = None  # sem fatura, não há UC confirmada; o município vem do passo 1
+        proposta.fatura = None
         proposta.save()
         return proposta, None
 
@@ -682,7 +706,7 @@ def proposta_previa(request, pk, n):
     """Recalcula enquanto o vendedor digita (HTMX): devolve o resumo e os números do passo, sem gravar."""
     proposta = get_object_or_404(Proposta, pk=pk)
     form = _form_do_passo(n, proposta, request.POST)
-    if form is not None and form.is_valid():
+    if n in (2, 3) and form.is_valid():
         proposta = form.save(commit=False)
         if n == 2 and proposta.origem_consumo == Proposta.OrigemConsumo.FATURA:
             proposta.fatura = FaturaReferencia(

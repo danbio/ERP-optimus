@@ -292,6 +292,9 @@ def montar(proposta, config=None):
         m.desconto = m.mao_de_obra * float(proposta.desconto_pct)
     else:
         m.desconto = float(proposta.desconto or 0)
+    if m.desconto > m.mao_de_obra:
+        m.alerta("erro", "O desconto é maior que a mão de obra. O desconto vale só na mão de obra.")
+        m.desconto = m.mao_de_obra
     if m.mao_de_obra - m.desconto < float(config.mo_minima):
         m.alerta("aviso", f"Mão de obra com desconto abaixo do mínimo de R$ {formatar_reais(config.mo_minima)}.")
     if m.custo_kit is None:
@@ -326,7 +329,10 @@ def montar(proposta, config=None):
         if not texto.startswith("Razão CC/CA"):  # a sobrecarga já tem alerta próprio
             m.alerta("aviso", texto)
 
-    m.conta_hoje = m.consumo * m.tarifa_kwh + float(proposta.iluminacao_publica or 0)
+    if proposta.origem_consumo == proposta.OrigemConsumo.CONTA:
+        m.conta_hoje = float(proposta.conta_informada)  # o valor que o cliente paga, com bandeira e iluminação
+    else:
+        m.conta_hoje = m.consumo * m.tarifa_kwh + float(proposta.iluminacao_publica or 0)
     m.conta_com_sistema = max(m.conta_hoje - m.resultado.economia_mensal_ano1, 0)
 
     taxas = [(t.banco, t.prazo_meses, float(t.taxa_mensal)) for t in TaxaFinanciamento.objects.all()]

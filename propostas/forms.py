@@ -28,6 +28,12 @@ class FaturaReferenciaForm(forms.ModelForm):
         ]
         widgets = {"competencia": forms.DateInput(attrs={"type": "date"})}
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # O cálculo antigo (fatia 4) usa tarifa, distribuição e impostos da fatura; na v2 eles são opcionais (D29).
+        for campo in ("tarifa_kwh", "valor_distribuicao", "impostos"):
+            self.fields[campo].required = True
+
 
 class PropostaForm(forms.ModelForm):
     class Meta:
@@ -41,6 +47,13 @@ class PropostaForm(forms.ModelForm):
             "escopo": forms.Textarea(attrs={"rows": 4}),
             "texto_sobre": forms.Textarea(attrs={"rows": 4}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Na v2 estes campos são opcionais; o formulário antigo continua exigindo todos (D29).
+        for campo in ("uc", "fatura", "investimento"):
+            self.fields[campo].required = True
+        self.fields["fatura"].queryset = FaturaReferencia.objects.filter(tarifa_kwh__isnull=False)
 
 
 class PremissasForm(forms.Form):
@@ -217,8 +230,26 @@ class Passo2Form(forms.ModelForm):
         widgets = {"origem_consumo": forms.RadioSelect, "kwh_informado": forms.TextInput(attrs={"inputmode": "decimal"})}
         localized_fields = ["kwh_informado"]
 
+    # Campos de cada aba de consumo. Os das abas não escolhidas são ignorados (ficam só escondidos na tela).
+    CAMPOS_DA_ORIGEM = {
+        "rs": ["conta_informada", "iluminacao_publica"],
+        "kwh": ["kwh_informado"],
+        "fatura": ["numero_uc", "endereco", "competencia", "fatura_kwh", "dias_ciclo", "valor_fatura",
+                   "arquivo_fatura", "cpf_cnpj"],
+    }
+
     def __init__(self, *args, perfis=(), **kwargs):
         super().__init__(*args, **kwargs)
+        if self.is_bound:
+            origem = self.data.get("origem_consumo")
+            self.data = self.data.copy()
+            for outra, campos in self.CAMPOS_DA_ORIGEM.items():
+                if outra != origem:
+                    for campo in campos:
+                        self.data.pop(campo, None)
+                        if self.files:
+                            self.files = self.files.copy()
+                            self.files.pop(campo, None)
         self.fields["origem_consumo"].required = True
         self.fields["origem_consumo"].choices = [
             ("rs", "Valor da conta (R$)"), ("kwh", "kWh por mês"), ("fatura", "Tenho a fatura"),
@@ -258,7 +289,11 @@ class Passo2Form(forms.ModelForm):
         if dados.get("kwh_informado") is not None and dados["kwh_informado"] <= 0:
             self.add_error("kwh_informado", "O consumo precisa ser maior que zero.")
         conta, iluminacao = dados.get("conta_informada"), dados.get("iluminacao_publica")
-        if origem == Proposta.OrigemConsumo.CONTA and conta is not None and iluminacao is not None and iluminacao >= conta:
+        if conta is not None and conta <= 0:
+            self.add_error("conta_informada", "O valor da conta precisa ser maior que zero.")
+        elif iluminacao is not None and iluminacao < 0:
+            self.add_error("iluminacao_publica", "A iluminação pública não pode ser negativa.")
+        elif conta is not None and iluminacao is not None and iluminacao >= conta:
             self.add_error("iluminacao_publica", "A iluminação pública precisa ser menor que a conta.")
         return dados
 
@@ -272,10 +307,16 @@ class DescontoField(forms.CharField):
             return None, None
         try:
             if "%" in value:
-                return None, Decimal(str(limpar_percentual(value)))
-            return limpar_reais(value), None
+                pct = Decimal(str(limpar_percentual(value)))
+                if not 0 <= pct <= 1:
+                    raise forms.ValidationError("O desconto em % precisa estar entre 0% e 100%.")
+                return None, pct
+            reais = limpar_reais(value)
         except ValueError as erro:
             raise forms.ValidationError(str(erro))
+        if reais < 0:
+            raise forms.ValidationError("O desconto não pode ser negativo.")
+        return reais, None
 
 
 class Passo3Form(forms.ModelForm):
@@ -329,6 +370,10 @@ class Passo3Form(forms.ModelForm):
         for campo in ("qtd_modulos", "qtd_inversores"):
             if dados.get(campo) == 0:
                 self.add_error(campo, "Use pelo menos 1, ou deixe em branco para a sugestão.")
+        if dados.get("custo_kit") is not None and dados["custo_kit"] <= 0:
+            self.add_error("custo_kit", "O custo do kit precisa ser maior que zero.")
+        if dados.get("mao_de_obra") is not None and dados["mao_de_obra"] < 0:
+            self.add_error("mao_de_obra", "A mão de obra não pode ser negativa.")
         return dados
 
     def save(self, commit=True):
