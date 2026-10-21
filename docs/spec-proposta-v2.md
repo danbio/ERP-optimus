@@ -77,7 +77,7 @@ Uma tela, 4 passos, rascunho salvo a cada passo. Resumo lateral sempre visível.
 | `Cotacao` (memória) | `distribuidor`, `numero`, `data`, `validade`, `arquivo` (PDF), `kwp`, `total_produtos`, `frete`, `total`, `rs_por_wp` (calculado), `proposta` (FK opcional) |
 | `ItemCotado` | `cotacao`, `equipamento` (FK opcional), `descricao`, `codigo`, `quantidade`, `unidade` |
 | `TaxaFinanciamento` | `banco`, `prazo_meses`, `taxa_mensal`, `vigente_desde` |
-| `Proposta` (+) | `nivel` (estimativa/confirmada), `origem_consumo` (rs/kwh/fatura), `conta_informada`, `iluminacao_publica`, `bandeira`, `kwh_informado`, `folga`, `perfil_simultaneidade`, `tipo_tarifa` (FK `TarifaVigente`), `orientacao`, `tipo_estrutura`, `custo_kit`, `cotacao` (FK opcional), `mao_de_obra`, `desconto`, `passo_atual`; `uc` e `fatura` passam a ser opcionais. Rascunho: os campos de consumo e de preço (`custo_kit`, `mao_de_obra`, `desconto`, `investimento`) são opcionais (`null=True, blank=True`) para salvar os passos 1–2 sem preço; emitir exige preço preenchido |
+| `Proposta` (+) | `nivel` (estimativa/confirmada), `origem_consumo` (rs/kwh/fatura), `conta_informada`, `iluminacao_publica`, `bandeira`, `kwh_informado`, `ligacao` (mono/bi/tri; copiada da UC quando houver, define disponibilidade e inversor), `folga`, `perfil_simultaneidade`, `tipo_tarifa` (FK `TarifaVigente`), `orientacao`, `tipo_estrutura`, `custo_kit`, `cotacao` (FK opcional), `mao_de_obra`, `desconto`, `passo_atual`; `uc` e `fatura` passam a ser opcionais. Rascunho: os campos de consumo e de preço (`custo_kit`, `mao_de_obra`, `desconto`, `investimento`) são opcionais (`null=True, blank=True`) para salvar os passos 1–2 sem preço; emitir exige preço preenchido |
 | `ItemKit` (+) | `equipamento` (FK opcional); cabos com `quantidade` em metros |
 
 `Proposta.cliente` deixa de ser só `uc.cliente` (D11): na estimativa não há UC. Volta a FK `cliente`, e a UC, quando existir, precisa ser do mesmo cliente (validado no form). Ver D25.
@@ -93,7 +93,7 @@ def mao_de_obra_sugerida(kwp, solo, por_kwp, por_kwp_solo, minima) -> float
 def parcela_price(valor, taxa_mensal, meses) -> float
 ```
 
-A estimativa reaproveita `calcular()`: `kwh_fatura` = consumo estimado, `dias_ciclo` = 30, `tarifa` e `fiob_kwh` de `TarifaVigente`. Cada função com teste próprio; o caso Alesio continua passando sem mudar número.
+A estimativa reaproveita `calcular()`: `kwh_fatura` = consumo estimado, `dias_ciclo` = 30, `tarifa` e `fiob_kwh` de `TarifaVigente`. `EntradaCalculo` ganha `fator_orientacao` (padrão 1,0), aplicado também na `geracao_mensal` de `calcular()`, para a geração da economia e do PDF bater com o dimensionamento; com fator 1 o caso Alesio não muda. Cada função com teste próprio; o caso Alesio continua passando sem mudar número.
 
 ## 5. Atualização dos dados oficiais (D21)
 
