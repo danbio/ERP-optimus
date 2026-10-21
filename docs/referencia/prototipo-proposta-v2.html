@@ -1,0 +1,474 @@
+<!doctype html>
+<!-- Protótipo aprovado em 21/10/2026 (D17). Referência de fluxo e visual: NÃO é código do ERP e não segue as regras de CSS do projeto. Abrir direto no navegador. -->
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Protótipo Proposta Optimus</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: barra superior com passos + área do passo + resumo lateral fixo (empilha no celular) */
+:root {
+  --navy: #123643; --gold: #D4A429; --ink: #1E2A30; --muted: #5F6E74;
+  --light: #F3F5F6; --line: #DCE2E4; --soft: #C9D3D6; --ok: #2E7D4F; --erro: #B4442F; --aviso: #8A6A10;
+  --bg: #F3F5F6; --surface: #FFFFFF; --surface-2: #F8FAFA; --fg: var(--ink); --fg-2: var(--muted);
+  --accent: var(--navy); --accent-fg: #FFFFFF; --gold-soft: #FBF3DC; --ok-soft: #E4F2EA; --erro-soft: #F8E6E2;
+  --font: "Poppins", "Segoe UI", system-ui, sans-serif;
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0D1A20; --surface: #132630; --surface-2: #17303B; --fg: #E6EDEF; --fg-2: #9FB0B6; --line: #24404C; --soft: #2E4C58;
+  --accent: #D4A429; --accent-fg: #10232B; --gold-soft: #3A3218; --ok-soft: #173326; --erro-soft: #3A1E19; --ok: #5DBB86; --erro: #E07A63; --aviso: #E2C15E; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0D1A20; --surface: #132630; --surface-2: #17303B; --fg: #E6EDEF; --fg-2: #9FB0B6; --line: #24404C; --soft: #2E4C58;
+  --accent: #D4A429; --accent-fg: #10232B; --gold-soft: #3A3218; --ok-soft: #173326; --erro-soft: #3A1E19; --ok: #5DBB86; --erro: #E07A63; --aviso: #E2C15E; color-scheme: dark }
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--fg); font-family: var(--font); font-size: 15px; line-height: 1.5; }
+.topo { background: #123643; color: #fff; padding-block: 14px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.topo__in { max-width: 1180px; margin: 0 auto; display: flex; gap: 16px; align-items: center; justify-content: space-between; flex-wrap: wrap }
+.marca { display: flex; gap: 10px; align-items: baseline }
+.marca b { font-weight: 700; font-size: 18px; letter-spacing: .2px }
+.marca span { color: #D4A429; font-size: 13px; font-weight: 500 }
+.selo { font-size: 11.5px; background: rgba(255,255,255,.12); padding: 3px 10px; border-radius: 99px; letter-spacing: .4px; text-transform: uppercase }
+.modo { display: flex; align-items: center; gap: 10px; font-size: 13px }
+.chave { position: relative; width: 44px; height: 24px; border-radius: 99px; background: rgba(255,255,255,.25); border: 0; cursor: pointer }
+.chave::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: left .15s }
+.chave[aria-pressed="true"] { background: #D4A429 }
+.chave[aria-pressed="true"]::after { left: 23px }
+.wrap { max-width: 1180px; margin: 0 auto; padding-block: 20px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.passos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 20px; list-style: none; padding: 0 }
+.passos button { width: 100%; text-align: left; font: inherit; color: var(--fg-2); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 10px 12px; cursor: pointer; display: flex; gap: 10px; align-items: center }
+.passos .n { flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 600; background: var(--surface-2); border: 1px solid var(--line) }
+.passos .t { font-size: 13.5px; font-weight: 500; line-height: 1.25 }
+.passos button[aria-current="step"] { border-color: var(--accent); color: var(--fg); box-shadow: inset 0 -3px 0 var(--gold) }
+.passos button[aria-current="step"] .n { background: var(--accent); color: var(--accent-fg); border-color: var(--accent) }
+.passos button.feito .n { background: var(--ok-soft); color: var(--ok); border-color: var(--ok) }
+.grade { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start }
+.painel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 22px; min-width: 0 }
+.painel h2 { margin: 0 0 4px; font-size: 20px; font-weight: 600; text-wrap: balance }
+.painel .sub { margin: 0 0 18px; color: var(--fg-2); font-size: 13.5px }
+.campos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 16px }
+.campo { display: flex; flex-direction: column; gap: 5px; min-width: 0 }
+.campo--largo { grid-column: 1 / -1 }
+.campo label, .rot { font-size: 12.5px; font-weight: 500; color: var(--fg-2) }
+.campo label .ob { color: var(--erro) }
+input, select { font: inherit; color: var(--fg); background: var(--surface-2); border: 1px solid var(--soft); border-radius: 8px; padding: 9px 11px; width: 100%; min-width: 0 }
+input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px }
+.dica { font-size: 12px; color: var(--fg-2) }
+.dica--ok { color: var(--ok) } .dica--erro { color: var(--erro) }
+.abas { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px }
+.abas button { font: inherit; font-size: 13.5px; padding: 8px 14px; border-radius: 99px; border: 1px solid var(--soft); background: var(--surface-2); color: var(--fg); cursor: pointer }
+.abas button[aria-selected="true"] { background: var(--accent); color: var(--accent-fg); border-color: var(--accent) }
+.destaque { margin-top: 18px; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; display: flex; gap: 18px; flex-wrap: wrap; align-items: baseline }
+.destaque .v { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums }
+.destaque .u { color: var(--fg-2); font-size: 13px }
+.kit { display: grid; gap: 10px; margin-top: 4px }
+.item { display: grid; grid-template-columns: 54px minmax(0, 1fr) auto; gap: 12px; align-items: center; border: 1px solid var(--line); border-radius: var(--r); padding: 10px 12px; background: var(--surface-2) }
+.item .q { font-size: 20px; font-weight: 700; text-align: center; font-variant-numeric: tabular-nums }
+.item .d { min-width: 0 }
+.item .d b { display: block; font-weight: 600; font-size: 14px }
+.item .d small { color: var(--fg-2); font-size: 12px; display: block; overflow-wrap: anywhere }
+.btn { font: inherit; font-size: 13.5px; font-weight: 500; border-radius: 8px; padding: 9px 14px; cursor: pointer; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-fg) }
+.btn--2 { background: transparent; color: var(--fg); border-color: var(--soft) }
+.btn--mini { padding: 5px 10px; font-size: 12.5px }
+.btn[disabled] { opacity: .45; cursor: not-allowed }
+.acoes { display: flex; gap: 10px; justify-content: space-between; margin-top: 22px; flex-wrap: wrap }
+.alerta { border-radius: 8px; padding: 9px 12px; font-size: 13px; display: flex; gap: 8px; align-items: flex-start }
+.alerta--aviso { background: var(--gold-soft); color: var(--fg) }
+.alerta--erro { background: var(--erro-soft); color: var(--fg) }
+.alerta--ok { background: var(--ok-soft); color: var(--fg) }
+.alerta::before { content: "!"; flex: none; width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 700; color: #fff; background: var(--aviso); margin-top: 1px }
+.alerta--erro::before { background: var(--erro) } .alerta--ok::before { content: "✓"; background: var(--ok) }
+.alertas { display: grid; gap: 8px; margin-top: 14px }
+.resumo { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden }
+.resumo__cab { background: #123643; color: #fff; padding: 14px 16px }
+.resumo__cab small { color: #D4A429; font-size: 11.5px; letter-spacing: .5px; text-transform: uppercase; font-weight: 600 }
+.resumo__cab div { font-size: 15px; font-weight: 600; margin-top: 2px; overflow-wrap: anywhere }
+.linhas { padding: 6px 16px 14px; display: grid }
+.linha { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 13.5px }
+.linha:last-child { border-bottom: 0 }
+.linha span:first-child { color: var(--fg-2) }
+.linha b { font-weight: 600; font-variant-numeric: tabular-nums; text-align: right }
+.linha--total { font-size: 16px } .linha--total b { font-size: 18px; color: var(--accent) }
+.interno { }
+.etq { font-size: 10.5px; text-transform: uppercase; letter-spacing: .6px; color: var(--aviso); font-weight: 600; margin-left: 6px }
+body.cliente .interno { display: none }
+.cartoes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 6px 0 16px }
+.cartao { background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r); padding: 14px }
+.cartao .v { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.2 }
+.cartao .r { font-size: 12px; color: var(--fg-2) }
+.cartao--forte { background: #123643; color: #fff; border-color: #123643 }
+.cartao--forte .r { color: #C9D3D6 }
+.compara { display: grid; gap: 8px; margin: 8px 0 4px }
+.barra { display: grid; grid-template-columns: 150px minmax(0, 1fr) 110px; gap: 10px; align-items: center; font-size: 13px }
+.barra i { display: block; height: 16px; border-radius: 4px; background: var(--soft) }
+.barra i.p { background: var(--gold) }
+.barra b { text-align: right; font-variant-numeric: tabular-nums }
+.aviso-est { border: 1px dashed var(--aviso); background: var(--gold-soft); border-radius: 8px; padding: 10px 12px; font-size: 13px; margin-bottom: 14px }
+.catalogo { margin-top: 12px; border: 1px solid var(--line); border-radius: var(--r); overflow-x: auto }
+.catalogo table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 560px }
+.catalogo th, .catalogo td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top }
+.catalogo th { font-size: 11.5px; text-transform: uppercase; letter-spacing: .4px; color: var(--fg-2); background: var(--surface-2); font-weight: 600 }
+.catalogo td.n { font-variant-numeric: tabular-nums; white-space: nowrap }
+.pill { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 99px; background: var(--surface-2); border: 1px solid var(--line) }
+.pill--ex { color: var(--aviso); border-color: var(--aviso) }
+.pill--real { color: var(--ok); border-color: var(--ok) }
+.fin-tab { margin-top: 16px; border: 1px solid var(--line); border-radius: var(--r); overflow-x: auto }
+.fin-tab table { width: 100%; border-collapse: collapse; font-size: 13.5px }
+.fin-tab th, .fin-tab td { padding: 8px 12px; border-bottom: 1px solid var(--line); text-align: left }
+.fin-tab th { font-size: 11.5px; text-transform: uppercase; letter-spacing: .4px; color: var(--fg-2); background: var(--surface-2); font-weight: 600 }
+.fin-tab td.n { font-variant-numeric: tabular-nums; font-weight: 600 }
+.fin-tab tr.sel td { background: var(--gold-soft) }
+.fin-tab tr { cursor: pointer }
+.rodape { margin-top: 18px; font-size: 12px; color: var(--fg-2); max-width: 75ch }
+[hidden] { display: none !important }
+@media (max-width: 900px) { .grade { grid-template-columns: 1fr } .resumo { position: static } }
+@media (max-width: 640px) {
+  .campos { grid-template-columns: 1fr } .passos { grid-template-columns: repeat(2, 1fr) }
+  .cartoes { grid-template-columns: 1fr } .barra { grid-template-columns: 1fr; gap: 4px } .barra b { text-align: left }
+  .painel { padding: 16px }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important } }
+</style>
+
+</head><body>
+<header class="topo">
+  <div class="topo__in">
+    <div class="marca"><b>Optimus</b><span>Nova proposta solar</span><span class="selo">Protótipo · dados de exemplo</span></div>
+    <div class="modo"><span id="modo-txt">Modo vendedor</span><button class="chave" id="modo" aria-pressed="false" aria-label="Alternar modo cliente"></button><span>Modo cliente</span></div>
+  </div>
+</header>
+
+<main class="wrap">
+  <ol class="passos" id="passos">
+    <li><button data-p="1"><span class="n">1</span><span class="t">Cliente</span></button></li>
+    <li><button data-p="2"><span class="n">2</span><span class="t">Consumo</span></button></li>
+    <li><button data-p="3"><span class="n">3</span><span class="t">Sistema e preço</span></button></li>
+    <li><button data-p="4"><span class="n">4</span><span class="t">Proposta</span></button></li>
+  </ol>
+
+  <div class="grade">
+    <section class="painel">
+      <!-- PASSO 1 -->
+      <div data-passo="1">
+        <h2>Quem é o cliente?</h2>
+        <p class="sub">Para a estimativa bastam nome, telefone e município. CPF, UC e endereço só na proposta final.</p>
+        <div class="campos">
+          <div class="campo"><label for="nome">Nome <span class="ob">*</span></label><input id="nome" value="Eneias Fernandes" autocomplete="off"></div>
+          <div class="campo"><label for="tel">Telefone / WhatsApp <span class="ob">*</span></label><input id="tel" inputmode="numeric" value="(63) 99841-6077"><span class="dica" id="tel-dica"></span></div>
+          <div class="campo"><label for="mun">Município da instalação <span class="ob">*</span></label>
+            <select id="mun">
+              <option>Gurupi/TO</option><option>Figueirópolis/TO</option><option selected>Sucupira/TO</option><option>São Valério/TO</option><option>Palmas/TO</option><option>Porto Nacional/TO</option><option>Paraíso do Tocantins/TO</option><option>Araguaína/TO</option>
+            </select><span class="dica">Lista oficial do IBGE. Ninguém digita município.</span></div>
+          <div class="campo"><label for="doc">CPF ou CNPJ <span class="dica">(opcional agora)</span></label><input id="doc" inputmode="numeric" placeholder="000.000.000-00"><span class="dica" id="doc-dica">Conferido pelos dígitos verificadores.</span></div>
+          <div class="campo"><label for="lig">Ligação</label>
+            <select id="lig"><option value="mono">Monofásica (30 kWh)</option><option value="bi">Bifásica (50 kWh)</option><option value="tri" selected>Trifásica (100 kWh)</option></select></div>
+          <div class="campo"><label for="tar">Tipo de tarifa</label>
+            <select id="tar"><option value="B1">B1 Residencial</option><option value="B1BR">B1 Baixa renda</option><option value="B2" selected>B2 Rural</option><option value="B3">B3 Comercial e outros</option></select>
+            <span class="dica">Valor da ANEEL vigente (exemplo nesta prévia).</span></div>
+        </div>
+      </div>
+
+      <!-- PASSO 2 -->
+      <div data-passo="2" hidden>
+        <h2>Quanto ele consome?</h2>
+        <p class="sub">Use o dado que o cliente tiver na hora.</p>
+        <div class="abas" role="tablist">
+          <button role="tab" data-o="rs" aria-selected="true">Valor da conta (R$)</button>
+          <button role="tab" data-o="kwh" aria-selected="false">kWh por mês</button>
+          <button role="tab" data-o="fat" aria-selected="false">Tenho a fatura</button>
+        </div>
+        <div class="campos" id="o-rs">
+          <div class="campo"><label for="conta">Valor médio da conta (R$)</label><input id="conta" inputmode="decimal" value="1.500,00"></div>
+          <div class="campo"><label for="cip">Iluminação pública na conta (R$) <span class="dica">(se souber)</span></label><input id="cip" inputmode="decimal" value="45,00"></div>
+          <div class="campo"><label for="band">Bandeira da conta</label>
+            <select id="band"><option value="0">Verde</option><option value="0.01885">Amarela</option><option value="0.04463">Vermelha 1</option><option value="0.07877">Vermelha 2</option></select></div>
+        </div>
+        <div class="campos" id="o-kwh" hidden>
+          <div class="campo"><label for="kwh">Consumo médio (kWh/mês)</label><input id="kwh" inputmode="numeric" value="800"></div>
+        </div>
+        <div id="o-fat" hidden>
+          <div class="alerta alerta--aviso">No ERP: o vendedor envia o PDF da fatura e a IA preenche consumo dos 12 meses, tarifa e Fio B para conferência. A proposta passa de estimativa para confirmada.</div>
+        </div>
+        <div class="campos" style="margin-top:14px">
+          <div class="campo"><label for="folga">Folga para consumo futuro (%)</label><input id="folga" inputmode="numeric" value="10"><span class="dica">Ar-condicionado novo, piscina, ampliação.</span></div>
+          <div class="campo"><label for="perfil">Quando o cliente usa energia</label>
+            <select id="perfil"><option value="0.35">Mais à noite (residencial)</option><option value="0.5" selected>Dia e noite (rural)</option><option value="0.65">Mais de dia (comércio)</option></select>
+            <span class="dica">Define a simultaneidade. Os percentuais são do gestor.</span></div>
+        </div>
+        <div class="destaque"><div><div class="rot">Consumo estimado</div><span class="v" id="d-cons">—</span> <span class="u">kWh/mês</span></div><div><div class="rot">Com folga</div><span class="v" id="d-alvo">—</span> <span class="u">kWh/mês</span></div></div>
+      </div>
+
+      <!-- PASSO 3 -->
+      <div data-passo="3" hidden>
+        <h2>Sistema sugerido</h2>
+        <p class="sub">O sistema escolhe o módulo de menor custo por kWp nas cotações recentes e o inversor com sobrecarga de até 1,5.</p>
+        <div class="campos">
+          <div class="campo"><label for="ori">Orientação do telhado</label>
+            <select id="ori"><option value="1">Norte</option><option value="0.97">Nordeste ou noroeste</option><option value="0.9">Leste ou oeste</option><option value="0.8">Sul</option></select></div>
+          <div class="campo"><label for="est">Estrutura</label>
+            <select id="est"><option value="ceramico">Telha cerâmica</option><option value="fibro">Fibrocimento</option><option value="metal">Telha metálica</option><option value="laje">Laje</option><option value="solo" selected>Solo</option></select></div>
+        </div>
+        <div class="destaque"><div><div class="rot">Potência</div><span class="v" id="d-kwp">—</span> <span class="u">kWp</span></div><div><div class="rot">Geração média</div><span class="v" id="d-ger">—</span> <span class="u">kWh/mês</span></div><div><div class="rot">Área aproximada</div><span class="v" id="d-area">—</span> <span class="u">m²</span></div></div>
+        <div class="campos" style="margin-top:14px">
+          <div class="campo"><label for="qmod">Quantidade de módulos</label><input id="qmod" inputmode="numeric"><span class="dica" id="qmod-dica"></span></div>
+          <div class="campo"><label>&nbsp;</label><button class="btn btn--2" id="qmod-sug" type="button">Voltar à sugestão</button></div>
+          <div class="campo"><label for="cpt">Cabo solar preto 4 mm (m)</label><input id="cpt" inputmode="numeric" value="100"></div>
+          <div class="campo"><label for="cvm">Cabo solar vermelho 4 mm (m)</label><input id="cvm" inputmode="numeric" value="100"><span class="dica">Vendido em múltiplos de 25 m.</span></div>
+        </div>
+        <div class="kit" id="kit" style="margin-top:14px"></div>
+        <div style="margin-top:10px"><button class="btn btn--2 btn--mini" id="ver-cat">Ver catálogo</button></div>
+        <div class="catalogo" id="catalogo" hidden></div>
+
+        <div class="interno">
+          <h2 style="margin-top:22px;font-size:17px">Preço <span class="etq">só o vendedor vê</span></h2>
+          <div class="campos" style="margin-top:8px">
+            <div class="campo"><label for="kitv">Custo do kit (cotação do distribuidor)</label><input id="kitv" inputmode="decimal"><span class="dica" id="kit-dica"></span></div>
+            <div class="campo"><label for="mo">Mão de obra</label><input id="mo" inputmode="decimal"><span class="dica" id="mo-dica"></span></div>
+            <div class="campo"><label for="desc">Desconto na mão de obra (%)</label><input id="desc" inputmode="numeric" value="5"></div>
+            <div class="campo"><label>Enviar PDF da cotação</label><button class="btn btn--2" disabled title="No ERP, com a chave da API">Ler PDF com IA (no ERP)</button></div>
+          </div>
+        </div>
+        <div class="alertas" id="alertas"></div>
+      </div>
+
+      <!-- PASSO 4 -->
+      <div data-passo="4" hidden>
+        <h2>Proposta para <span id="p-nome"></span></h2>
+        <p class="sub" id="p-sub"></p>
+        <div class="aviso-est" id="aviso-est">Valores estimados a partir de dados informados pelo cliente, sem análise da fatura. Sujeitos a discrepâncias com os dados reais.</div>
+        <div class="cartoes">
+          <div class="cartao cartao--forte"><div class="r">Investimento</div><div class="v" id="c-inv">—</div></div>
+          <div class="cartao"><div class="r">Economia no 1º ano</div><div class="v" id="c-eco">—</div><div class="r">por mês, em média</div></div>
+          <div class="cartao"><div class="r">Retorno estimado</div><div class="v" id="c-pay">—</div></div>
+        </div>
+        <div class="rot">Conta de luz por mês</div>
+        <div class="compara" id="compara"></div>
+        <div class="fin-tab" id="fin-tab"></div>
+        <div class="alerta alerta--ok" id="fin" style="margin-top:12px"></div>
+        <div class="acoes">
+          <button class="btn btn--2" disabled>Salvar rascunho (no ERP)</button>
+          <button class="btn" disabled>Gerar PDF (no ERP)</button>
+        </div>
+      </div>
+
+      <div class="acoes" id="nav">
+        <button class="btn btn--2" id="volta">Voltar</button>
+        <button class="btn" id="avanca">Continuar</button>
+      </div>
+    </section>
+
+    <aside class="resumo" aria-label="Resumo">
+      <div class="resumo__cab"><small id="r-nivel">Estimativa</small><div id="r-cli">—</div></div>
+      <div class="linhas">
+        <div class="linha"><span>Consumo considerado</span><b id="r-cons">—</b></div>
+        <div class="linha"><span>Sistema</span><b id="r-kwp">—</b></div>
+        <div class="linha"><span>Geração média</span><b id="r-ger">—</b></div>
+        <div class="linha interno"><span>Kit (faturamento direto)</span><b id="r-kit">—</b></div>
+        <div class="linha interno"><span>Mão de obra</span><b id="r-mo">—</b></div>
+        <div class="linha interno"><span>Desconto</span><b id="r-desc">—</b></div>
+        <div class="linha linha--total"><span>Investimento</span><b id="r-tot">—</b></div>
+        <div class="linha interno"><span>R$ por Wp</span><b id="r-wp">—</b></div>
+        <div class="linha"><span>Economia/mês (ano 1)</span><b id="r-eco">—</b></div>
+        <div class="linha"><span>Parcela escolhida</span><b id="r-par">—</b></div>
+      </div>
+    </aside>
+  </div>
+
+  <p class="rodape">Protótipo para testar o fluxo, não o cálculo final. Equipamentos e preços de kit vêm das cotações reais Belenus WEB-007005988 e Intelbras PROJ26101627017 de 21/10/2026. Itens marcados "exemplo", tarifas, taxas de financiamento, fatores de orientação e irradiação (Gurupi para todos os municípios) são valores de exemplo. No ERP, o cálculo usa o motor atual (25 anos, Fio B por ano, degradação), dados da ANEEL e do PVGIS.</p>
+</main>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const IRR = [4.95,5.05,4.95,5.15,5.35,5.40,5.65,6.05,5.90,5.45,5.10,4.85];
+  const HSP = IRR.reduce((a,b)=>a+b,0)/12;
+  const PR = (1-0.18)*(1-0.015);
+  const TARIFA = { B1: 0.98, B1BR: 0.62, B2: 0.86, B3: 0.98 };       // exemplo, R$/kWh com tributos
+  const FIOB = 0.25, FIOB_PCT = 0.75;                                  // exemplo; 2027 = 75% (Lei 14.300)
+  const DISP = { mono: 30, bi: 50, tri: 100 };
+  const MO_KWP = { solo: 700, outro: 500 }, MO_MIN = 4500;
+  const BANCOS = [ { nome: 'BV', taxa: { 12: 0.0139, 24: 0.0145, 36: 0.0152, 48: 0.0156, 60: 0.0159, 72: 0.0165 } }, { nome: 'Santander', taxa: { 12: 0.0145, 24: 0.0148, 36: 0.0149, 48: 0.0149, 60: 0.0152, 72: 0.0158 } } ]; // exemplo, % a.m. por prazo
+  const PRAZOS = [12, 24, 36, 48, 60, 72];
+  // Catálogo: real = veio das cotações; exemplo = só para a prévia
+  const MODULOS = [
+    { id: 'hs610', nome: 'Huansheng HSM-ND66-GR610-Y', w: 610, dist: 'Belenus', area: 2.70, rswp: 27666.44/12810, data: '21/10/2026', real: true, obs: 'Bifacial N-type 132 células' },
+    { id: 'ib620', nome: 'Intelbras EMSC-620B', w: 620, dist: 'Intelbras', area: 2.75, rswp: 46158.60/16120, data: '21/10/2026', real: true, obs: 'Bifacial N-type half cell · total da plataforma, pode incluir serviços' },
+  ];
+  const INVERSORES = [
+    { nome: 'Inversor 5 kW mono 220 V', kw: 5, fase: 'mono', dist: 'Belenus', real: false },
+    { nome: 'Inversor 8 kW mono 220 V', kw: 8, fase: 'mono', dist: 'Belenus', real: false },
+    { nome: 'Deye SUN-10K-G02P1-EU-CM2-P · 2 MPPT', kw: 10, fase: 'mono', dist: 'Belenus', real: true },
+    { nome: 'Inversor 8 kW tri 380 V', kw: 8, fase: 'tri', dist: 'Intelbras', real: false },
+    { nome: 'Intelbras IONS-12K T2 AFCI', kw: 12, fase: 'tri', dist: 'Intelbras', real: true },
+    { nome: 'Deye 15 kW tri 380 V', kw: 15, fase: 'tri', dist: 'Belenus', real: false },
+  ];
+  const ESTRUTURAS = { ceramico: 'Estrutura para telha cerâmica', fibro: 'Estrutura para fibrocimento', metal: 'Estrutura para telha metálica', laje: 'Estrutura para laje', solo: 'Estrutura de solo, mesa isopleta 45 m/s' };
+
+  const brl = v => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  const num = (v, d=0) => v.toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
+  const lerBR = s => { const t = String(s).replace(/[^\d,.-]/g,'').replace(/\./g,'').replace(',', '.'); const n = parseFloat(t); return isNaN(n) ? 0 : n; };
+
+  let passo = 1, origem = 'rs', modId = null, kitEditado = false, moEditado = false, qEditado = false, prazo = 60;
+
+  // Máscaras e validações
+  $('tel').addEventListener('input', e => {
+    const d = e.target.value.replace(/\D/g,'').slice(0,11);
+    e.target.value = d.length > 10 ? `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}` : d.length > 6 ? `(${d.slice(0,2)}) ${d.slice(2,6)}-${d.slice(6)}` : d.length > 2 ? `(${d.slice(0,2)}) ${d.slice(2)}` : d;
+    validarTel();
+  });
+  function validarTel() { const d = $('tel').value.replace(/\D/g,''); const ok = d.length === 10 || d.length === 11; $('tel-dica').textContent = ok ? '' : 'DDD + 8 ou 9 dígitos.'; $('tel-dica').className = 'dica dica--erro'; return ok; }
+  function cpfOk(c) { if (/^(\d)\1{10}$/.test(c)) return false; for (const t of [9,10]) { let s = 0; for (let i=0;i<t;i++) s += +c[i]*(t+1-i); if (((s*10)%11)%10 !== +c[t]) return false; } return true; }
+  function cnpjOk(c) { if (/^(\d)\1{13}$/.test(c)) return false; const calc = n => { let s=0, p=n-7; for (let i=0;i<n;i++){ s += +c[i]*p--; if (p<2) p=9; } const r = s%11; return r<2?0:11-r; }; return calc(12)===+c[12] && calc(13)===+c[13]; }
+  $('doc').addEventListener('input', e => {
+    const d = e.target.value.replace(/\D/g,'').slice(0,14);
+    let f = d;
+    if (d.length <= 11) f = d.replace(/^(\d{3})(\d)/,'$1.$2').replace(/^(\d{3})\.(\d{3})(\d)/,'$1.$2.$3').replace(/\.(\d{3})(\d)/,'.$1-$2');
+    else f = d.replace(/^(\d{2})(\d)/,'$1.$2').replace(/^(\d{2})\.(\d{3})(\d)/,'$1.$2.$3').replace(/\.(\d{3})(\d)/,'.$1/$2').replace(/(\d{4})(\d)/,'$1-$2');
+    e.target.value = f;
+    const dica = $('doc-dica');
+    if (!d) { dica.textContent = 'Conferido pelos dígitos verificadores.'; dica.className = 'dica'; }
+    else if (d.length === 11) { const ok = cpfOk(d); dica.textContent = ok ? 'CPF válido' : 'CPF inválido: confira os números'; dica.className = 'dica ' + (ok ? 'dica--ok' : 'dica--erro'); }
+    else if (d.length === 14) { const ok = cnpjOk(d); dica.textContent = ok ? 'CNPJ válido · no ERP, a razão social vem da BrasilAPI' : 'CNPJ inválido: confira os números'; dica.className = 'dica ' + (ok ? 'dica--ok' : 'dica--erro'); }
+    else { dica.textContent = 'Incompleto'; dica.className = 'dica'; }
+  });
+  for (const id of ['conta','cip','kitv','mo']) $(id).addEventListener('blur', e => { const v = lerBR(e.target.value); if (v) e.target.value = num(v, 2); });
+
+  // Abas de origem do consumo
+  document.querySelectorAll('[role=tab]').forEach(b => b.addEventListener('click', () => {
+    origem = b.dataset.o;
+    document.querySelectorAll('[role=tab]').forEach(x => x.setAttribute('aria-selected', x === b));
+    $('o-rs').hidden = origem !== 'rs'; $('o-kwh').hidden = origem !== 'kwh'; $('o-fat').hidden = origem !== 'fat';
+    calc();
+  }));
+
+  // Navegação
+  function irPara(p) {
+    passo = Math.min(4, Math.max(1, p));
+    document.querySelectorAll('[data-passo]').forEach(s => s.hidden = +s.dataset.passo !== passo);
+    document.querySelectorAll('#passos button').forEach(b => { const n = +b.dataset.p; b.setAttribute('aria-current', n === passo ? 'step' : 'false'); b.classList.toggle('feito', n < passo); });
+    $('volta').disabled = passo === 1; $('avanca').hidden = passo === 4;
+    $('avanca').textContent = passo === 3 ? 'Ver proposta' : 'Continuar';
+    calc();
+  }
+  $('passos').addEventListener('click', e => { const b = e.target.closest('button'); if (b) irPara(+b.dataset.p); });
+  $('volta').onclick = () => irPara(passo - 1);
+  $('avanca').onclick = () => { if (passo === 1 && (!$('nome').value.trim() || !validarTel())) { $('nome').focus(); return; } irPara(passo + 1); };
+
+  // Modo cliente
+  $('modo').onclick = () => { const on = $('modo').getAttribute('aria-pressed') !== 'true'; $('modo').setAttribute('aria-pressed', on); document.body.classList.toggle('cliente', on); if (on && passo < 4) irPara(4); };
+
+  // Catálogo
+  $('ver-cat').onclick = () => { $('catalogo').hidden = !$('catalogo').hidden; $('ver-cat').textContent = $('catalogo').hidden ? 'Ver catálogo' : 'Fechar catálogo'; };
+  function desenharCatalogo(atual) {
+    const linhas = MODULOS.map(m => `<tr><td><b>${m.nome}</b><br><small>${m.obs}</small></td><td class="n">${m.w} W</td><td>${m.dist}</td><td class="n interno">${brl(m.rswp)}/Wp<br><small>kit, ${m.data}</small></td><td><span class="pill pill--real">cotação real</span></td><td>${m.id === atual ? '<span class="pill">em uso</span>' : `<button class="btn btn--2 btn--mini" data-mod="${m.id}">Usar</button>`}</td></tr>`).join('')
+      + INVERSORES.map(i => `<tr><td>${i.nome}</td><td class="n">${num(i.kw)} kW · ${i.fase === 'mono' ? 'mono/bi' : 'tri'}</td><td>${i.dist}</td><td class="interno">—</td><td><span class="pill ${i.real ? 'pill--real' : 'pill--ex'}">${i.real ? 'cotação real' : 'exemplo'}</span></td><td></td></tr>`).join('');
+    $('catalogo').innerHTML = `<table><thead><tr><th>Equipamento</th><th>Potência</th><th>Distribuidor</th><th class="interno">Último preço</th><th>Origem</th><th></th></tr></thead><tbody>${linhas}</tbody></table>`;
+    $('catalogo').querySelectorAll('[data-mod]').forEach(b => b.onclick = () => { modId = b.dataset.mod; kitEditado = false; calc(); });
+  }
+
+  function parcela(v, i, n) { return v * i / (1 - Math.pow(1 + i, -n)); }
+
+  function calc() {
+    const tipo = $('tar').value, tarifa = TARIFA[tipo] + (+$('band').value), disp = DISP[$('lig').value];
+    let cons;
+    if (origem === 'kwh') cons = lerBR($('kwh').value);
+    else cons = Math.max(0, (lerBR($('conta').value) - lerBR($('cip').value)) / tarifa);
+    if (origem === 'fat') cons = 800;
+    const folga = lerBR($('folga').value) / 100, alvo = cons * (1 + folga);
+    const simult = +$('perfil').value, fo = +$('ori').value, solo = $('est').value === 'solo';
+
+    const gerNec = Math.max(alvo - disp, 0);
+    const kwpNec = gerNec / (HSP * 30.4 * PR * fo);
+    const melhor = [...MODULOS].sort((a,b) => a.rswp - b.rswp)[0];
+    const mod = MODULOS.find(m => m.id === modId) || melhor;
+    const nSug = Math.max(1, Math.ceil(kwpNec * 1000 / mod.w));
+    if (!qEditado) $('qmod').value = nSug;
+    const n = Math.max(1, Math.round(lerBR($('qmod').value)) || nSug);
+    $('qmod-dica').textContent = qEditado ? `Sugestão: ${nSug} módulos.` : 'Sugerido pelo consumo. Pode editar.';
+    $('qmod-sug').hidden = !qEditado;
+    const cpt = lerBR($('cpt').value), cvm = lerBR($('cvm').value);
+    const kwp = n * mod.w / 1000;
+    const fase = $('lig').value === 'tri' ? 'tri' : 'mono';
+    const candidatos = INVERSORES.filter(i => i.fase === fase).sort((a,b) => a.kw - b.kw);
+    let inv = candidatos.find(i => kwp / i.kw <= 1.5), qInv = 1;
+    if (!inv) { inv = candidatos[candidatos.length - 1]; qInv = Math.ceil(kwp / (inv.kw * 1.5)); }
+    const sobrecarga = kwp / (inv.kw * qInv);
+    const ger = kwp * HSP * 30.4 * PR * fo;
+    const area = n * mod.area;
+
+    const kitSug = kwp * 1000 * mod.rswp;   // proporcional aos módulos; no ERP, a cotação real
+    if (!kitEditado) $('kitv').value = num(kitSug, 2);
+    const kit = lerBR($('kitv').value);
+    const moSug = Math.max(kwp * (solo ? MO_KWP.solo : MO_KWP.outro), MO_MIN);
+    if (!moEditado) $('mo').value = num(moSug, 2);
+    const mo = lerBR($('mo').value);
+    const desc = mo * lerBR($('desc').value) / 100;
+    const total = kit + mo - desc;
+
+    const comp = Math.min(ger, cons);   // economia contra a conta de hoje (a folga é consumo futuro)
+    const eco = comp * tarifa - disp * tarifa - FIOB_PCT * FIOB * comp * (1 - simult);
+    const contaAtual = cons * tarifa + (origem === 'rs' ? lerBR($('cip').value) : 0);
+    const contaNova = Math.max(contaAtual - eco, 0);
+    const payAnos = eco > 0 ? total / (eco * 12) : 0;
+    const opcoes = PRAZOS.map(m => BANCOS.map(b => ({ nome: b.nome, meses: m, taxa: b.taxa[m], p: parcela(total, b.taxa[m], m) })).sort((a,b) => a.p - b.p)[0]);
+    const fins = [opcoes.find(o => o.meses === prazo)];
+    const best = fins[0];
+
+    // Passo 2
+    $('d-cons').textContent = num(cons); $('d-alvo').textContent = num(alvo);
+    // Passo 3
+    $('d-kwp').textContent = num(kwp, 2); $('d-ger').textContent = num(ger); $('d-area').textContent = num(area);
+    $('kit').innerHTML = `
+      <div class="item"><div class="q">${n}</div><div class="d"><b>${mod.nome}</b><small>${mod.w} W · ${mod.dist} · ${mod.id === melhor.id ? 'menor R$/kWp nas cotações recentes' : 'escolhido no catálogo'}</small></div><span class="pill pill--real">catálogo</span></div>
+      <div class="item"><div class="q">${qInv}</div><div class="d"><b>${inv.nome}</b><small>${num(inv.kw)} kW · sobrecarga ${num(sobrecarga, 2)} (máx. 1,50)</small></div><span class="pill ${inv.real ? 'pill--real' : 'pill--ex'}">${inv.real ? 'catálogo' : 'exemplo'}</span></div>
+      <div class="item"><div class="q">1</div><div class="d"><b>${ESTRUTURAS[$('est').value]}</b><small>para ${n} módulos · conectores e frete na cotação</small></div><span class="pill">catálogo</span></div>
+      <div class="item"><div class="q">${num(cpt)}</div><div class="d"><b>Cabo solar preto 4 mm</b><small>metros</small></div><span class="pill">catálogo</span></div>
+      <div class="item"><div class="q">${num(cvm)}</div><div class="d"><b>Cabo solar vermelho 4 mm</b><small>metros</small></div><span class="pill">catálogo</span></div>`;
+    desenharCatalogo(mod.id);
+    $('kit-dica').textContent = kitEditado ? 'Valor da cotação informado pelo vendedor.' : `Estimado com ${brl(mod.rswp)}/Wp da cotação ${mod.dist} de ${mod.data}. Troque pelo valor da cotação.`;
+    $('mo-dica').textContent = moEditado ? `Sugestão era ${brl(moSug)}.` : `${brl(solo ? 700 : 500)}/kWp${solo ? ' (solo)' : ''}, mínimo ${brl(MO_MIN)}.`;
+    const al = [];
+    if (sobrecarga > 1.5) al.push(['erro', `Sobrecarga de ${num(sobrecarga,2)} acima de 1,50. Escolha um inversor maior.`]);
+    if (sobrecarga < 0.8) al.push(['aviso', `Sobrecarga de ${num(sobrecarga,2)}: inversor grande para o sistema. Há modelo menor no catálogo?`]);
+    if (fase === 'tri' && inv.fase !== 'tri') al.push(['erro', 'Ligação trifásica com inversor monofásico.']);
+    if (!kitEditado) al.push(['aviso', `Custo do kit estimado pela última cotação (${mod.data}). Cote na plataforma ${mod.dist} e informe o valor real.`]);
+    if (origem !== 'fat') al.push(['aviso', 'Proposta de estimativa: vai com o aviso de dados não confirmados.']);
+    if (mo - desc < MO_MIN) al.push(['aviso', `Mão de obra com desconto (${brl(mo - desc)}) abaixo do mínimo de ${brl(MO_MIN)}.`]);
+    $('alertas').innerHTML = al.map(([t, m]) => `<div class="alerta alerta--${t} ${t === 'aviso' && m.includes('kit') ? 'interno' : ''}">${m}</div>`).join('');
+
+    // Passo 4
+    $('p-nome').textContent = $('nome').value.trim() || 'cliente';
+    $('p-sub').textContent = `${num(kwp,2)} kWp · ${n} módulos · ${$('mun').value} · ${$('tar').selectedOptions[0].text}`;
+    $('aviso-est').hidden = origem === 'fat';
+    $('c-inv').textContent = brl(total); $('c-eco').textContent = brl(eco);
+    $('c-pay').textContent = payAnos ? `${Math.floor(payAnos)} anos e ${Math.round((payAnos % 1) * 12)} meses` : '—';
+    const mx = Math.max(contaAtual, best.p, contaNova + best.p, 1);
+    $('compara').innerHTML = `
+      <div class="barra"><span>Hoje</span><i style="width:${contaAtual / mx * 100}%"></i><b>${brl(contaAtual)}</b></div>
+      <div class="barra"><span>Com o sistema</span><i class="p" style="width:${contaNova / mx * 100}%"></i><b>${brl(contaNova)}</b></div>
+      <div class="barra"><span>Com sistema + parcela ${best.meses}×</span><i class="p" style="width:${(contaNova + best.p) / mx * 100}%"></i><b>${brl(contaNova + best.p)}</b></div>`;
+    $('fin-tab').innerHTML = `<table><thead><tr><th>Prazo</th><th>Parcela</th><th>Banco</th><th>Taxa</th></tr></thead><tbody>${opcoes.map(o => `<tr data-m="${o.meses}" class="${o.meses === prazo ? 'sel' : ''}"><td>${o.meses}×</td><td class="n">${brl(o.p)}</td><td>${o.nome}</td><td>${num(o.taxa * 100, 2)}% a.m.</td></tr>`).join('')}</tbody></table>`;
+    $('fin-tab').querySelectorAll('tr[data-m]').forEach(tr => tr.onclick = () => { prazo = +tr.dataset.m; calc(); });
+    $('fin').textContent = `Melhor banco em cada prazo. Toque num prazo para comparar com a conta. Parcelas aproximadas, sujeitas à análise de crédito.`;
+
+    // Resumo
+    $('r-nivel').textContent = origem === 'fat' ? 'Proposta confirmada' : 'Estimativa';
+    $('r-cli').textContent = `${$('nome').value.trim() || '—'} · ${$('mun').value}`;
+    $('r-cons').textContent = `${num(alvo)} kWh/mês`; $('r-kwp').textContent = `${num(kwp,2)} kWp`; $('r-ger').textContent = `${num(ger)} kWh/mês`;
+    $('r-kit').textContent = brl(kit); $('r-mo').textContent = brl(mo); $('r-desc').textContent = '− ' + brl(desc);
+    $('r-tot').textContent = brl(total); $('r-wp').textContent = brl(total / (kwp * 1000)); $('r-eco').textContent = brl(eco);
+    $('r-par').textContent = `${best.meses}× ${brl(best.p)} (${best.nome})`;
+  }
+
+  $('kitv').addEventListener('input', () => { kitEditado = true; });
+  $('qmod').addEventListener('input', () => { qEditado = true; });
+  $('qmod-sug').onclick = () => { qEditado = false; calc(); };
+  for (const id of ['cpt','cvm']) $(id).addEventListener('change', e => { const v = lerBR(e.target.value); e.target.value = Math.max(25, Math.ceil(v / 25) * 25); calc(); });
+  $('mo').addEventListener('input', () => { moEditado = true; });
+  document.querySelector('main').addEventListener('input', e => { if (e.target.id !== 'doc') calc(); });
+  document.querySelector('main').addEventListener('change', () => calc());
+  irPara(1);
+})();
+</script>
+
+</body></html>
