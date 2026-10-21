@@ -155,6 +155,12 @@ Formato: data · decisão · motivo · alternativas descartadas.
 - **CPF/CNPJ único:** verificado no formulário, não por restrição no banco, para a migration não falhar se o banco do PC já tiver CPF repetido.
 - **Menu:** "Configurações" sai do menu até a tela existir (v2.2). O admin continua em /admin/ para manutenção.
 
+## D27 · 2026-10-21 · Irradiação pela NASA POWER (revisão de D21)
+- **Motivo:** o domínio do PVGIS (re.jrc.ec.europa.eu) responde "This url is blocked" (403) para a rede da loja, inclusive no site, com qualquer User-Agent. Testado em 21/10/2026 a partir do PC.
+- **Decisão:** a irradiação vem da **NASA POWER** (API pública, sem chave): climatologia mensal `ALLSKY_SFC_SW_DWN` em kWh/m²·dia, plano horizontal, média 2001–2025, por coordenada do município. O PVGIS fica como alternativa se o bloqueio cair.
+- **Tarifas ANEEL:** conjunto "Tarifas de Aplicação", distribuidora `ETO`, modalidade Convencional, linha sem detalhe (a linha "SCEE" é a da energia compensada). Valores em R$/MWh, convertidos para R$/kWh. B1 baixa renda usa a subclasse "Baixa Renda" (sem as faixas do desconto social).
+- **Bandeiras:** conjunto "Bandeira Tarifária - Adicional" da ANEEL (resolução mais recente), em vez de digitação.
+
 ## Pendências de validação
 - [ ] Regra de custo de disponibilidade para GD após a Lei 14.300 (item 3 de D08).
 - [ ] Valor da TUSD Fio B vigente na Energisa TO por subgrupo (B1/B2/B3).

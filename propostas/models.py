@@ -139,3 +139,99 @@ class ItemKit(models.Model):
 
     def __str__(self):
         return f"{self.quantidade}x {self.descricao}"
+
+
+class TarifaVigente(models.Model):
+    """Tarifa do Grupo B por tipo (D19, D21). TUSD e TE vêm da ANEEL; tributos e Fio B, do gestor."""
+
+    class Tipo(models.TextChoices):
+        B1 = "B1", "B1 residencial"
+        B1_BAIXA_RENDA = "B1_BAIXA_RENDA", "B1 residencial baixa renda"
+        B2 = "B2", "B2 rural"
+        B3 = "B3", "B3 comercial e demais"
+
+    distribuidora = models.CharField(max_length=60, default="Energisa TO")
+    tipo = models.CharField(max_length=20, choices=Tipo.choices)
+    vigencia_inicio = models.DateField("início da vigência")
+    tusd = models.DecimalField("TUSD (R$/kWh, sem tributos)", max_digits=10, decimal_places=6)
+    te = models.DecimalField("TE (R$/kWh, sem tributos)", max_digits=10, decimal_places=6)
+    aliquota_tributos = models.DecimalField(
+        "tributos (fração: ICMS + PIS/COFINS)", max_digits=6, decimal_places=4, default=0,
+        help_text="Alíquota efetiva sobre a tarifa final. Digitada pelo gestor.",
+    )
+    fiob_kwh = models.DecimalField(
+        "TUSD Fio B (R$/kWh)", max_digits=10, decimal_places=6, null=True, blank=True,
+        help_text="A ANEEL não publica separado: o gestor digita após cada reajuste.",
+    )
+    fiob_conferido_em = models.DateField("Fio B conferido em", null=True, blank=True)
+    fonte = models.CharField(max_length=255, blank=True)
+    atualizado_em = models.DateField("atualizado em")
+
+    class Meta:
+        verbose_name = "Tarifa vigente"
+        verbose_name_plural = "Tarifas vigentes"
+        ordering = ["tipo", "-vigencia_inicio"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["distribuidora", "tipo", "vigencia_inicio"], name="tarifa_distribuidora_tipo_vigencia_unica"
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.get_tipo_display()} — {self.distribuidora} ({self.vigencia_inicio:%d/%m/%Y})"
+
+    @property
+    def tarifa_com_tributos(self):
+        """Tarifa final por kWh, como aparece na conta: (TUSD + TE) / (1 − tributos)."""
+        return (self.tusd + self.te) / (1 - self.aliquota_tributos)
+
+    @property
+    def fiob_desatualizado(self):
+        return self.fiob_kwh is None or self.fiob_conferido_em is None or self.fiob_conferido_em < self.vigencia_inicio
+
+    @classmethod
+    def vigentes(cls):
+        """A tarifa mais recente de cada tipo."""
+        mais_recentes = {}
+        for tarifa in cls.objects.order_by("tipo", "-vigencia_inicio"):
+            mais_recentes.setdefault(tarifa.tipo, tarifa)
+        return list(mais_recentes.values())
+
+
+class Bandeira(models.Model):
+    """Adicional da bandeira tarifária por kWh (ANEEL). Mantido pelo gestor."""
+
+    nome = models.CharField(max_length=40, unique=True)
+    adicional_kwh = models.DecimalField("adicional (R$/kWh)", max_digits=8, decimal_places=5)
+    vigencia = models.DateField("vigente desde")
+    ordem = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        verbose_name = "Bandeira tarifária"
+        verbose_name_plural = "Bandeiras tarifárias"
+        ordering = ["ordem"]
+
+    def __str__(self):
+        return self.nome
+
+
+class TaxaFinanciamento(models.Model):
+    """Taxa mensal por banco e prazo (D22). Mantida pelo gestor."""
+
+    PRAZOS = [12, 24, 36, 48, 60, 72]
+
+    banco = models.CharField(max_length=60)
+    prazo_meses = models.PositiveSmallIntegerField("prazo (meses)")
+    taxa_mensal = models.DecimalField("taxa ao mês (fração)", max_digits=7, decimal_places=5)
+    vigente_desde = models.DateField()
+
+    class Meta:
+        verbose_name = "Taxa de financiamento"
+        verbose_name_plural = "Taxas de financiamento"
+        ordering = ["banco", "prazo_meses"]
+        constraints = [
+            models.UniqueConstraint(fields=["banco", "prazo_meses"], name="taxa_banco_prazo_unica")
+        ]
+
+    def __str__(self):
+        return f"{self.banco} {self.prazo_meses}×: {self.taxa_mensal * 100:.2f}% a.m."

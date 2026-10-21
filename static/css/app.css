@@ -320,6 +320,81 @@
     }
   }
 
+  /* ---------- Configurações ---------- */
+
+  .abas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--esp-1);
+    margin-bottom: var(--esp-4);
+    border-bottom: 1px solid var(--line);
+
+    & a {
+      padding: var(--esp-2) var(--esp-3);
+      color: var(--muted);
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+    }
+
+    & a:hover {
+      color: var(--navy);
+      text-decoration: none;
+    }
+
+    & a.ativo {
+      color: var(--navy);
+      font-weight: 500;
+      border-bottom-color: var(--gold);
+    }
+  }
+
+  .aviso-salvo {
+    background: var(--light);
+    border-left: 3px solid var(--ok);
+    padding: var(--esp-2) var(--esp-3);
+    border-radius: var(--raio);
+  }
+
+  .card + .card,
+  form > .card {
+    margin-bottom: var(--esp-4);
+  }
+
+  .grade-campos.grade-campos--3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .grade-campos.grade-campos--perfil {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 1fr);
+  }
+
+  .tabela.tabela--taxas input,
+  .tabela.tabela--tarifas input:not([type="checkbox"]) {
+    width: 6rem;
+    padding: var(--esp-1) var(--esp-2);
+    border: 1px solid var(--soft);
+    border-radius: var(--raio);
+    font-family: var(--fonte);
+    text-align: right;
+  }
+
+  .tabela.tabela--taxas td:first-child input {
+    width: 10rem;
+    text-align: left;
+  }
+
+  .tabela.tabela--tarifas input[type="date"] {
+    width: 10rem;
+  }
+
+  .card > form > h3 {
+    margin-top: var(--esp-4);
+  }
+
+  .situacao--alerta {
+    color: var(--erro);
+  }
+
   /* ---------- Celular ----------
      Media query não aceita variável CSS; 800px é o único valor literal de layout. */
   @media (max-width: 800px) {
@@ -363,7 +438,8 @@
       white-space: nowrap;
     }
 
-    .proposta-editor, .orcamento-editor, .grade-campos {
+    .proposta-editor, .orcamento-editor, .grade-campos,
+    .grade-campos.grade-campos--3, .grade-campos.grade-campos--perfil {
       grid-template-columns: minmax(0, 1fr);
     }
 

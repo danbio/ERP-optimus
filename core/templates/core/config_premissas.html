@@ -1,0 +1,58 @@
+{% extends "core/_config_base.html" %}
+
+{% block config %}
+  <form method="post" novalidate>
+    {% csrf_token %}
+    <div class="card">
+      <h3>Premissas técnicas</h3>
+      <p class="ajuda">Valem para as próximas propostas. Cada proposta guarda uma cópia das premissas do dia em que foi feita.</p>
+      <div class="grade-campos grade-campos--3">
+        {% include "core/_campo.html" with campo=form.perdas %}
+        {% include "core/_campo.html" with campo=form.perda_clipping %}
+        {% include "core/_campo.html" with campo=form.simultaneidade %}
+        {% include "core/_campo.html" with campo=form.reajuste_anual %}
+        {% include "core/_campo.html" with campo=form.degradacao_ano1 %}
+        {% include "core/_campo.html" with campo=form.degradacao_anual %}
+        {% include "core/_campo.html" with campo=form.ano_conexao %}
+        {% include "core/_campo.html" with campo=form.horizonte_anos %}
+        {% include "core/_campo.html" with campo=form.razao_cc_ca_max %}
+        {% include "core/_campo.html" with campo=form.cobrar_disponibilidade %}
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Orientação do telhado</h3>
+      <p class="ajuda">Quanto o telhado gera em relação ao voltado para o norte (100%).</p>
+      <div class="grade-campos grade-campos--3">
+        {% include "core/_campo.html" with campo=form.orientacao_norte %}
+        {% include "core/_campo.html" with campo=form.orientacao_nordeste_noroeste %}
+        {% include "core/_campo.html" with campo=form.orientacao_leste_oeste %}
+        {% include "core/_campo.html" with campo=form.orientacao_sul %}
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Perfis de uso (simultaneidade)</h3>
+      <p class="ajuda">O vendedor escolhe o perfil; o percentual é a parte da geração consumida na hora. Para apagar um perfil, deixe o nome vazio.</p>
+      {{ perfis.management_form }}
+      {% for perfil in perfis %}
+        <div class="grade-campos grade-campos--perfil">
+          {% include "core/_campo.html" with campo=perfil.nome %}
+          {% include "core/_campo.html" with campo=perfil.simultaneidade %}
+        </div>
+      {% endfor %}
+    </div>
+
+    <div class="card">
+      <h3>Mão de obra e preço do kit</h3>
+      <p class="ajuda">Mão de obra sugerida = maior valor entre kWp × valor por kWp e o mínimo. O vendedor pode alterar na proposta.</p>
+      <div class="grade-campos grade-campos--3">
+        {% include "core/_campo.html" with campo=form.mo_por_kwp %}
+        {% include "core/_campo.html" with campo=form.mo_por_kwp_solo %}
+        {% include "core/_campo.html" with campo=form.mo_minima %}
+        {% include "core/_campo.html" with campo=form.dias_preco_velho %}
+      </div>
+    </div>
+    <button type="submit" class="btn">Salvar</button>
+  </form>
+{% endblock %}

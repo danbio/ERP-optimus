@@ -1,0 +1,15 @@
+{% extends "core/base.html" %}
+
+{% block titulo %}Configurações{% endblock %}
+{% block titulo_pagina %}Configurações{% endblock %}
+
+{% block conteudo %}
+  <nav class="abas">
+    {% for rota, rotulo in abas %}
+      {% url rota as endereco %}
+      <a href="{{ endereco }}"{% if request.path == endereco %} class="ativo"{% endif %}>{{ rotulo }}</a>
+    {% endfor %}
+  </nav>
+  {% for mensagem in messages %}<p class="aviso-salvo">{{ mensagem }}</p>{% endfor %}
+  {% block config %}{% endblock %}
+{% endblock %}
