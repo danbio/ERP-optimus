@@ -94,10 +94,65 @@ Formato: data · decisão · motivo · alternativas descartadas.
 - **Textos padrão:** migration `core/0003` preenche benefícios, escopo, etapas e "Sobre" da `ConfigEmpresa` com os textos da proposta Alesio v2, só onde estiverem vazios. Editáveis no admin.
 - **Nesta fatia o PDF é gerado sob demanda e não é guardado.** Gravar o PDF, congelar o snapshot e numerar versões é a fatia 6.
 
+## D17 · 2026-10-21 · Redesenho da entrada da proposta: estimativa sem fatura, em 4 passos
+- **Motivo:** auditoria de usabilidade de 21/10 ([relatório](https://claude.ai/artifact/FDuVTqm3hdxy8ozVCPwaQB)): um vendedor iniciante não consegue terminar uma proposta. A fatura era obrigatória (7 campos técnicos), o município era texto livre, o sistema não dimensionava e o cadastro ficava espalhado em 4 telas. Os casos "minha conta vem R$ 500" e "quero gerar 800 kWh" eram impossíveis.
+- **Decisão:** a proposta nasce em 4 passos numa tela só (cliente → consumo → sistema e preço → proposta), salvando o rascunho a cada passo. A fatura deixa de ser obrigatória e vira refinamento. Spec em `docs/spec-proposta-v2.md`; protótipo aprovado em `docs/referencia/prototipo-proposta-v2.html`.
+- **Consequência:** a fatia 6 e o resto do plano ficaram congelados até o fluxo novo funcionar. O motor de cálculo, o PDF e o caso Alesio continuam valendo. As telas da `spec-fase1.md` §4 são substituídas pela spec v2.
+
+## D18 · 2026-10-21 · Preço = kit + mão de obra − desconto
+- O kit é vendido por **faturamento direto** do distribuidor ao cliente (isento de imposto; se a Optimus emitisse a nota, pagaria 4% no Simples). Não há margem sobre o kit.
+- **Mão de obra sugerida** = `max(kWp × R$ 500, R$ 4.500)`; estrutura de solo: R$ 700/kWp. Valores no `ConfigEmpresa`, editáveis pelo gestor; o vendedor edita livremente na proposta.
+- **Desconto** só sobre a mão de obra. A proposta não mostra imposto.
+- O custo do kit inclui o frete da cotação.
+
+## D19 · 2026-10-21 · Dimensionamento automático
+- **Consumo** a partir de um destes: valor da conta (R$), kWh/mês ou fatura. Conversão R$ → kWh: `(conta − iluminação pública) / (tarifa com tributos do tipo escolhido + adicional da bandeira)`.
+- **Tipo de tarifa:** todo o Grupo B (B1 residencial, B1 baixa renda, B2 rural, B3 demais), escolhido pelo vendedor. Grupo A fica para o futuro.
+- **Folga** para consumo futuro, em %, editável. **Simultaneidade** escolhida pelo vendedor por perfil (os percentuais de cada perfil são do gestor). As demais premissas técnicas só o gestor altera.
+- **Geração necessária** = `consumo × (1 + folga) − disponibilidade`. **kWp** = geração necessária / (irradiação × dias × (1 − perdas) × (1 − clipping) × fator de orientação). Orientação: 4 opções (norte; nordeste/noroeste; leste/oeste; sul), fatores no `ConfigEmpresa`.
+- **Módulo:** o de menor R$/Wp nas cotações recentes (D20). Quantidade de módulos sugerida e editável.
+- **Inversor:** filtrado pela ligação (mono e bifásica: 220 V; trifásica: 380 V) e escolhido com sobrecarga CC/CA ≤ 1,5. A premissa padrão `razao_cc_ca_max` passa de 1,30 para 1,50 (o caso Alesio guarda as suas próprias premissas e não muda). Tensão e MPPT ficam para o projeto elétrico.
+- A economia é medida contra a conta de hoje: a geração compensada é limitada ao consumo atual, não ao consumo com folga.
+
+## D20 · 2026-10-21 · Catálogo de referência + memória de cotações
+- Nenhum distribuidor (Belenus, Intelbras) tem API. As cotações saem em PDF e trazem **só o preço total**, sem preço por item.
+- **Catálogo:** módulos, inversores, estruturas (por tipo de telhado) e cabos, com dados técnicos e distribuidor. Mantido pelo gestor. A tabela Intelbras dos Orçamentos traz os equipamentos solares, mas sem preço.
+- **Memória de cotações:** cada cotação real fica guardada (distribuidor, data, número, PDF, itens, total com frete, kWp). O preço de referência é o **R$/Wp do kit inteiro** por distribuidor; acima de 15 dias o sistema avisa que o preço está velho.
+- Fase seguinte (decidida, não agora): preço individual por item no catálogo.
+- Quantidades de módulos e de cabos (múltiplos de 25 m) são editáveis na proposta.
+- **Descartado:** robô nas plataformas (quebra fácil e pode violar os termos de uso); catálogo só manual (desatualiza).
+
+## D21 · 2026-10-21 · Dados oficiais gravados no banco
+- **Irradiação:** PVGIS (Comissão Europeia, API sem chave) como fonte principal, por coordenada do município. O Atlas Brasileiro de Energia Solar (INPE, 2017) pode ser usado para conferência: uso interno, sem revenda dos dados, com a fonte citada (licença CC BY-NC-ND).
+- **Tarifas:** dados abertos da ANEEL (TUSD e TE por distribuidora, subgrupo e classe). O Fio B não vem separado: o gestor digita o valor uma vez por ano, depois do reajuste da Energisa TO. Alíquota efetiva de tributos por tipo de tarifa mantida pelo gestor.
+- **Municípios:** lista oficial do IBGE (código, UF, coordenadas); o município passa a ser escolhido, nunca digitado. **CEP e CNPJ:** BrasilAPI, como ajuda de preenchimento.
+- Tudo é baixado por comando ou botão em Configurações, com `urllib` da biblioteca padrão (sem dependência nova), e gravado no banco com a fonte e a data. A proposta só lê o banco e guarda fonte e data no snapshot.
+
+## D22 · 2026-10-21 · Financiamento por tabela do gestor
+- BV e Santander não têm API pública de taxa nem de pré-aprovação; isso só sai no portal de parceiro. Consulta de crédito (Serasa e similares) é paga e o banco já faz a análise.
+- **Decisão:** o gestor mantém a taxa mensal por banco e prazo (12, 24, 36, 48, 60 e 72 meses). A proposta mostra, para cada prazo, a parcela do melhor banco, marcada como "aproximada, sujeita à análise de crédito", e compara com a conta de luz.
+- Registro do andamento do financiamento (enviado, aprovado, recusado): depois.
+
+## D23 · 2026-10-21 · Estimativa, proposta confirmada e modo cliente
+- Proposta sem fatura = **estimativa**, com o aviso: "Valores estimados a partir de dados informados pelo cliente, sem análise da fatura. Sujeitos a discrepâncias com os dados reais." Quando a fatura chega, vira **nova versão confirmada**, com o mesmo número (regra da fatia 6).
+- Dados mínimos da estimativa: nome, telefone e município. CPF/CNPJ, UC e endereço só para a proposta confirmada.
+- **Modo cliente:** a mesma tela, escondendo custo do kit, mão de obra, desconto e R$/Wp, para o vendedor poder mostrar ao cliente.
+- A proposta do ERP **substitui** as propostas geradas pelas plataformas dos distribuidores.
+
+## D24 · 2026-10-21 · Validação e higienização de campos
+- Validações em `core/validacoes.py`, funções puras: CPF/CNPJ pelos dígitos verificadores (guardados só com dígitos, CPF único), telefone com DDD + 8 ou 9 dígitos, nome sem espaços sobrando.
+- Valores em reais e percentuais em campos de texto com máscara em JS puro, convertidos no servidor (`1.234,56`), sem depender do idioma do navegador. Percentuais mostrados em %, guardados em fração.
+- Rótulos com acento e em linguagem do vendedor em todos os formulários.
+
+## D25 · 2026-10-21 · Revisão de D11: `Proposta` volta a ter FK para `Cliente`
+- **Motivo:** a estimativa (D23) existe sem UC. Com `cliente` derivado de `uc.cliente`, uma proposta sem UC ficaria sem cliente.
+- **Decisão:** `Proposta.cliente` volta a ser FK obrigatória; `uc` e `fatura` passam a ser opcionais. O risco de inconsistência que motivou D11 é tratado no form: a UC escolhida precisa ser do mesmo cliente.
+- **Migração:** preencher `cliente` das propostas existentes a partir de `uc.cliente`.
+
 ## Pendências de validação
 - [ ] Regra de custo de disponibilidade para GD após a Lei 14.300 (item 3 de D08).
 - [ ] Valor da TUSD Fio B vigente na Energisa TO por subgrupo (B1/B2/B3).
-- [ ] Irradiação mensal por município: substituir estimativas regionais por CRESESB/SunData.
+- [ ] Irradiação mensal por município: substituir estimativas regionais pelo PVGIS (D21).
 - [ ] Percentual de Fio B a partir de 2029 (definição ANEEL). Premissa atual: 100%.
 - [ ] Orçamentos: confirmar se o PSD da tabela corresponde ao preço real de compra no distribuidor (D13).
 - [ ] Orçamentos: incluir impostos sobre a venda (regime da Optimus) no cálculo de margem (D14).

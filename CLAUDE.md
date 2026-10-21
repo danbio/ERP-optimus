@@ -1,7 +1,7 @@
 # meu_erp — Regras do projeto
 
 ERP interno da **Optimus Energia Solar** (Gurupi-TO). Uso interno, 2–5 usuários, rede local.
-Fase atual: **módulo de Proposta Solar** (ver `docs/spec-fase1.md`).
+Fase atual: **Proposta Solar v2**, redesenho da entrada de dados (ver `docs/spec-proposta-v2.md`, D17–D25). A `docs/spec-fase1.md` continua valendo para o motor de cálculo e o PDF.
 Módulo paralelo: **Orçamentos da revenda Intelbras** (ver `docs/spec-orcamentos.md`, D12–D15).
 
 ## Princípio número 1
@@ -42,7 +42,7 @@ meu_erp/
 ├── propostas/
 │   ├── models.py
 │   ├── services/
-│   │   ├── calculo.py   # FUNÇÕES PURAS — sem import de Django
+│   │   ├── calculo.py   # FUNÇÕES PURAS — sem import de Django (inclui dimensionamento e parcela)
 │   │   ├── graficos.py  # matplotlib → SVG (string)
 │   │   └── pdf.py       # Playwright + mescla de anexo
 │   ├── views.py
@@ -56,6 +56,7 @@ meu_erp/
 │   ├── importacao.py    # grava a leitura no banco
 │   └── templates/orcamentos/pdf/
 ├── core/pdf.py          # html_para_pdf() — Playwright, usado por todos os PDFs
+├── core/validacoes.py   # CPF/CNPJ, telefone, valores BR — FUNÇÕES PURAS
 ├── static/css/          # ver regras de CSS
 ├── static/fonts/        # Poppins local
 ├── tests/
@@ -96,11 +97,29 @@ fonte: Poppins (Regular, Medium, Bold) — arquivos locais em static/fonts/
 - Dinheiro: `Decimal` nos models; `float` permitido dentro do motor de cálculo, arredondando só na saída.
 - O teste `tests/test_caso_referencia.py` (caso Alesio, ver `docs/caso-referencia.md`) **deve passar sempre**. Se um número mudar, é bug até prova em contrário.
 
+## Regras de negócio da proposta solar (resumo; detalhes em `docs/spec-proposta-v2.md`)
+
+O usuário típico é um **vendedor iniciante**, e o cliente muitas vezes **não tem a fatura** na hora. Toda tela nova deve funcionar para esse caso.
+
+- **Fluxo:** 4 passos numa tela (cliente → consumo → sistema e preço → proposta), rascunho salvo a cada passo. Protótipo aprovado: `docs/referencia/prototipo-proposta-v2.html`.
+- **Estimativa × confirmada:** sem fatura é estimativa, com aviso fixo no PDF. Com fatura vira nova versão confirmada, mesmo número.
+- **Dados mínimos da estimativa:** nome, telefone, município. CPF/CNPJ, UC e endereço só na confirmada.
+- **Consumo:** por valor da conta (descontando iluminação pública e bandeira), por kWh ou por fatura. Tipo de tarifa do Grupo B escolhido pelo vendedor; valores vêm do banco (ANEEL).
+- **Dimensionamento:** sistema sugere kWp, módulo de menor R$/Wp, quantidade (editável) e inversor da fase da ligação com sobrecarga ≤ 1,5.
+- **Preço:** kit (faturamento direto do distribuidor, com frete, sem margem) + mão de obra − desconto. Mão de obra sugerida `max(kWp × R$ 500, R$ 4.500)`, solo R$ 700/kWp. Desconto só na mão de obra. Sem imposto na proposta.
+- **Kit:** catálogo de referência + memória de cotações (R$/Wp do kit por distribuidor; aviso acima de 15 dias). Nenhum distribuidor tem API.
+- **Financiamento:** taxas por banco e prazo (12 a 72×) mantidas pelo gestor; mostrar a parcela do melhor banco em cada prazo, como aproximada.
+- **Quem altera o quê:** premissas técnicas, perfis de simultaneidade, mão de obra, tarifas, Fio B e taxas são do gestor (Configurações). O vendedor escolhe perfil, folga, orientação, estrutura, quantidades, custo do kit, mão de obra e desconto.
+- **Modo cliente:** esconde custo do kit, mão de obra, desconto, R$/Wp e alertas internos.
+- **Dados oficiais** (IBGE, PVGIS, ANEEL) são baixados para o banco com fonte e data; a proposta nunca consulta API na hora.
+- **Validação:** CPF/CNPJ por dígito verificador, telefone com DDD, valores em reais em campo de texto com máscara e conversão no servidor. Rótulos com acento, na língua do vendedor.
+
 ## Fluxo de trabalho
 
-1. Ler `docs/spec-fase1.md` e implementar **uma fatia por vez**, na ordem.
+1. Ler `docs/spec-proposta-v2.md` e implementar **uma fatia por vez** (v2.1 → v2.8), na ordem.
 2. Ao terminar a fatia: rodar testes, mostrar como validar no navegador, commit.
 3. Commits em português, mensagem curta: `fatia 2: motor de cálculo + caso de referência`.
 4. Decisão nova ou mudança de rumo → registrar em `docs/decisoes.md` **antes** de codar.
 5. Na dúvida sobre regra de negócio, **perguntar**, não inventar.
 6. O usuário não programa: explicar o que foi feito e como testar em linguagem direta.
+7. Antes de entregar tela nova, percorrer o fluxo no navegador como um vendedor iniciante (inclusive no celular) e com dados malformados.
