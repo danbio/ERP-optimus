@@ -6,6 +6,7 @@ prova em contrário (ver tests/test_caso_referencia.py).
 """
 
 import calendar
+import math
 from dataclasses import dataclass, field
 
 
@@ -28,6 +29,7 @@ class EntradaCalculo:
     classe: str = ""
     cliente_pessoa_juridica: bool = False
     fiob_informado: bool = True
+    fator_orientacao: float = 1.0  # norte = 1,0 (D19); vem de ConfigEmpresa.fatores_orientacao
 
 
 @dataclass
@@ -84,7 +86,7 @@ def calcular(e: EntradaCalculo) -> ResultadoCalculo:
     dias_mes = [_dias_do_mes(ano_conexao, mes) for mes in range(1, 13)]
 
     geracao_mensal = [
-        e.kwp * irr * dias * (1 - perdas) * (1 - perda_clipping)
+        e.kwp * irr * dias * (1 - perdas) * (1 - perda_clipping) * e.fator_orientacao
         for irr, dias in zip(e.irradiacao, dias_mes)
     ]
     consumo_mensal = [e.kwh_fatura / e.dias_ciclo * dias for dias in dias_mes]
@@ -150,3 +152,88 @@ def calcular(e: EntradaCalculo) -> ResultadoCalculo:
         fluxo=fluxo,
         alertas=alertas,
     )
+
+
+# ---------- Proposta v2: consumo, dimensionamento, preço e financiamento (spec v2, seção 4) ----------
+
+DIAS_MES_ANO_COMUM = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+
+
+def kwh_pela_conta(conta: float, iluminacao_publica: float, tarifa: float, adicional_bandeira: float) -> float:
+    """Consumo mensal a partir do valor da conta (D19).
+
+    `tarifa` é a tarifa final com tributos (R$/kWh); a iluminação pública não é energia.
+    """
+    if conta <= iluminacao_publica:
+        raise ValueError("O valor da conta precisa ser maior que a iluminação pública.")
+    return (conta - iluminacao_publica) / (tarifa + adicional_bandeira)
+
+
+def geracao_necessaria(consumo_kwh: float, folga: float, disponibilidade: int) -> float:
+    """kWh/mês que o sistema precisa gerar: consumo com folga menos o mínimo que a distribuidora cobra."""
+    return max(consumo_kwh * (1 + folga) - disponibilidade, 0.0)
+
+
+def kwp_necessario(consumo_kwh: float, folga: float, disponibilidade: int, irradiacao: list[float],
+                   perdas: float, clipping: float, fator_orientacao: float) -> float:
+    """Potência (kWp) que gera, em média, a geração necessária.
+
+    Usa os 12 meses da irradiação com os dias de cada mês, a mesma conta de `calcular()`,
+    para o sistema sugerido gerar o que a proposta mostra.
+    """
+    gera_por_kwp_ano = sum(
+        irr * dias * (1 - perdas) * (1 - clipping) * fator_orientacao
+        for irr, dias in zip(irradiacao, DIAS_MES_ANO_COMUM)
+    )
+    return geracao_necessaria(consumo_kwh, folga, disponibilidade) * 12 / gera_por_kwp_ano
+
+
+def quantidade_modulos(kwp: float, potencia_w: float) -> int:
+    """Módulos para chegar ao kWp (arredonda para cima). Mínimo 1."""
+    return max(math.ceil(round(kwp * 1000 / potencia_w, 6)), 1)
+
+
+def sugerir_inversor(kwp: float, inversores: list[dict], fase: str,
+                     sobrecarga_max: float = 1.5) -> tuple[dict | None, int]:
+    """(inversor, quantidade) para o kWp, só entre os da fase da ligação (D19).
+
+    `inversores`: dicts com "kw" (potência CA) e "fase" ("mono" ou "tri").
+    `fase` é a ligação do cliente: "mono" e "bi" usam inversor 220 V ("mono"); "tri", 380 V.
+    Escolhe o menor com kWp / kW ≤ sobrecarga_max. Se nenhum couber sozinho, usa o
+    maior em quantas unidades forem precisas. Sem inversor da fase: (None, 0).
+    """
+    fase = "mono" if fase == "bi" else fase
+    da_fase = sorted((i for i in inversores if i["fase"] == fase), key=lambda i: i["kw"])
+    if not da_fase:
+        return None, 0
+    for inversor in da_fase:
+        if kwp / inversor["kw"] <= sobrecarga_max:
+            return inversor, 1
+    maior = da_fase[-1]
+    return maior, math.ceil(kwp / (maior["kw"] * sobrecarga_max))
+
+
+def mao_de_obra_sugerida(kwp: float, solo: bool, por_kwp: float, por_kwp_solo: float, minima: float) -> float:
+    """max(kWp × valor por kWp, mínimo); em solo o valor por kWp é outro (D18)."""
+    return max(kwp * (por_kwp_solo if solo else por_kwp), minima)
+
+
+def parcela_price(valor: float, taxa_mensal: float, meses: int) -> float:
+    """Parcela fixa (tabela Price)."""
+    if taxa_mensal == 0:
+        return valor / meses
+    return valor * taxa_mensal / (1 - (1 + taxa_mensal) ** -meses)
+
+
+def tabela_financiamento(valor: float, taxas: list[tuple[str, int, float]]) -> list[dict]:
+    """Para cada prazo, a menor parcela entre os bancos (D22).
+
+    `taxas`: (banco, prazo em meses, taxa mensal). Devolve [{"prazo", "banco", "taxa", "parcela"}]
+    em ordem de prazo, só os prazos que têm taxa.
+    """
+    melhores = {}
+    for banco, prazo, taxa in taxas:
+        parcela = parcela_price(valor, taxa, prazo)
+        if prazo not in melhores or parcela < melhores[prazo]["parcela"]:
+            melhores[prazo] = {"prazo": prazo, "banco": banco, "taxa": taxa, "parcela": parcela}
+    return [melhores[prazo] for prazo in sorted(melhores)]
