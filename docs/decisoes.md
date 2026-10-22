@@ -217,8 +217,24 @@ Conferido em 4 faturas reais (Out/26 e Jul/26, com e sem GD) e nas fontes oficia
   - Se o vendedor deixar a iluminação em branco no passo 2, o sistema estima pela tabela (pelo valor da conta, resolve o consumo e a faixa juntos). Se digitar um valor, inclusive 0, vale o digitado.
 - **ICMS sobre a TUSD compensada: o motor NÃO desconta (decisão do usuário, 22/10/2026).** Hoje a Energisa só isenta a TE (RICMS-TO art. 2º, CXXXI, § 15; ~R$ 0,19/kWh compensado), mas clientes vêm ganhando na Justiça o estorno, e foi noticiado que a partir de janeiro de 2027 a Energisa aplicará a regra mais benéfica. Reavaliar se isso não se confirmar.
 
+## D33 · 2026-10-22 · Revisão do módulo de propostas: decisões do usuário
+Revisão em três visões (vendedor iniciante, gestor, dev sênior), com 30 achados: [relatório](https://claude.ai/artifact/7A9kG1TrDXG18isqDAX392). Plano de correção em `docs/plano-correcoes.md`.
+- **Custo de disponibilidade (A03):** não entra no dimensionamento nem na economia. A geração necessária passa a ser `consumo × (1 + folga)`, e a premissa padrão `cobrar_disponibilidade` passa a `False`. O caso Alesio guarda as próprias premissas e não muda. Encerra o item 3 de D08.
+- **Kit estimado (A08):** deixa de existir o custo do kit por `kWp × R$/Wp` da última cotação. O sistema monta o kit sugerido a partir do catálogo com preço por item (D28); a cotação real, quando houver, substitui o catálogo (ver D35). Revisa D18 ("custo do kit = cotação real ou R$/Wp") e D20 ("preço por item: fase seguinte").
+- **Desfazer aceite (A11):** vendedor e gestor podem desfazer, com motivo registrado. O aceite passa a substituir só as versões emitidas; um rascunho aberto continua editável.
+- **Acima de 75 kWp (A02):** só aviso por enquanto ("acima de 75 kWp deixa de ser microgeração"). Proposta do Grupo A vira módulo próprio no futuro. Os demais bloqueios de emissão de A02 valem (alerta de erro, economia ≤ 0, mão de obra zerada).
+
+## D34 · 2026-10-22 · Dimensionamento a partir do catálogo
+- O kit sugerido (módulo, inversor, estrutura, cabos, conectores e proteções) sai do catálogo, com o preço de cada item. Substitui a sugestão "módulo da cotação de menor R$/Wp" de D19/D29.
+- Tem muitas regras de negócio: antes de codar, fechar as perguntas da seção "Dimensionamento pelo catálogo" de `docs/plano-correcoes.md` e registrar as respostas aqui.
+
+## D35 · 2026-10-22 · Leitura por IA de fatura e de cotação
+- **Fatura:** a IA lê o PDF e preenche os campos do passo 2 (UC, endereço, mês, kWh, dias, valor, CPF/CNPJ). O vendedor confere antes de salvar. Era a fatia v2.8.
+- **Cotação:** a IA lê o PDF da cotação (Belenus, Intelbras) e grava `Cotacao` + `ItemCotado`. **Quando a proposta tem cotação lida, o kit e o custo vêm só da cotação e o catálogo é ignorado** para essa proposta. Itens da cotação que não estão no catálogo entram assim mesmo, pela descrição.
+- Ambas dependem da chave da API Anthropic (`.env`, fora do Git).
+
 ## Pendências de validação
-- [ ] Regra de custo de disponibilidade para GD após a Lei 14.300 (item 3 de D08).
+- [x] Regra de custo de disponibilidade para GD após a Lei 14.300 (item 3 de D08): fora do motor (D33).
 - [x] Valor da TUSD Fio B vigente na Energisa TO por subgrupo (B1/B2/B3): 0,441478 R$/kWh (D32).
 - [ ] Irradiação mensal por município: substituir estimativas regionais pelo PVGIS (D21).
 - [ ] Percentual de Fio B a partir de 2029 (definição ANEEL). Premissa atual: 100%.
