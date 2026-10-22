@@ -1,5 +1,8 @@
 <h2>Quem é o cliente?</h2>
 <p class="ajuda">Para a estimativa bastam nome, telefone e município. CPF, UC e endereço só na proposta com fatura.</p>
+{% if form.mesma_pessoa.errors or form.mesma_pessoa.value %}
+  <div class="alerta alerta--aviso">{% include "core/_campo.html" with campo=form.mesma_pessoa %}</div>
+{% endif %}
 <div class="grade-campos">
   {% include "core/_campo.html" with campo=form.nome %}
   {% include "core/_campo.html" with campo=form.telefone %}

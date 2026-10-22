@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="{{ base_estatico }}/css/components.css">
   <link rel="stylesheet" href="{{ base_estatico }}/css/proposta.css">
 </head>
-<body class="proposta-doc">
+<body class="proposta-doc{% if rascunho %} proposta-doc--rascunho{% endif %}">
   {% include "propostas/pdf/capa.html" %}
   {% include "propostas/pdf/resumo.html" with pagina=2 %}
   {% if fatura %}

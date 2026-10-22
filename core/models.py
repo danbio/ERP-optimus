@@ -51,6 +51,22 @@ class ConfigEmpresa(models.Model):
     dias_preco_velho = models.PositiveIntegerField("dias para o preço do kit ficar velho", default=15)
     aviso_estimativa = models.TextField("aviso da estimativa", default=AVISO_ESTIMATIVA_PADRAO)
 
+    # Travas de digitação e de emissão (D33, plano de correções A01, A02, A06)
+    conta_alta = models.DecimalField(
+        "conta acima de (R$) pede confirmação", max_digits=10, decimal_places=2, default=5000,
+    )
+    consumo_alto = models.PositiveIntegerField("consumo acima de (kWh/mês) pede confirmação", default=3000)
+    tolerancia_tarifa_fatura = models.DecimalField(
+        "diferença aceita entre o R$/kWh da fatura e a tarifa (fração)", max_digits=4, decimal_places=2, default=0.30,
+    )
+    tolerancia_kwp_cotacao = models.DecimalField(
+        "diferença aceita entre o kWp da cotação e o do sistema (fração)", max_digits=4, decimal_places=2,
+        default=0.05,
+    )
+    limite_microgeracao_kwp = models.DecimalField(
+        "limite da microgeração (kWp)", max_digits=6, decimal_places=2, default=75,
+    )
+
     class Meta:
         verbose_name = "Configuração da empresa"
         verbose_name_plural = "Configuração da empresa"

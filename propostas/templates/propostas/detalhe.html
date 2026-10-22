@@ -29,6 +29,7 @@
         <dt>Válida até</dt><dd>{{ proposta.validade_ate|date:"d/m/Y" }}</dd>
       {% endif %}
       {% if proposta.data_aceite %}<dt>Aceita em</dt><dd>{{ proposta.data_aceite|date:"d/m/Y" }}</dd>{% endif %}
+      {% if proposta.aceite_desfeito_em %}<dt>Aceite desfeito</dt><dd>{{ proposta.aceite_desfeito_em|date:"d/m/Y" }}: {{ proposta.motivo_aceite_desfeito }}</dd>{% endif %}
       {% if proposta.motivo_perda %}
         <dt>Motivo da perda</dt><dd>{{ proposta.get_motivo_perda_display }}{% if proposta.obs_perda %}<br>{{ proposta.obs_perda|linebreaksbr }}{% endif %}</dd>
       {% endif %}
@@ -51,7 +52,7 @@
     </div>
   {% endif %}
 
-  {% if proposta.status == "emitida" or proposta.status == "perdida" %}
+  {% if proposta.status == "emitida" or proposta.status == "perdida" or proposta.status == "aceita" %}
     {% if not rascunho_aberto %}
       <div class="card">
         <h3>Nova versão</h3>
@@ -89,6 +90,16 @@
         <button type="submit" class="btn btn--secundario">Marcar como perdida</button>
       </form>
     </div>
+  {% endif %}
+
+  {% if proposta.status == "aceita" %}
+    <form method="post" action="{% url 'propostas:desfazer_aceite' proposta.pk %}" class="card" novalidate>
+      {% csrf_token %}
+      <h3>Desfazer o aceite</h3>
+      <p class="ajuda">Use se o aceite foi marcado por engano ou se o cliente voltou atrás. A proposta volta a "emitida".</p>
+      {% include "core/_campo.html" with campo=desfazer_form.motivo %}
+      <button type="submit" class="btn btn--secundario">Desfazer aceite</button>
+    </form>
   {% endif %}
 
   <div class="card">

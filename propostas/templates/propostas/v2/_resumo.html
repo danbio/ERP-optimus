@@ -1,7 +1,7 @@
 <aside id="resumo" class="resumo" aria-label="Resumo">
   <div class="resumo__cabecalho">
     <small>{% if proposta %}{{ proposta.get_nivel_display }}{% else %}Estimativa{% endif %}</small>
-    <div>{% if proposta %}{{ proposta.cliente.nome }} · {{ proposta.cliente.municipio.nome }}{% else %}Novo cliente{% endif %}</div>
+    <div>{% if proposta %}{{ proposta.cliente.nome }}{% if m.municipio %} · {{ m.municipio.nome }}{% endif %}{% else %}Novo cliente{% endif %}</div>
   </div>
   <dl class="resumo__linhas">
     <div><dt>Consumo considerado</dt><dd>{% if m.consumo_alvo is not None %}{{ m.consumo_alvo|floatformat:0 }} kWh/mês{% else %}—{% endif %}</dd></div>

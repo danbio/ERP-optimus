@@ -5,21 +5,24 @@ from django.conf import settings
 from django.contrib import messages
 from django.db import transaction
 from django.db.models import Q
-from django.http import HttpResponse
+from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.dateformat import format as date_format
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.http import require_POST
 
 from clientes.models import Cliente, UnidadeConsumidora
 from core.models import ConfigEmpresa
 from core.pdf import ErroPDF, html_para_pdf
-from core.validacoes import formatar_reais
+from core.validacoes import formatar_reais, nomes_iguais
 
 from .forms import (
     AceiteForm,
     CotacaoForm,
+    DesfazerAceiteForm,
     EquipamentoForm,
     FaturaReferenciaForm,
     ItemKitForm,
@@ -33,7 +36,7 @@ from .forms import (
 )
 from .models import Cotacao, Equipamento, FaturaReferencia, FioBEscalonamento, ItemKit, Proposta
 from . import emissao
-from .montagem import gravar_resultado, montar, premissas_da_proposta
+from .montagem import gravar_resultado, impedimentos_de_emissao, montar, premissas_da_proposta
 from .services import graficos
 from .services.calculo import EntradaCalculo, calcular, fiob_fallback
 from .services.pdf import ErroAnexo, contar_paginas, ler_cores, mesclar_anexo
@@ -469,6 +472,7 @@ def preview(request, pk):
     contexto, erro = _contexto_documento(proposta, para_pdf=False, n_paginas_anexo=n_paginas_anexo)
     if erro:
         return HttpResponse(erro, status=422, content_type="text/plain; charset=utf-8")
+    contexto["rascunho"] = proposta.status == Proposta.Status.RASCUNHO and not proposta.eh_antiga  # A09
     return render(request, "propostas/pdf/proposta.html", contexto)
 
 
@@ -486,6 +490,10 @@ def gerar_pdf(proposta):
 
 def pdf(request, pk):
     proposta = get_object_or_404(Proposta, pk=pk)
+    if proposta.status == Proposta.Status.RASCUNHO and not proposta.eh_antiga:
+        # A09: o PDF que vai para o cliente é só o da emitida; o rascunho tem a pré-visualização.
+        return HttpResponse("Emita a proposta para baixar o PDF. Antes disso, use Pré-visualizar.",
+                            status=409, content_type="text/plain; charset=utf-8")
     try:
         if proposta.status != Proposta.Status.RASCUNHO and proposta.pdf:
             with proposta.pdf.open("rb") as arquivo:  # emitida: sempre o PDF guardado na emissão (D31)
@@ -593,19 +601,20 @@ def _modo_cliente(request):
     return bool(request.session.get("modo_cliente"))
 
 
-def _form_do_passo(n, proposta, dados=None, arquivos=None):
+def _form_do_passo(n, proposta, dados=None, arquivos=None, previa=False):
     if n == 1:
         cliente = proposta.cliente if proposta else None
         inicial = {}
         if cliente:
-            inicial = {"nome": cliente.nome, "telefone": cliente.telefone_formatado, "municipio": cliente.municipio_id,
+            inicial = {"nome": cliente.nome, "telefone": cliente.telefone_formatado, "municipio": proposta.municipio_id or cliente.municipio_id,
                        "cpf_cnpj": cliente.cpf_cnpj_formatado, "ligacao": proposta.ligacao,
                        "tipo_tarifa": proposta.tipo_tarifa_id}
         return Passo1Form(dados, initial=inicial)
     if n == 2:
         config = ConfigEmpresa.obter()
         inicial = {} if proposta.origem_consumo else {"origem_consumo": Proposta.OrigemConsumo.CONTA}
-        return Passo2Form(dados, arquivos, instance=proposta, perfis=config.perfis_simultaneidade, initial=inicial)
+        return Passo2Form(dados, arquivos, instance=proposta, perfis=config.perfis_simultaneidade, initial=inicial,
+                          config=config, exigir_confirmacao=not previa)
     if n == 3:
         inicial = {} if proposta.orientacao else {"orientacao": Proposta.Orientacao.NORTE}
         return Passo3Form(dados, instance=proposta, initial=inicial)
@@ -613,7 +622,7 @@ def _form_do_passo(n, proposta, dados=None, arquivos=None):
 
 
 def _contexto_passos(request, proposta, n, form=None, m=None):
-    return {
+    contexto = {
         "proposta": proposta,
         "passo": n,
         "passos": PASSOS,
@@ -622,24 +631,64 @@ def _contexto_passos(request, proposta, n, form=None, m=None):
         "modo_cliente": _modo_cliente(request),
         "aviso_estimativa": ConfigEmpresa.obter().aviso_estimativa,
     }
+    if n == 4 and contexto["m"]:
+        contexto["impedimentos"] = impedimentos_de_emissao(contexto["m"])
+    return contexto
 
 
-def _cliente_do_passo1(dados, proposta):
-    """Cliente da proposta: o já ligado a ela, ou um existente com o mesmo CPF/CNPJ ou telefone (D29)."""
-    cliente = proposta.cliente if proposta else None
-    if not cliente and dados["cpf_cnpj"]:
-        cliente = Cliente.objects.filter(cpf_cnpj=dados["cpf_cnpj"]).first()
-    if not cliente:
-        cliente = Cliente.objects.filter(telefone=dados["telefone"]).first()
-    reaproveitado = cliente is not None and proposta is None
-    cliente = cliente or Cliente()
-    cliente.nome = dados["nome"]
-    cliente.telefone = dados["telefone"]
-    cliente.municipio = dados["municipio"]
+def _cliente_novo_ou_existente(request, dados):
+    """Cliente de uma proposta nova: o já cadastrado com o mesmo CPF/CNPJ ou telefone, ou um novo.
+
+    Nunca troca o nome de uma ficha existente (A04): se o nome digitado é outro, pergunta se é a
+    mesma pessoa. Devolve (cliente, [(campo, erro)]).
+    """
+    por_cpf = Cliente.objects.filter(cpf_cnpj=dados["cpf_cnpj"]).first() if dados["cpf_cnpj"] else None
+    por_telefone = Cliente.objects.filter(telefone=dados["telefone"]).first()
+    if not por_cpf and por_telefone and dados["cpf_cnpj"] and por_telefone.cpf_cnpj:
+        return None, [("cpf_cnpj", f"Este telefone já é de {por_telefone.nome}, com outro CPF/CNPJ. "
+                                   "Confira o CPF/CNPJ e o telefone.")]
+    existente = por_cpf or por_telefone
+    resposta = dados.get("mesma_pessoa")
+    if existente and (nomes_iguais(existente.nome, dados["nome"]) or resposta == "sim"):
+        if dados["cpf_cnpj"] and not existente.cpf_cnpj:
+            existente.cpf_cnpj = dados["cpf_cnpj"]
+        if not existente.municipio_id:
+            existente.municipio = dados["municipio"]
+        existente.save()
+        messages.success(request, f"{existente.nome} já estava cadastrado: usamos a ficha existente.")
+        return existente, []
+    if existente and resposta != "nao":
+        pelo = "CPF/CNPJ" if por_cpf else "telefone"
+        local = f", de {existente.municipio.nome}" if existente.municipio_id else ""
+        return None, [("mesma_pessoa", f"Já existe {existente.nome}{local}, com este {pelo}. É a mesma pessoa?")]
+    if por_cpf:  # outra pessoa não pode ter o mesmo CPF/CNPJ
+        return None, [("cpf_cnpj", f"Este CPF/CNPJ já é de {por_cpf.nome}. Confira os números.")]
+    cliente = Cliente.objects.create(
+        nome=dados["nome"], telefone=dados["telefone"], municipio=dados["municipio"], cpf_cnpj=dados["cpf_cnpj"],
+    )
+    return cliente, []
+
+
+def _atualizar_cliente(cliente, dados, proposta):
+    """Correção de nome, telefone ou CPF no passo 1. Devolve [(campo, erro)].
+
+    Se o cliente tem outras propostas, nome e telefone só mudam na ficha dele (A04).
+    """
+    if dados["cpf_cnpj"]:
+        dono = Cliente.objects.filter(cpf_cnpj=dados["cpf_cnpj"]).exclude(pk=cliente.pk).first()
+        if dono:
+            return [("cpf_cnpj", f"Este CPF/CNPJ já é de {dono.nome}.")]
+    mudou = cliente.nome != dados["nome"] or cliente.telefone != dados["telefone"]
+    if mudou and cliente.propostas.exclude(numero=proposta.numero).exists():
+        return [("nome", "Este cliente tem outras propostas. Corrija nome e telefone na ficha do cliente "
+                         "(menu Clientes).")]
+    cliente.nome, cliente.telefone = dados["nome"], dados["telefone"]
     if dados["cpf_cnpj"]:
         cliente.cpf_cnpj = dados["cpf_cnpj"]
+    if not cliente.municipio_id:
+        cliente.municipio = dados["municipio"]
     cliente.save()
-    return cliente, reaproveitado
+    return []
 
 
 def proposta_nova(request):
@@ -647,6 +696,8 @@ def proposta_nova(request):
 
 
 def proposta_passo(request, pk, n):
+    if n not in (1, 2, 3, 4):
+        raise Http404("Passo inexistente.")
     proposta = get_object_or_404(Proposta, pk=pk) if pk else None
     if proposta and proposta.eh_antiga:
         return redirect("propostas:legado_editar", pk=proposta.pk)
@@ -668,9 +719,10 @@ def proposta_passo(request, pk, n):
     if request.method == "POST" and form.is_valid():
         if n in (1, 2):
             gravar = _gravar_passo1 if n == 1 else _gravar_passo2
-            proposta, erro = gravar(request, form, proposta)
-            if erro:
-                form.add_error("cpf_cnpj", erro)
+            proposta, erros = gravar(request, form, proposta)
+            if erros:
+                for campo, erro in erros:
+                    form.add_error(campo, erro)
                 return render(request, "propostas/v2/passos.html", _contexto_passos(request, proposta, n, form))
         else:
             form.save()
@@ -694,20 +746,15 @@ def _conferir_desconto(form):
 
 
 def _gravar_passo1(request, form, proposta):
-    """Devolve (proposta, erro)."""
+    """Devolve (proposta, [(campo, erro)])."""
     dados = form.cleaned_data
-    if dados["cpf_cnpj"] and proposta:
-        dono = Cliente.objects.filter(cpf_cnpj=dados["cpf_cnpj"]).exclude(pk=proposta.cliente_id).first()
-        if dono:
-            return proposta, f"Este CPF/CNPJ já é de {dono.nome}."
-    if dados["cpf_cnpj"] and not proposta and not Cliente.objects.filter(cpf_cnpj=dados["cpf_cnpj"]).exists():
-        outro = Cliente.objects.filter(telefone=dados["telefone"]).exclude(cpf_cnpj="").first()
-        if outro:
-            return proposta, (f"Este telefone já é de {outro.nome}, com outro CPF/CNPJ. "
-                              "Confira o CPF/CNPJ e o telefone.")
-    cliente, reaproveitado = _cliente_do_passo1(dados, proposta)
-    if reaproveitado:
-        messages.success(request, f"{cliente.nome} já estava cadastrado: usamos a ficha existente.")
+    if proposta:
+        cliente = proposta.cliente
+        erros = _atualizar_cliente(cliente, dados, proposta)
+    else:
+        cliente, erros = _cliente_novo_ou_existente(request, dados)
+    if erros:
+        return proposta, erros
     config = ConfigEmpresa.obter()
     if not proposta:
         proposta = Proposta(
@@ -717,17 +764,18 @@ def _gravar_passo1(request, form, proposta):
             perfil_simultaneidade=(config.perfis_simultaneidade[0]["nome"] if config.perfis_simultaneidade else ""),
         )
     proposta.cliente = cliente
+    proposta.municipio = dados["municipio"]
     proposta.ligacao = dados["ligacao"]
     proposta.tipo_tarifa = dados["tipo_tarifa"]
     proposta.save()
-    if proposta.uc and proposta.uc.municipio_id != cliente.municipio_id:
-        proposta.uc.municipio = cliente.municipio  # na v2 a instalação fica no município do passo 1
+    if proposta.uc and proposta.uc.municipio_id != proposta.municipio_id:
+        proposta.uc.municipio = proposta.municipio  # na v2 a instalação fica no município do passo 1
         proposta.uc.save(update_fields=["municipio"])
-    return proposta, None
+    return proposta, []
 
 
 def _gravar_passo2(request, form, proposta):
-    """Grava o consumo. Com fatura, cria UC e fatura e a proposta vira confirmada (D29). Devolve (proposta, erro)."""
+    """Grava o consumo. Com fatura, cria UC e fatura e a proposta vira confirmada (D29). Devolve (proposta, [(campo, erro)])."""
     dados = form.cleaned_data
     proposta = form.save(commit=False)
     if proposta.origem_consumo != Proposta.OrigemConsumo.FATURA:
@@ -735,18 +783,18 @@ def _gravar_passo2(request, form, proposta):
         proposta.uc = None  # sem fatura, não há UC confirmada; o município vem do passo 1
         proposta.fatura = None
         proposta.save()
-        return proposta, None
+        return proposta, []
 
     cliente = proposta.cliente
     dono = Cliente.objects.filter(cpf_cnpj=dados["cpf_cnpj"]).exclude(pk=cliente.pk).first()
     if dono:
-        return proposta, f"Este CPF/CNPJ já é de {dono.nome}."
+        return proposta, [("cpf_cnpj", f"Este CPF/CNPJ já é de {dono.nome}.")]
     cliente.cpf_cnpj = dados["cpf_cnpj"]
     cliente.save(update_fields=["cpf_cnpj"])
     uc = UnidadeConsumidora.objects.filter(cliente=cliente, numero_uc=dados["numero_uc"]).first() or UnidadeConsumidora(
         cliente=cliente, numero_uc=dados["numero_uc"])
     uc.endereco = dados["endereco"]
-    uc.municipio = cliente.municipio
+    uc.municipio = proposta.municipio or cliente.municipio
     uc.classe = proposta.tipo_tarifa.tipo[:2]
     uc.ligacao = proposta.ligacao
     uc.save()
@@ -762,13 +810,16 @@ def _gravar_passo2(request, form, proposta):
     proposta.fatura = fatura
     proposta.nivel = Proposta.Nivel.CONFIRMADA
     proposta.save()
-    return proposta, None
+    return proposta, []
 
 
+@require_POST
 def proposta_previa(request, pk, n):
     """Recalcula enquanto o vendedor digita (HTMX): devolve o resumo e os números do passo, sem gravar."""
+    if n not in (1, 2, 3, 4):
+        raise Http404("Passo inexistente.")
     proposta = get_object_or_404(Proposta, pk=pk)
-    form = _form_do_passo(n, proposta, request.POST)
+    form = _form_do_passo(n, proposta, request.POST, previa=True)
     if n in (2, 3) and form.is_valid():
         proposta = form.save(commit=False)
         if n == 2 and proposta.origem_consumo == Proposta.OrigemConsumo.FATURA:
@@ -780,9 +831,12 @@ def proposta_previa(request, pk, n):
     return render(request, "propostas/v2/_previa.html", _contexto_passos(request, proposta, n))
 
 
+@require_POST
 def alternar_modo_cliente(request):
     request.session["modo_cliente"] = not _modo_cliente(request)
-    destino = request.POST.get("voltar") or reverse("propostas:lista")
+    destino = request.POST.get("voltar", "")
+    if not url_has_allowed_host_and_scheme(destino, allowed_hosts={request.get_host()}):
+        destino = reverse("propostas:lista")  # A23: só volta para página do próprio ERP
     return redirect(destino)
 
 
@@ -806,28 +860,29 @@ def proposta_detalhe(request, pk):
         "rascunho_aberto": emissao.rascunho_aberto(proposta),
         "aceite_form": AceiteForm(initial={"data_aceite": timezone.localdate()}),
         "perda_form": PerdaForm(),
+        "desfazer_form": DesfazerAceiteForm(),
     })
 
 
+@require_POST
 def proposta_emitir(request, pk):
     proposta = get_object_or_404(Proposta, pk=pk)
-    if request.method != "POST":
-        return redirect("propostas:detalhe", pk=pk)
     try:
         with transaction.atomic():
             emissao.preparar_emissao(proposta)
             emissao.concluir_emissao(proposta, gerar_pdf(proposta))
     except (emissao.ErroEmissao, ErroPDF, ErroAnexo) as erro:
         messages.error(request, f"Não foi possível emitir: {erro}")
-        return redirect("propostas:detalhe", pk=pk)
+        if proposta.eh_antiga:
+            return redirect("propostas:detalhe", pk=pk)
+        return redirect("propostas:passo", pk=pk, n=4)  # volta para onde estão os motivos (A15)
     messages.success(request, f"Proposta {proposta.numero} v{proposta.versao} emitida.")
     return redirect("propostas:detalhe", pk=pk)
 
 
+@require_POST
 def proposta_revisar(request, pk):
     proposta = get_object_or_404(Proposta, pk=pk)
-    if request.method != "POST":
-        return redirect("propostas:detalhe", pk=pk)
     try:
         nova = emissao.revisar(proposta)
     except emissao.ErroEmissao as erro:
@@ -839,29 +894,46 @@ def proposta_revisar(request, pk):
     return redirect("propostas:passo", pk=nova.pk, n=passo)
 
 
+@require_POST
 def proposta_aceitar(request, pk):
     proposta = get_object_or_404(Proposta, pk=pk)
-    form = AceiteForm(request.POST or None)
+    form = AceiteForm(request.POST)
     if form.is_valid():
         try:
             emissao.aceitar(proposta, form.cleaned_data["data_aceite"])
             messages.success(request, f"Proposta {proposta.numero} v{proposta.versao} aceita.")
         except emissao.ErroEmissao as erro:
             messages.error(request, str(erro))
-    elif request.method == "POST":
+    else:
         messages.error(request, "Informe a data do aceite.")
     return redirect("propostas:detalhe", pk=pk)
 
 
+@require_POST
+def proposta_desfazer_aceite(request, pk):
+    proposta = get_object_or_404(Proposta, pk=pk)
+    form = DesfazerAceiteForm(request.POST)
+    if not form.is_valid():
+        messages.error(request, "Informe por que o aceite foi desfeito.")
+        return redirect("propostas:detalhe", pk=pk)
+    try:
+        emissao.desfazer_aceite(proposta, form.cleaned_data["motivo"])
+        messages.success(request, f"Aceite da {proposta.numero} v{proposta.versao} desfeito.")
+    except emissao.ErroEmissao as erro:
+        messages.error(request, str(erro))
+    return redirect("propostas:detalhe", pk=pk)
+
+
+@require_POST
 def proposta_perdida(request, pk):
     proposta = get_object_or_404(Proposta, pk=pk)
-    form = PerdaForm(request.POST or None)
+    form = PerdaForm(request.POST)
     if form.is_valid():
         try:
             emissao.marcar_perdida(proposta, form.cleaned_data["motivo_perda"], form.cleaned_data["obs_perda"])
             messages.success(request, f"Proposta {proposta.numero} v{proposta.versao} marcada como perdida.")
         except emissao.ErroEmissao as erro:
             messages.error(request, str(erro))
-    elif request.method == "POST":
+    else:
         messages.error(request, "Escolha o motivo da perda.")
     return redirect("propostas:detalhe", pk=pk)

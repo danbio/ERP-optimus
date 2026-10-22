@@ -109,10 +109,63 @@ def test_cenario_com_fatura_vira_confirmada(base):
 
 
 def test_cliente_existente_pelo_telefone_nao_duplica(base):
-    Cliente.objects.create(nome="Maria", telefone="63999991234")
-    _passo1(Navegador(), base)
+    Cliente.objects.create(nome="Maria  SOUZA", telefone="63999991234")
+    _passo1(Navegador(), base)  # mesmo nome, com outra grafia: usa a ficha sem perguntar
     assert Cliente.objects.count() == 1
-    assert Proposta.objects.get().cliente.nome == "Maria Souza"
+    assert Proposta.objects.get().cliente.nome == "Maria  SOUZA"
+
+
+def test_telefone_de_outro_nome_pergunta_e_nao_sobrescreve(base):
+    """A04: a ficha de outra pessoa com o mesmo telefone não pode ser renomeada."""
+    existente = Cliente.objects.create(nome="Maria da Silva", telefone="63999991234", municipio=base["gurupi"])
+    navegador = Navegador()
+    resposta = _passo1(navegador, base, nome="João Souza")
+    assert resposta.status_code == 200
+    assert "Já existe Maria da Silva, de Gurupi, com este telefone" in resposta.content.decode()
+    assert not Proposta.objects.exists()
+
+    _passo1(navegador, base, nome="João Souza", mesma_pessoa="nao")
+    existente.refresh_from_db()
+    assert existente.nome == "Maria da Silva"
+    assert Proposta.objects.get().cliente.nome == "João Souza"
+
+
+def test_mesma_pessoa_usa_a_ficha_sem_trocar_o_nome(base):
+    existente = Cliente.objects.create(nome="Maria da Silva", telefone="63999991234")
+    _passo1(Navegador(), base, nome="Maria S.", mesma_pessoa="sim")
+    existente.refresh_from_db()
+    assert existente.nome == "Maria da Silva" and existente.municipio == base["gurupi"]
+    assert Proposta.objects.get().cliente == existente
+
+
+def test_passo1_nao_renomeia_cliente_com_outras_propostas(base):
+    navegador, proposta = _ate_passo2(base)
+    _passo1(Navegador(), base, mesma_pessoa="sim")  # segunda proposta para a mesma Maria
+    resposta = navegador.post(reverse("propostas:passo", args=[proposta.pk, 1]), {
+        "nome": "Outro Nome", "telefone": "(63) 99999-1234", "municipio": base["gurupi"].pk, "cpf_cnpj": "",
+        "ligacao": "mono", "tipo_tarifa": base["b1"].pk,
+    })
+    assert resposta.status_code == 200
+    assert "Corrija nome e telefone na ficha do cliente" in resposta.content.decode()
+    assert Cliente.objects.get().nome == "Maria Souza"
+
+
+def test_municipio_fica_na_proposta(base):
+    navegador, proposta = _ate_passo2(base)
+    palmas = Municipio.objects.get(codigo_ibge=1721000)
+    navegador.post(reverse("propostas:passo", args=[proposta.pk, 1]), {
+        "nome": "Maria Souza", "telefone": "(63) 99999-1234", "municipio": palmas.pk, "cpf_cnpj": "",
+        "ligacao": "mono", "tipo_tarifa": base["b1"].pk,
+    })
+    proposta.refresh_from_db()
+    assert proposta.municipio == palmas
+    assert proposta.cliente.municipio == base["gurupi"]  # a ficha do cliente não muda
+
+
+def test_ligacao_e_tarifa_comecam_sem_escolha(base):
+    html = Navegador().get(reverse("propostas:nova")).content.decode()
+    assert '<option value="" selected>Escolha a ligação</option>' in html
+    assert '<option value="" selected>Escolha o tipo</option>' in html
 
 
 @pytest.mark.parametrize("campo, valor", [("telefone", "9999"), ("cpf_cnpj", "123abc"), ("nome", "  ")])
@@ -152,10 +205,10 @@ def test_quantidade_e_custo_editados_pelo_vendedor(base):
     _passo1(navegador, base)
     proposta = Proposta.objects.get()
     _passo2(navegador, proposta, base)
-    _passo3(navegador, proposta, qtd_modulos="12", custo_kit="15.000,00", mao_de_obra="5.000,00", desconto_texto="300")
+    _passo3(navegador, proposta, qtd_modulos="15", custo_kit="15.000,00", mao_de_obra="5.000,00", desconto_texto="300")
     proposta.refresh_from_db()
     m = montar(proposta)
-    assert m.qtd_modulos == 12 and m.qtd_modulos_sugerida != 12
+    assert m.qtd_modulos == 15 and m.qtd_modulos_sugerida != 15
     assert proposta.investimento == Decimal("19700.00")
     assert not m.custo_kit_estimado
 
@@ -360,10 +413,23 @@ def test_preview_de_rascunho_incompleto_diz_o_que_falta(base):
     assert "Configurações → Tarifas" in resposta.content.decode()
 
 
-def test_passo4_tem_botao_do_pdf(base):
+def test_passo4_pre_visualiza_e_emite_com_confirmacao(base):
+    """A15/A09: no rascunho não há PDF; a pré-visualização tem a marca RASCUNHO."""
     navegador, proposta = _proposta_completa(base)
     html = navegador.get(reverse("propostas:passo", args=[proposta.pk, 4])).content.decode()
-    assert reverse("propostas:pdf", args=[proposta.pk]) in html
+    assert reverse("propostas:pdf", args=[proposta.pk]) not in html
+    assert "Pré-visualizar" in html and "Confirmo, emitir agora" in html
+    previa = navegador.get(reverse("propostas:preview", args=[proposta.pk])).content.decode()
+    assert "proposta-doc--rascunho" in previa
+    assert navegador.get(reverse("propostas:pdf", args=[proposta.pk])).status_code == 409
+
+
+def test_passo4_mostra_o_que_impede_emitir(base):
+    navegador, proposta = _proposta_completa(base)
+    _passo3(navegador, proposta, mao_de_obra="0,00")
+    html = navegador.get(reverse("propostas:passo", args=[proposta.pk, 4])).content.decode()
+    assert "Ainda não dá para emitir" in html and "mão de obra está zerada" in html
+    assert "Confirmo, emitir agora" not in html
 
 
 # ---------- Iluminação pública estimada pela lei municipal (D32) ----------

@@ -5,6 +5,7 @@ pronto para gravar, ou levanta ValueError com a mensagem para mostrar na tela.
 """
 
 import re
+import unicodedata
 from decimal import Decimal, InvalidOperation
 
 # DDDs em uso no Brasil (Anatel).
@@ -19,6 +20,14 @@ DDDS_VALIDOS = {
 
 def so_digitos(texto):
     return re.sub(r"\D", "", texto or "")
+
+
+def nomes_iguais(a, b):
+    """Mesmo nome, sem diferença de acento, maiúscula ou espaço: "José  da Silva" = "jose da silva"."""
+    def simples(texto):
+        sem_acento = unicodedata.normalize("NFKD", texto or "").encode("ascii", "ignore").decode()
+        return " ".join(sem_acento.casefold().split())
+    return simples(a) == simples(b)
 
 
 def limpar_nome(texto):

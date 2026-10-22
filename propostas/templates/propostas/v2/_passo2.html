@@ -31,6 +31,13 @@
   </div>
 </div>
 
+{% if form.confirmo.errors or form.confirmo.value %}
+  <div class="alerta alerta--aviso confirmacao">
+    {% for erro in form.confirmo.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+    <label class="confirmacao__caixa">{{ form.confirmo }} {{ form.confirmo.label }}</label>
+  </div>
+{% endif %}
+
 <div class="grade-campos">
   {% include "core/_campo.html" with campo=form.folga %}
   {% include "core/_campo.html" with campo=form.perfil_simultaneidade %}

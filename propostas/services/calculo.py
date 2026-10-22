@@ -199,12 +199,12 @@ def kwh_pela_conta_com_tabela(conta: float, tarifa: float, adicional_bandeira: f
     raise ValueError("O valor da conta precisa ser maior que a iluminação pública.")
 
 
-def geracao_necessaria(consumo_kwh: float, folga: float, disponibilidade: int) -> float:
-    """kWh/mês que o sistema precisa gerar: consumo com folga menos o mínimo que a distribuidora cobra."""
-    return max(consumo_kwh * (1 + folga) - disponibilidade, 0.0)
+def geracao_necessaria(consumo_kwh: float, folga: float) -> float:
+    """kWh/mês que o sistema precisa gerar: o consumo com a folga. A disponibilidade não entra (D33)."""
+    return max(consumo_kwh * (1 + folga), 0.0)
 
 
-def kwp_necessario(consumo_kwh: float, folga: float, disponibilidade: int, irradiacao: list[float],
+def kwp_necessario(consumo_kwh: float, folga: float, irradiacao: list[float],
                    perdas: float, clipping: float, fator_orientacao: float) -> float:
     """Potência (kWp) que gera, em média, a geração necessária.
 
@@ -215,7 +215,7 @@ def kwp_necessario(consumo_kwh: float, folga: float, disponibilidade: int, irrad
         irr * dias * (1 - perdas) * (1 - clipping) * fator_orientacao
         for irr, dias in zip(irradiacao, DIAS_MES_ANO_COMUM)
     )
-    return geracao_necessaria(consumo_kwh, folga, disponibilidade) * 12 / gera_por_kwp_ano
+    return geracao_necessaria(consumo_kwh, folga) * 12 / gera_por_kwp_ano
 
 
 def quantidade_modulos(kwp: float, potencia_w: float) -> int:

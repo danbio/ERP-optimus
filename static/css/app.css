@@ -74,6 +74,61 @@
     margin-top: var(--esp-4);
   }
 
+  /* Passo 4 (A15): o que impede emitir fica no topo; emitir pede confirmação. */
+  .impedimentos {
+    display: flex;
+    flex-direction: column;
+    gap: var(--esp-2);
+    margin-bottom: var(--esp-4);
+  }
+
+  /* Passo 2 (A06): valor fora do normal pede a caixa de confirmação. */
+  .confirmacao {
+    display: flex;
+    flex-direction: column;
+    gap: var(--esp-2);
+
+    & .campo__erro {
+      margin: 0;
+    }
+  }
+
+  .confirmacao__caixa {
+    display: flex;
+    align-items: center;
+    gap: var(--esp-2);
+    font-weight: 500;
+  }
+
+  .confirmar-emissao {
+    margin-top: var(--esp-4);
+
+    & summary {
+      list-style: none;
+      cursor: pointer;
+    }
+
+    & summary::-webkit-details-marker {
+      display: none;
+    }
+
+    &[open] summary {
+      display: none;
+    }
+  }
+
+  .confirmar-emissao__corpo {
+    padding: var(--esp-4);
+    border: 1px solid var(--gold);
+    border-radius: var(--raio);
+    background: var(--branco);
+
+    & ul {
+      margin: var(--esp-2) 0 var(--esp-4);
+      padding-left: var(--esp-5);
+    }
+  }
+
   .kit-linhas {
     & .kit-linha {
       display: grid;
