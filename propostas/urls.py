@@ -19,6 +19,7 @@ urlpatterns = [
     path("<int:pk>/", passos.proposta_abrir, name="editar"),
     path("<int:pk>/passo/<int:n>/", passos.proposta_passo, name="passo"),
     path("<int:pk>/passo/<int:n>/previa/", passos.proposta_previa, name="previa"),
+    path("<int:pk>/ler-fatura/", passos.ler_fatura, name="ler_fatura"),
     path("modo-cliente/", passos.alternar_modo_cliente, name="modo_cliente"),
     # PDF (views/documento.py)
     path("<int:pk>/preview/", documento.preview, name="preview"),
@@ -29,5 +30,6 @@ urlpatterns = [
     path("catalogo/<int:pk>/", catalogo.solar_equipamento, name="solar_equipamento"),
     path("cotacoes/", catalogo.solar_cotacoes, name="solar_cotacoes"),
     path("cotacoes/nova/", catalogo.solar_cotacao, name="solar_cotacao_nova"),
+    path("cotacoes/ler/", catalogo.ler_cotacao, name="ler_cotacao"),
     path("cotacoes/<int:pk>/", catalogo.solar_cotacao, name="solar_cotacao"),
 ]

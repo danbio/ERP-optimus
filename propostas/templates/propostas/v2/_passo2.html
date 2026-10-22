@@ -18,17 +18,17 @@
   {% include "core/_campo.html" with campo=form.kwh_informado %}
 </div>
 <div class="consumo-por consumo-por--fatura">
-  <p class="ajuda">Com a fatura a proposta sai como <strong>confirmada</strong>, sem o aviso de estimativa. Copie os dados da conta.</p>
-  <div class="grade-campos">
-    {% include "core/_campo.html" with campo=form.numero_uc %}
-    {% include "core/_campo.html" with campo=form.endereco %}
-    {% include "core/_campo.html" with campo=form.competencia %}
-    {% include "core/_campo.html" with campo=form.fatura_kwh %}
-    {% include "core/_campo.html" with campo=form.dias_ciclo %}
-    {% include "core/_campo.html" with campo=form.valor_fatura %}
-    {% include "core/_campo.html" with campo=form.cpf_cnpj %}
+  <p class="ajuda">Com a fatura a proposta sai como <strong>confirmada</strong>, sem o aviso de estimativa. Escolha o PDF e peça para a IA ler, ou copie os dados da conta.</p>
+  <div class="leitura-ia">
     {% include "core/_campo.html" with campo=form.arquivo_fatura %}
+    {% if proposta %}
+      <button type="button" class="btn btn--secundario" hx-post="{% url 'propostas:ler_fatura' proposta.pk %}"
+              hx-encoding="multipart/form-data" hx-include="closest form" hx-target="#campos-fatura" hx-swap="outerHTML"
+              hx-indicator="#lendo-fatura" hx-disabled-elt="this">Ler a fatura com IA</button>
+      <span id="lendo-fatura" class="leitura-ia__lendo">Lendo a fatura… pode levar meio minuto.</span>
+    {% endif %}
   </div>
+  {% include "propostas/v2/_campos_fatura.html" %}
 </div>
 
 {% if form.confirmo.errors or form.confirmo.value %}
