@@ -31,7 +31,8 @@ class EquipamentoForm(forms.ModelForm):
         fields = [
             "tipo", "distribuidor", "codigo", "fabricante", "modelo", "descricao", "potencia_w",
             "fase", "tensao", "tipo_estrutura", "area_m2", "preco_referencia", "preco_em",
-            "funcao", "pecas_por_embalagem", "mppts", "modulos_por_micro", "espessura_mm",
+            "funcao", "pecas_por_embalagem", "mppts", "modulos_por_micro", "comprimento_mm", "largura_mm",
+            "espessura_mm",
             "foto", "datasheet", "ativo",
         ]
         labels = {
@@ -319,7 +320,7 @@ class DescontoField(forms.CharField):
 
 
 # Papéis do kit que o vendedor pode trocar ou mudar a quantidade no passo 3 (D34).
-PAPEIS_EDITAVEIS = [valor for valor, _ in Equipamento.Funcao.choices if valor != "juncao"]
+PAPEIS_EDITAVEIS = list(Equipamento.Funcao.values)
 EXTRAS_EM_BRANCO = 2
 
 

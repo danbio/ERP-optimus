@@ -376,6 +376,7 @@ class Equipamento(models.Model):
         TRILHO = "trilho", "Trilho"
         MINI_TRILHO = "mini_trilho", "Mini trilho (telha metálica)"
         FIXACAO = "fixacao", "Fixação no telhado (gancho, pé em L, suporte)"
+        HASTE = "haste", "Haste (fibrocimento)"
         GRAMPO_FINAL = "grampo_final", "Grampo final"
         GRAMPO_INTERMEDIARIO = "grampo_intermediario", "Grampo intermediário"
         ATERRAMENTO = "aterramento", "Aterramento"
@@ -419,6 +420,9 @@ class Equipamento(models.Model):
     modulos_por_micro = models.PositiveSmallIntegerField(
         "módulos por microinversor", null=True, blank=True,
     )
+    comprimento_mm = models.PositiveSmallIntegerField("comprimento (mm)", null=True, blank=True,
+                                                      help_text="Só módulo.")
+    largura_mm = models.PositiveSmallIntegerField("largura (mm)", null=True, blank=True, help_text="Só módulo.")
     espessura_mm = models.PositiveSmallIntegerField(
         "espessura da moldura (mm)", null=True, blank=True,
         help_text="Módulo: espessura da moldura. Grampo final: moldura que ele prende.",

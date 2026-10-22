@@ -383,6 +383,8 @@ def _etapa_sistema(proposta, m, config, premissas):
     m.geracao_media = m.kwp * calculo.geracao_por_kwp_mes(irradiacao, perdas, clipping, fator)
     if m.modulo.area_m2:
         m.area = m.qtd_modulos * float(m.modulo.area_m2)
+    elif m.modulo.comprimento_mm and m.modulo.largura_mm:
+        m.area = m.qtd_modulos * m.modulo.comprimento_mm * m.modulo.largura_mm / 1_000_000
     _alertas_do_sistema(proposta, m, config, premissas, fase)
     return True
 
@@ -477,7 +479,8 @@ def _kit_do_catalogo(proposta, m, config):
         LinhaKit("inversor", m.inversor, m.inversor.descricao, m.qtd_inversores, alterada=not m.inversor_sugerido),
     ]
     espessura = m.modulo.espessura_mm or config.espessura_modulo_padrao
-    papeis = ["fixacao", "trilho", "mini_trilho", "grampo_final", "grampo_intermediario", "aterramento"]
+    papeis = ["trilho", "juncao", "fixacao", "haste", "mini_trilho", "grampo_final", "grampo_intermediario",
+              "aterramento"]
     if m.micro:
         papeis.append("suporte_micro")
     escolhidos = {}
@@ -492,8 +495,8 @@ def _kit_do_catalogo(proposta, m, config):
     if m.micro:
         sugeridas["suporte_micro"] = m.qtd_inversores
     sugeridas |= calculo.quantidades_eletricas(
-        m.strings, 0 if m.micro else config.metros_cabo_por_string, config.pares_conector_por_string,
-        pecas.get("conector", 1))
+        m.strings, 0 if m.micro else config.metros_cabo_por_string,
+        config.pares_conector_por_micro if m.micro else config.pares_conector_por_string, pecas.get("conector", 1))
 
     for papel, sugerida in sugeridas.items():
         ajuste = ajustes.get(papel) or {}

@@ -37,14 +37,18 @@ def _linha(m, funcao):
 # ---------- Leitura do catálogo ----------
 
 @pytest.mark.parametrize("descricao, funcao", [
-    ("Perfil Fixacao Modulo Fotov. 31.9mm X 53.8mm X 2.36m Aluminio", "trilho"),
-    ("Perfil Fixacao Modulo Fotov. 31.9mm X 53.8mm X 1.23m Aluminio", ""),
+    ("Perfil Fixacao Modulo Fotov. 31.9mm X 53.8mm X 2.70m Aluminio", "trilho"),
+    ("Perfil Fixacao Modulo Fotov. 31.9mm X 53.8mm X 2.36m Aluminio", ""),
     ("Grampo Final 35mm 4 Pecas Aluminio Belenergy", "grampo_final"),
     ("Grampo Final 30 Mm Para Telha Zipada 4 Pecas Aluminio Belenergy", ""),
     ("Grampo Intermediario 2 Pecas Aluminio Belenergy", "grampo_intermediario"),
     ("Garra Aterramento 2 Pecas Aluminio Belenergy", "aterramento"),
     ("Suporte Gancho Ajustavel Colonial C/ Prolongador 2 Pecas Galvanizado A Fogo", "fixacao"),
-    ("Mini Trilho Telha Metalica 2 Pecas Aluminio Belenergy", "mini_trilho"),
+    ("Mini Trilho Telha Metalica 550mm 2 Pecas Aluminio Belenergy", "mini_trilho"),
+    ("Mini Trilho Telha Metalica 2 Pecas Aluminio Belenergy", ""),
+    ("Haste Solar 10mm X 250mm 2 Pecas Inox Belenergy", "haste"),
+    ("Haste Solar 10mm X 200mm 2 Pecas Galvanizada A Fogo Bel Energy", ""),
+    ("Juncao Para Perfil 1 Peca Aluminio Belenergy", "juncao"),
     ("Mini Trilho Alto Telha Metalica Para Microinversor 300mm 2p 2 Pecas Aluminio Belenergy", ""),
     ("Cabo Solar 4mm 0.6/1kv Ac 1.8kv Dc Preto", "cabo_preto"),
     ("Cabo Ca Flex 750v 4.00mm 100m Preto", ""),
@@ -117,29 +121,42 @@ def test_dividir_em_fileiras():
     assert calculo.dividir_em_fileiras(3, 5) == [1, 1, 1]
 
 
+@pytest.mark.parametrize("modulos, emendas", [(1, 0), (2, 0), (3, 1), (4, 1), (5, 2), (6, 2), (7, 3), (8, 3), (9, 4)])
+def test_emendas_na_fileira(modulos, emendas):
+    assert calculo.emendas_na_fileira(modulos) == emendas
+
+
+PECAS = {"grampo_final": 4, "grampo_intermediario": 2}
+
+
 def test_quantidades_da_estrutura_ceramica():
-    pecas = {"grampo_final": 4, "grampo_intermediario": 2, "fixacao": 2}
-    assert calculo.quantidades_estrutura([5, 5], "ceramica", pecas) == {
+    assert calculo.quantidades_estrutura([5, 5], "ceramica", PECAS) == {
         "trilho": 10,                 # 1 por módulo
+        "juncao": 4,                  # 2 emendas por fileira de 5
+        "fixacao": 10,                # igual aos trilhos
         "grampo_final": 2,            # 1 pacote de 4 por fileira
         "grampo_intermediario": 8,    # 2 × (5 − 1) por fileira, pacotes de 2
         "aterramento": 2,             # 1 por fileira
-        "fixacao": 12,                # 2 × (5 + 1) por fileira, pacotes de 2
     }
 
 
+def test_fibrocimento_leva_pe_em_l_e_haste():
+    quantidades = calculo.quantidades_estrutura([4], "fibrocimento", PECAS)
+    assert (quantidades["fixacao"], quantidades["haste"], quantidades["juncao"]) == (4, 4, 1)
+
+
 def test_quantidades_da_estrutura_metalica_e_solo():
-    pecas = {"grampo_final": 4, "grampo_intermediario": 2, "mini_trilho": 2}
-    metalica = calculo.quantidades_estrutura([6], "metalica", pecas)
+    metalica = calculo.quantidades_estrutura([6], "metalica", PECAS)
     assert metalica == {"grampo_final": 1, "grampo_intermediario": 5, "aterramento": 1, "mini_trilho": 7}
-    assert "trilho" not in calculo.quantidades_estrutura([6], "solo", pecas)
+    assert calculo.quantidades_estrutura([6], "solo", PECAS) == {
+        "grampo_final": 1, "grampo_intermediario": 5, "aterramento": 1}
     # Uma fileira de 1 módulo não tem grampo intermediário.
-    assert "grampo_intermediario" not in calculo.quantidades_estrutura([1], "ceramica", pecas)
+    assert "grampo_intermediario" not in calculo.quantidades_estrutura([1], "ceramica", PECAS)
 
 
 def test_quantidades_eletricas():
     assert calculo.quantidades_eletricas(2, 15, 2, 2) == {"conector": 2, "cabo_vermelho": 30, "cabo_preto": 30}
-    assert calculo.quantidades_eletricas(3, 0, 2, 2) == {"conector": 3}  # microinversor: sem cabo solar
+    assert calculo.quantidades_eletricas(3, 0, 4, 2) == {"conector": 6}  # 3 micros × 4 pares, sem cabo solar
 
 
 def test_custo_do_kit_com_frete():
@@ -159,9 +176,11 @@ def test_kit_completo_pelo_catalogo(base):
         "modulo", "inversor", "trilho", "fixacao", "grampo_final", "grampo_intermediario", "aterramento",
         "cabo_vermelho", "cabo_preto", "conector"}
     assert _linha(m, "trilho").quantidade == m.qtd_modulos
-    assert _linha(m, "trilho").equipamento.codigo == "PERFIL2.36AL"
+    assert _linha(m, "trilho").equipamento.codigo == "PERFIL2.70AL"
     assert _linha(m, "fixacao").equipamento.tipo_estrutura == "ceramica"
-    assert _linha(m, "grampo_final").equipamento.espessura_mm == 35  # moldura padrão sem cadastro
+    assert _linha(m, "fixacao").quantidade == m.qtd_modulos
+    assert _linha(m, "juncao").quantidade == sum(calculo.emendas_na_fileira(n) for n in m.fileiras)
+    assert _linha(m, "grampo_final").equipamento.espessura_mm == 30  # moldura padrão sem cadastro
     assert _linha(m, "grampo_final").quantidade == len(m.fileiras)
     assert _linha(m, "cabo_preto").quantidade == 15 * m.strings
     assert _linha(m, "conector").quantidade == m.strings  # 2 pares por string, embalagem de 2 pares
@@ -171,7 +190,7 @@ def test_kit_completo_pelo_catalogo(base):
     assert not [a for a in m.alertas if a["tipo"] == "erro"]
     # O kit gravado tem preço por item e vai para o PDF (A21).
     assert proposta.itens_kit.count() == len(m.kit)
-    assert proposta.itens_kit.get(funcao="trilho").preco_unitario == Decimal("63.25")
+    assert proposta.itens_kit.get(funcao="trilho").preco_unitario == Decimal("64.52")
 
 
 def test_microinversor_troca_cabos_por_suporte(base):
@@ -181,7 +200,29 @@ def test_microinversor_troca_cabos_por_suporte(base):
     assert m.strings == m.qtd_inversores
     assert _linha(m, "suporte_micro").quantidade == m.qtd_inversores
     assert _linha(m, "cabo_preto") is None
-    assert _linha(m, "conector").quantidade == m.qtd_inversores
+    assert _linha(m, "conector").quantidade == 2 * m.qtd_inversores  # 4 pares por micro, embalagem de 2
+
+
+def test_fibrocimento_e_metalica_pelo_catalogo(base):
+    _, proposta, _ = _rascunho(base, passo3={"tipo_estrutura": "fibrocimento"})
+    m = montar(proposta)
+    assert _linha(m, "haste").equipamento.codigo == "HASTE10X2502A"
+    assert _linha(m, "fixacao").equipamento.codigo in ("SUPL2A", "SUPL2GF")
+    assert _linha(m, "haste").quantidade == _linha(m, "trilho").quantidade
+    _, proposta, _ = _rascunho(base, passo3={"tipo_estrutura": "metalica"})
+    m = montar(proposta)
+    assert _linha(m, "mini_trilho").equipamento.codigo == "MINITRI5502A"
+    assert _linha(m, "mini_trilho").quantidade == sum(n + 1 for n in m.fileiras)
+    assert _linha(m, "trilho") is None and _linha(m, "fixacao") is None
+
+
+def test_espessura_cadastrada_no_modulo_escolhe_o_grampo(base):
+    Equipamento.objects.filter(codigo="MFMA-1.3-MO-66-425W").update(espessura_mm=35, comprimento_mm=1722,
+                                                                     largura_mm=1134)
+    _, proposta, _ = _rascunho(base)
+    m = montar(proposta)
+    assert _linha(m, "grampo_final").equipamento.codigo == "GRFN354A"
+    assert m.area == pytest.approx(m.qtd_modulos * 1.722 * 1.134)
 
 
 def test_inversor_string_com_a_chave_em_micro_e_ignorado(base):
@@ -241,7 +282,7 @@ def test_fileiras_malformadas(base, texto):
 
 
 def test_item_sem_preco_impede_o_calculo(base):
-    Equipamento.objects.filter(codigo="PERFIL2.36AL").update(preco_referencia=None)
+    Equipamento.objects.filter(codigo="PERFIL2.70AL").update(preco_referencia=None)
     _, proposta, _ = _rascunho(base)
     m = montar(proposta)
     assert m.custo_kit is None and "Sem preço no catálogo" in m.mensagem

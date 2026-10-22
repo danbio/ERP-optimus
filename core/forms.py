@@ -132,7 +132,9 @@ class PremissasForm(forms.Form):
     metros_cabo_por_string = forms.IntegerField(
         label="Cabo solar por string, de cada cor (m)", min_value=0, max_value=200)
     pares_conector_por_string = forms.IntegerField(
-        label="Pares de conector por string ou micro", min_value=0, max_value=20)
+        label="Pares de conector por string", min_value=0, max_value=20)
+    pares_conector_por_micro = forms.IntegerField(
+        label="Pares de conector por microinversor", min_value=0, max_value=20)
     modulos_por_string_min = forms.IntegerField(label="Mínimo de módulos por string", min_value=1, max_value=40)
     modulos_por_string_max = forms.IntegerField(label="Máximo de módulos por string", min_value=1, max_value=40)
     espessura_modulo_padrao = forms.IntegerField(
@@ -152,7 +154,7 @@ class PremissasForm(forms.Form):
     CAMPOS_DA_CONFIG = (
         "mo_por_kwp", "mo_por_kwp_solo", "mo_minima", "dias_preco_velho", "prazo_homologacao_dias",
         "conta_alta", "consumo_alto", "tolerancia_tarifa_fatura", "tolerancia_kwp_cotacao", "limite_microgeracao_kwp",
-        "distribuidor_kit", "frete_kit", "dias_catalogo_velho", "metros_cabo_por_string", "pares_conector_por_string",
+        "distribuidor_kit", "frete_kit", "dias_catalogo_velho", "metros_cabo_por_string", "pares_conector_por_string", "pares_conector_por_micro",
         "modulos_por_string_min", "modulos_por_string_max", "espessura_modulo_padrao",
     )
 

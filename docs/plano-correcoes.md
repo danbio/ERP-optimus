@@ -46,7 +46,7 @@ Feita antes do dimensionamento pelo catálogo, porque ele reescreve `montar()`.
 
 ## Rodada 4 · Dimensionamento pelo catálogo (D34)
 
-Substitui o kit estimado por R$/Wp (A07, A08) e faz o kit do PDF bater com o que será comprado (A21). Respostas de 22/10 registradas em D34; as regras marcadas como "propostas à espera do usuário" em D34 podem mudar.
+Substitui o kit estimado por R$/Wp (A07, A08) e faz o kit do PDF bater com o que será comprado (A21). Respostas de 22/10 registradas em D34; regras do kit em `docs/dimensionamento-estruturas.md`.
 
 ### Perguntas de negócio
 
@@ -66,7 +66,7 @@ Substitui o kit estimado por R$/Wp (A07, A08) e faz o kit do PDF bater com o que
 - [x] Sugestão do kit completo com preço por item; vendedor troca qualquer item ou quantidade.
 - [x] Cotação vinculada substitui o catálogo (D35).
 - [x] **A21** Kit do PDF = itens do kit montado ou da cotação.
-- [ ] Confirmar com o usuário as propostas de D34 (trilho 2,36 m, grampo intermediário, fixação, metálica, solo, strings, microinversor).
+- [x] Confirmar com o usuário as propostas de D34 (respostas de 22/10, 20:00) e documentar em `docs/dimensionamento-estruturas.md`.
 
 **Resolvido na rodada 4:** módulo de menor R$/Wp do catálogo Belenus; chave String × Microinversor; inversor mais barato dentro da faixa de sobrecarga (corrige o inversor grande demais em sistema pequeno); strings por MPPT; fileiras do vendedor ou sugeridas; estrutura, cabos e conectores pelas regras de D34; frete de 7%; preço do catálogo velho com 30 dias; troca de item, quantidade e itens a mais no passo 3; kit congelado na emissão; papel de cada item no catálogo editável pelo gestor.
 
