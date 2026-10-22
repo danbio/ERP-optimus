@@ -8,12 +8,14 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
 from clientes.models import Cliente, UnidadeConsumidora
+from core import ia
 from core.models import ConfigEmpresa
 from core.validacoes import formatar_reais, nomes_iguais
 
 from ..forms import Passo1Form, Passo2Form, Passo3Form
 from ..models import FaturaReferencia, Proposta
 from ..montagem import gravar_resultado, impedimentos_de_emissao, montar
+from ..services import leitura_ia
 
 
 # ---------- Proposta v2: os 4 passos (fatia v2.5, D29) ----------
@@ -258,6 +260,40 @@ def proposta_previa(request, pk, n):
     else:
         proposta = get_object_or_404(Proposta, pk=pk)
     return render(request, "propostas/v2/_previa.html", _contexto_passos(request, proposta, n))
+
+
+CAMPOS_DA_FATURA = ["numero_uc", "endereco", "competencia", "fatura_kwh", "dias_ciclo", "valor_fatura", "cpf_cnpj"]
+
+
+@require_POST
+def ler_fatura(request, pk):
+    """IA lê o PDF da fatura e preenche os campos do passo 2 (D35, D37). Não grava: o vendedor confere e salva."""
+    proposta = get_object_or_404(Proposta, pk=pk, status=Proposta.Status.RASCUNHO)
+    valores = {campo: request.POST.get(campo, "") for campo in CAMPOS_DA_FATURA}
+    contexto = {"leitura_avisos": []}
+    arquivo = request.FILES.get("arquivo_fatura")
+    if not arquivo:
+        contexto["leitura_erro"] = "Escolha o PDF da fatura antes de pedir a leitura."
+    else:
+        try:
+            lido = leitura_ia.campos_da_fatura(
+                ia.ler_pdf(arquivo.read(), leitura_ia.INSTRUCAO_FATURA, leitura_ia.ESQUEMA_FATURA))
+        except ia.ErroLeitura as erro:
+            contexto["leitura_erro"] = str(erro)
+        else:
+            titular = lido.pop("titular")
+            valores |= {campo: valor for campo, valor in lido.items() if valor}
+            contexto["leitura_ok"] = True
+            vazios = [Passo2Form.base_fields[c].label for c in CAMPOS_DA_FATURA if not lido.get(c)]
+            if vazios:
+                contexto["leitura_avisos"].append(f"A IA não achou: {', '.join(vazios)}. Preencha à mão.")
+            if titular and not nomes_iguais(titular, proposta.cliente.nome):
+                contexto["leitura_avisos"].append(
+                    f"A fatura está no nome de {titular} e o cliente é {proposta.cliente.nome}. Confira.")
+    config = ConfigEmpresa.obter()
+    contexto["form"] = Passo2Form(instance=proposta, perfis=config.perfis_simultaneidade, config=config,
+                                  initial=valores)
+    return render(request, "propostas/v2/_campos_fatura.html", contexto)
 
 
 @require_POST

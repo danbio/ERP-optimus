@@ -70,12 +70,12 @@ Substitui o kit estimado por R$/Wp (A07, A08) e faz o kit do PDF bater com o que
 
 **Resolvido na rodada 4:** módulo de menor R$/Wp do catálogo Belenus; chave String × Microinversor; inversor mais barato dentro da faixa de sobrecarga (corrige o inversor grande demais em sistema pequeno); strings por MPPT; fileiras do vendedor ou sugeridas; estrutura, cabos e conectores pelas regras de D34; frete de 7%; preço do catálogo velho com 30 dias; troca de item, quantidade e itens a mais no passo 3; kit congelado na emissão; papel de cada item no catálogo editável pelo gestor.
 
-## Rodada 5 · Leitura por IA (D35)
+## Rodada 5 · Leitura por IA (D35, D37)
 
-Depende da chave da API Anthropic no `.env`.
+Usa o Gemini (D37), com a chave `GEMINI_API_KEY` no `.env`.
 
-- [ ] Fatura: PDF → campos do passo 2, com conferência do vendedor.
-- [ ] Cotação: PDF → `Cotacao` + `ItemCotado`; a proposta com cotação lida usa só a cotação, ignorando o catálogo.
+- [x] Fatura: PDF → campos do passo 2, com conferência do vendedor.
+- [x] Cotação: PDF → `Cotacao` + `ItemCotado`; a proposta com cotação lida usa só a cotação, ignorando o catálogo.
 - [ ] Testes com as faturas e cotações reais de outubro/2026.
 
 ## Rodada 6 · Ferramentas do gestor e do vendedor

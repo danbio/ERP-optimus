@@ -1,0 +1,14 @@
+<div id="campos-fatura">
+  {% if leitura_erro %}<p class="alerta alerta--erro">{{ leitura_erro }}</p>{% endif %}
+  {% if leitura_ok %}<p class="alerta alerta--aviso">Lido pela IA. Confira cada campo com a fatura antes de continuar.</p>{% endif %}
+  {% for aviso in leitura_avisos %}<p class="alerta alerta--aviso">{{ aviso }}</p>{% endfor %}
+  <div class="grade-campos">
+    {% include "core/_campo.html" with campo=form.numero_uc %}
+    {% include "core/_campo.html" with campo=form.endereco %}
+    {% include "core/_campo.html" with campo=form.competencia %}
+    {% include "core/_campo.html" with campo=form.fatura_kwh %}
+    {% include "core/_campo.html" with campo=form.dias_ciclo %}
+    {% include "core/_campo.html" with campo=form.valor_fatura %}
+    {% include "core/_campo.html" with campo=form.cpf_cnpj %}
+  </div>
+</div>

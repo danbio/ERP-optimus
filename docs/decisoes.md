@@ -258,6 +258,13 @@ Revisão em três visões (vendedor iniciante, gestor, dev sênior), com 30 acha
 - **Número (A13):** o rascunho não tem número; o número `OPT-AAAA-NNNN` é dado na primeira emissão e mantido nas versões (D31). Rascunho pode ser descartado (apagado) pelo vendedor. Propostas do formulário antigo continuam como estão até a rodada 3.
 - **Ano de conexão (A17):** deixa de ser premissa fixa. No rascunho, é o ano de hoje + prazo de homologação (dias, em Configurações, padrão 60). A emitida guarda o ano no snapshot.
 
+## D37 · 2026-10-22 · Leitura por IA com Gemini (revisa D35)
+- **Provedor:** Google Gemini (Gemini API do Google AI Studio), no lugar da API Anthropic de D35. Motivo: o usuário não conseguiu pagar créditos da Anthropic com os meios da Optimus, e já tem uma chave Gemini. O resto de D35 continua: a IA lê fatura e cotação, o vendedor confere antes de salvar, e cotação lida substitui o catálogo.
+- **Sem dependência nova:** a chamada é um POST HTTP com a biblioteca padrão do Python (`urllib`) para `generateContent`, com o PDF em base64 e a resposta em JSON por esquema (`responseSchema`). Fica em `core/ia.py` (`ler_pdf`). O que pedir e como converter a resposta em campos do formulário fica em `propostas/services/leitura_ia.py` (funções puras).
+- **Configuração no `.env`:** `GEMINI_API_KEY` (obrigatória para ler) e `GEMINI_MODELO` (opcional; padrão `gemini-flash-latest`, o modelo Flash mais recente). Sem chave, o botão avisa que a leitura não está configurada; o resto do sistema funciona igual.
+- **Nada é gravado direto:** a leitura só preenche os campos da tela (passo 2 ou cotação). O vendedor confere e salva como sempre, com as mesmas validações.
+- **LGPD:** a chave atual está no nível gratuito, em que o Google pode usar o conteúdo enviado para melhorar seus produtos. No desenvolvimento, testar só com faturas próprias ou autorizadas; antes de usar com clientes, ativar o faturamento da chave (nível pago) ou rever o provedor.
+
 ## Pendências de validação
 - [x] Regra de custo de disponibilidade para GD após a Lei 14.300 (item 3 de D08): fora do motor (D33).
 - [x] Valor da TUSD Fio B vigente na Energisa TO por subgrupo (B1/B2/B3): 0,441478 R$/kWh (D32).

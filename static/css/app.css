@@ -717,6 +717,28 @@
     margin: 0;
   }
 
+  .leitura-ia {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--esp-2) var(--esp-3);
+    align-items: flex-end;
+    margin-bottom: var(--esp-3);
+
+    & .campo {
+      margin: 0;
+    }
+  }
+
+  .leitura-ia__lendo {
+    display: none;
+    color: var(--muted);
+    font-size: var(--texto-sm);
+
+    &.htmx-request {
+      display: inline;
+    }
+  }
+
   .destaque__info {
     flex-basis: 100%;
     margin: 0;
