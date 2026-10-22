@@ -55,7 +55,7 @@ def test_cenario_conta_de_500_reais(base):
     proposta = Proposta.objects.get()
     assert resposta.url == reverse("propostas:passo", args=[proposta.pk, 2])
     assert proposta.cliente.telefone == "63999991234"
-    assert proposta.numero.startswith("OPT-")
+    assert proposta.numero is None  # o número sai na primeira emissão (A13)
 
     assert _passo2(navegador, proposta, base).status_code == 302
     assert _passo3(navegador, proposta).status_code == 302
@@ -283,7 +283,7 @@ def test_lista_busca_por_telefone(base):
 def _ate_passo2(base, **mudancas):
     navegador = Navegador()
     _passo1(navegador, base)
-    proposta = Proposta.objects.get()
+    proposta = Proposta.objects.latest("pk")
     _passo2(navegador, proposta, base, **mudancas)
     proposta.refresh_from_db()
     return navegador, proposta

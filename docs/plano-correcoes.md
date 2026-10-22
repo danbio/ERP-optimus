@@ -8,7 +8,7 @@
 
 ---
 
-## Rodada 1 · Travas de cálculo e emissão
+## Rodada 1 · Travas de cálculo e emissão (PR #13)
 
 Objetivo: nenhuma proposta errada sai sem aviso. Cada item entra com o teste que reproduz o caso do relatório (A16).
 
@@ -23,16 +23,16 @@ Objetivo: nenhuma proposta errada sai sem aviso. Cada item entra com o teste que
 - [x] **A09** Pré-visualização do rascunho com marca d'água "RASCUNHO"; PDF limpo só da emitida.
 - [x] **A23** Passo fora de 1–4, "voltar" externo no modo cliente e ações sem `@require_POST`.
 
-## Rodada 2 · Login e registro
+## Rodada 2 · Login e registro (D36)
 
 Precisa estar pronta antes de liberar o acesso pelo celular fora da loja.
 
-- [ ] **A05** Login (`LoginRequiredMiddleware`, nativo no Django 5.1+), grupo "gestor" para Configurações e catálogo, `SECRET_KEY` e `DEBUG` no `.env`, mídia só para usuário logado. Acesso externo por VPN ou túnel.
-- [ ] **A10** Registro completo na emissão: todas as entradas e saídas de `montar()` em JSON; `emitida_por`, `aceita_por`, `perdida_por`, `aceite_desfeito_por`. Tarifas e taxas ganham linha nova por vigência em vez de serem sobrescritas.
-- [ ] **A12** PDF gerado fora da transação; SQLite em modo WAL.
-- [ ] **A13** Número definitivo só na primeira emissão; botão "Descartar rascunho".
-- [ ] **A17** Ano de conexão derivado da data de emissão + prazo de homologação (Configurações).
-- [ ] **A30** `waitress` no `requirements.txt`.
+- [x] **A05** Login (`LoginRequiredMiddleware`, nativo no Django 5.1+), grupo "gestor" para Configurações e catálogo, `SECRET_KEY` e `DEBUG` no `.env`, mídia só para usuário logado. Acesso externo por VPN ou túnel.
+- [x] **A10** Registro completo na emissão: todas as entradas e saídas de `montar()` em JSON; `emitida_por`, `aceita_por`, `perdida_por`, `aceite_desfeito_por`. Tarifas e taxas ganham linha nova por vigência em vez de serem sobrescritas.
+- [x] **A12** PDF gerado fora da transação; SQLite em modo WAL.
+- [x] **A13** Número definitivo só na primeira emissão; botão "Descartar rascunho".
+- [x] **A17** Ano de conexão derivado da data de emissão + prazo de homologação (Configurações).
+- [x] **A30** `waitress` no `requirements.txt`.
 
 ## Rodada 3 · Limpeza antes das regras novas
 
@@ -97,3 +97,9 @@ Depende da chave da API Anthropic no `.env`.
 - **Conta com o sistema (A03):** a conta exibida tem como piso a disponibilidade (30, 50 ou 100 kWh × tarifa) mais a iluminação pública. A economia e o dimensionamento continuam sem a disponibilidade (D33).
 - **A01:** o select de cotações esconde as vencidas; cotação de outro distribuidor aparece, mas vira erro que bloqueia a emissão (o filtro por distribuidor entra com o kit do catálogo, rodada 4).
 - **A09:** o PDF de rascunho só é recusado nas propostas v2; o formulário antigo continua com PDF até ser removido (rodada 3).
+
+## Resolvido na rodada 2 (D36)
+
+- **A10:** o histórico de tarifas e taxas fica no JSON `registro` de cada emissão, com os valores usados; as tabelas continuam editadas no lugar.
+- **A12:** o PDF continua dentro da transação (se falhar, nada é gravado); o SQLite em WAL evita travar as leituras.
+- Os limites das travas da rodada 1 ficaram editáveis em Configurações → Premissas.

@@ -6,3 +6,6 @@ media/
 *.log
 .DS_Store
 importar/
+.env
+db.sqlite3-wal
+db.sqlite3-shm

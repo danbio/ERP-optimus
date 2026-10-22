@@ -15,6 +15,7 @@ from django.views.decorators.http import require_POST
 
 from core.models import ConfigEmpresa
 from core.pdf import ErroPDF, html_para_pdf
+from core.permissoes import so_gestor
 
 from .forms import ImportarTabelaForm, OrcamentoDadosForm, OrcamentoNovoForm
 from .importacao import aplicar_importacao
@@ -445,6 +446,7 @@ def catalogo(request):
     })
 
 
+@so_gestor
 def importar_tabela(request):
     parametros = ParametrosOrcamento.obter()
     resumo, erro, tabela = None, "", None

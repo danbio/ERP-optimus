@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8">
-  <title>Proposta {{ proposta.numero }}{% if proposta.versao > 1 %} v{{ proposta.versao }}{% endif %} · {{ cliente.nome }}</title>
+  <title>Proposta {{ proposta.numero|default:"em rascunho" }}{% if proposta.versao > 1 %} v{{ proposta.versao }}{% endif %} · {{ cliente.nome }}</title>
   <link rel="stylesheet" href="{{ base_estatico }}/css/tokens.css">
   <link rel="stylesheet" href="{{ base_estatico }}/css/base.css">
   <link rel="stylesheet" href="{{ base_estatico }}/css/components.css">

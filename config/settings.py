@@ -16,14 +16,25 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
+def ler_env(arquivo):
+    """Lê o .env (CHAVE=valor por linha; # é comentário). Sem dependência nova (D36)."""
+    valores = {}
+    if arquivo.exists():
+        for linha in arquivo.read_text(encoding="utf-8").splitlines():
+            linha = linha.strip()
+            if linha and not linha.startswith("#") and "=" in linha:
+                chave, valor = linha.split("=", 1)
+                valores[chave.strip()] = valor.strip().strip('"').strip("'")
+    return valores
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-3#*31i_)*#@2cs-_c0v1@*#ve9a+@@-g$kj7l(plp4^gjp4nim"
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+ENV = ler_env(BASE_DIR / ".env")
+
+# Produção: .env com SECRET_KEY=<chave longa> e DEBUG=0. Sem .env, modo desenvolvimento.
+SECRET_KEY = ENV.get("SECRET_KEY", "dev-somente-no-pc-de-desenvolvimento-nao-usar-em-producao")
+DEBUG = ENV.get("DEBUG", "1") == "1"
+if not ENV.get("SECRET_KEY"):
+    print("Aviso: sem SECRET_KEY no .env. Rodando em modo desenvolvimento (ver docs/decisoes.md D36).")
 
 # Uso interno em rede local: aceita qualquer host da rede.
 ALLOWED_HOSTS = ["*"]
@@ -50,6 +61,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.auth.middleware.LoginRequiredMiddleware",  # todo o ERP exige login (D36)
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -66,6 +78,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "core.permissoes.usuario",
             ],
         },
     },
@@ -81,6 +94,12 @@ DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": BASE_DIR / "db.sqlite3",
+        # WAL: leituras não esperam a emissão gravar o PDF; escritas esperam até 20 s (D36).
+        "OPTIONS": {
+            "timeout": 20,
+            "init_command": "PRAGMA journal_mode=WAL;",
+            "transaction_mode": "IMMEDIATE",
+        },
     }
 }
 
@@ -125,6 +144,11 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 # Arquivos gerados/enviados (PDFs, faturas, tabelas de preço) — ver D15.
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+# Login (D36)
+LOGIN_URL = "login"
+LOGIN_REDIRECT_URL = "/"
+LOGOUT_REDIRECT_URL = "login"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

@@ -19,7 +19,10 @@ pip install -r requirements.txt
 # 4. Aplicar as migrações do banco (cria o db.sqlite3)
 python manage.py migrate
 
-# 5. Rodar o servidor de desenvolvimento, acessível pela rede local
+# 5. Criar o primeiro usuário (o gestor). Os outros são criados no menu Usuários.
+python manage.py createsuperuser
+
+# 6. Rodar o servidor de desenvolvimento, acessível pela rede local
 python manage.py runserver 0.0.0.0:8000
 ```
 
@@ -29,7 +32,7 @@ Para os PDFs (proposta e orçamento), instalar o Chromium do Playwright uma úni
 python -m playwright install chromium
 ```
 
-Depois de rodar o passo 5, abra no navegador:
+Depois de rodar o passo 6, abra no navegador e entre com o usuário criado:
 - Neste PC: http://localhost:8000/
 - De outro PC na mesma rede: `http://<IP-deste-PC>:8000/` (ver o IP com `ipconfig`, procurar "Endereço IPv4").
 
@@ -41,12 +44,25 @@ Depois de rodar o passo 5, abra no navegador:
 4. **Admin → Itens próprios**: cadastrar os serviços (instalação por ponto, configuração…) e os materiais de outras marcas.
 5. **Orçamentos → + novo orçamento**.
 
+## Usuários
+
+- Todo o sistema exige login. O usuário criado no passo 5 (superusuário) cria os demais em **Usuários** (admin do Django): botão "Adicionar usuário", depois nome e senha.
+- Para dar acesso de gestor (Configurações, catálogo, importar tabela), marque o grupo **gestor** no usuário.
+
 ## Produção (PC dedicado na rede local)
 
 ```powershell
-pip install waitress
+# 1. Uma vez: copiar .env.exemplo para .env e colar uma SECRET_KEY nova (instruções dentro do arquivo).
+copy .env.exemplo .env
+notepad .env
+
+# 2. Rodar
 waitress-serve --port=8000 config.wsgi:application
 ```
+
+Acesso pelo celular fora da loja: por VPN (ex.: Tailscale), nunca abrindo a porta do PC no roteador (D36).
+
+**Backup:** com o servidor parado, copiar `db.sqlite3` e a pasta `media/`. Com o servidor ligado, copiar também `db.sqlite3-wal` e `db.sqlite3-shm`.
 
 ## Estrutura
 

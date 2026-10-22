@@ -28,6 +28,12 @@
       border-color: var(--gold);
       color: var(--ink);
     }
+
+    &.btn--perigo {
+      background: var(--erro);
+      border-color: var(--erro);
+      color: var(--branco);
+    }
   }
 
   .card {

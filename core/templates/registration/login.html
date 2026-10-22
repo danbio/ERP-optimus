@@ -1,0 +1,31 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Entrar · Optimus Energia Solar</title>
+  <link rel="stylesheet" href="{% static 'css/tokens.css' %}">
+  <link rel="stylesheet" href="{% static 'css/base.css' %}">
+  <link rel="stylesheet" href="{% static 'css/components.css' %}">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body class="tela-entrar">
+  <form method="post" class="card entrar">
+    {% csrf_token %}
+    <img src="{% static 'img/logo.png' %}" alt="Optimus Energia Solar" class="entrar__logo">
+    {% if form.non_field_errors %}<p class="alerta alerta--erro">Usuário ou senha não conferem. Tente de novo.</p>{% endif %}
+    <div class="campo">
+      <label for="id_username">Usuário</label>
+      <input type="text" name="username" id="id_username" autocomplete="username" autocapitalize="none" required autofocus value="{{ form.username.value|default:'' }}">
+    </div>
+    <div class="campo">
+      <label for="id_password">Senha</label>
+      <input type="password" name="password" id="id_password" autocomplete="current-password" required>
+    </div>
+    <input type="hidden" name="next" value="{{ next }}">
+    <button type="submit" class="btn btn--ouro">Entrar</button>
+    <p class="ajuda">Esqueceu a senha? O gestor troca em Usuários.</p>
+  </form>
+</body>
+</html>

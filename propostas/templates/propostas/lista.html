@@ -25,7 +25,7 @@
         <tbody>
           {% for proposta in propostas %}
             <tr>
-              <td><a href="{% url 'propostas:editar' proposta.pk %}">{{ proposta.numero }} v{{ proposta.versao }}</a></td>
+              <td><a href="{% url 'propostas:editar' proposta.pk %}">{{ proposta.identificacao }}</a></td>
               <td>{{ proposta.cliente.nome }}<br><span class="ajuda">{{ proposta.cliente.telefone_formatado }}</span></td>
               <td>{{ proposta.get_nivel_display }}</td>
               <td class="num">{% if proposta.kwp %}{{ proposta.kwp|floatformat:2 }}{% else %}—{% endif %}</td>

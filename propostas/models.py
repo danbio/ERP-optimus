@@ -1,5 +1,6 @@
 from datetime import date
 
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
@@ -86,7 +87,8 @@ class Proposta(models.Model):
         LESTE_OESTE = "leste_oeste", "Leste ou oeste"
         SUL = "sul", "Sul"
 
-    numero = models.CharField(max_length=30)  # o mesmo em todas as versões (D31)
+    # O mesmo em todas as versões (D31). Vazio no rascunho: o número sai na primeira emissão (D36).
+    numero = models.CharField("número", max_length=30, null=True, blank=True)
     versao = models.PositiveIntegerField(default=1)
     origem = models.ForeignKey(
         "self", on_delete=models.SET_NULL, null=True, blank=True, related_name="revisoes"
@@ -164,6 +166,21 @@ class Proposta(models.Model):
     premissas = models.JSONField(default=dict, help_text="Snapshot das premissas no momento da emissão.")
     resultados = models.JSONField(default=dict, blank=True, help_text="Snapshot dos resultados calculados.")
     pdf = models.FileField(upload_to="propostas/", blank=True)
+    # Registro da emissão (A10, D36): entradas e saídas do cálculo, e quem fez cada ação.
+    registro = models.JSONField(default=dict, blank=True, help_text="Entradas e saídas do cálculo na emissão.")
+    emitida_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+",
+    )
+    aceita_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+",
+    )
+    perdida_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+",
+        verbose_name="marcada como perdida por",
+    )
+    aceite_desfeito_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+",
+    )
 
     class Meta:
         verbose_name = "Proposta"
@@ -172,6 +189,13 @@ class Proposta(models.Model):
         constraints = [models.UniqueConstraint(fields=["numero", "versao"], name="proposta_numero_versao_unica")]
 
     def __str__(self):
+        return self.identificacao
+
+    @property
+    def identificacao(self):
+        """"OPT-2026-0001 v2" ou, antes da primeira emissão, "Rascunho 15"."""
+        if not self.numero:
+            return f"Rascunho {self.pk}"
         return f"{self.numero} v{self.versao}"
 
     @property

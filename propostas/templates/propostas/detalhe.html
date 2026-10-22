@@ -1,7 +1,7 @@
 {% extends "core/base.html" %}
 
-{% block titulo %}{{ proposta.numero }} v{{ proposta.versao }}{% endblock %}
-{% block titulo_pagina %}Proposta {{ proposta.numero }} v{{ proposta.versao }}{% endblock %}
+{% block titulo %}{{ proposta.identificacao }}{% endblock %}
+{% block titulo_pagina %}Proposta {{ proposta.identificacao }}{% endblock %}
 
 {% block conteudo %}
   {% for mensagem in messages %}
@@ -16,6 +16,7 @@
       <span class="barra-acoes__espaco"></span>
       {% if proposta.status == "rascunho" %}
         <a href="{% url 'propostas:editar' proposta.pk %}" class="btn btn--secundario">Continuar editando</a>
+
       {% else %}
         <a href="{% url 'propostas:pdf' proposta.pk %}" class="btn btn--ouro" target="_blank">Baixar PDF</a>
       {% endif %}
@@ -25,15 +26,16 @@
       <dt>Sistema</dt><dd>{% if proposta.kwp %}{{ proposta.kwp|floatformat:2 }} kWp{% else %}—{% endif %}</dd>
       <dt>Investimento</dt><dd>{% if proposta.investimento %}R$ {{ proposta.investimento|floatformat:"2g" }}{% else %}—{% endif %}</dd>
       {% if proposta.emissao %}
-        <dt>Emissão</dt><dd>{{ proposta.emissao|date:"d/m/Y" }}</dd>
+        <dt>Emissão</dt><dd>{{ proposta.emissao|date:"d/m/Y" }}{% if proposta.emitida_por %}, por {{ proposta.emitida_por.get_full_name|default:proposta.emitida_por.username }}{% endif %}</dd>
         <dt>Válida até</dt><dd>{{ proposta.validade_ate|date:"d/m/Y" }}</dd>
       {% endif %}
-      {% if proposta.data_aceite %}<dt>Aceita em</dt><dd>{{ proposta.data_aceite|date:"d/m/Y" }}</dd>{% endif %}
-      {% if proposta.aceite_desfeito_em %}<dt>Aceite desfeito</dt><dd>{{ proposta.aceite_desfeito_em|date:"d/m/Y" }}: {{ proposta.motivo_aceite_desfeito }}</dd>{% endif %}
+      {% if proposta.data_aceite %}<dt>Aceita em</dt><dd>{{ proposta.data_aceite|date:"d/m/Y" }}{% if proposta.aceita_por %}, registrado por {{ proposta.aceita_por.get_full_name|default:proposta.aceita_por.username }}{% endif %}</dd>{% endif %}
+      {% if proposta.aceite_desfeito_em %}<dt>Aceite desfeito</dt><dd>{{ proposta.aceite_desfeito_em|date:"d/m/Y" }}{% if proposta.aceite_desfeito_por %}, por {{ proposta.aceite_desfeito_por.get_full_name|default:proposta.aceite_desfeito_por.username }}{% endif %}: {{ proposta.motivo_aceite_desfeito }}</dd>{% endif %}
       {% if proposta.motivo_perda %}
-        <dt>Motivo da perda</dt><dd>{{ proposta.get_motivo_perda_display }}{% if proposta.obs_perda %}<br>{{ proposta.obs_perda|linebreaksbr }}{% endif %}</dd>
+        <dt>Motivo da perda</dt><dd>{{ proposta.get_motivo_perda_display }}{% if proposta.perdida_por %} (registrado por {{ proposta.perdida_por.get_full_name|default:proposta.perdida_por.username }}){% endif %}{% if proposta.obs_perda %}<br>{{ proposta.obs_perda|linebreaksbr }}{% endif %}</dd>
       {% endif %}
     </dl>
+    {% if proposta.status == "rascunho" %}{% include "propostas/_descartar.html" %}{% endif %}
   </div>
 
   {% if rascunho_aberto and rascunho_aberto.pk != proposta.pk %}
