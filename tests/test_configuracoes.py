@@ -162,7 +162,7 @@ def test_telas_abrem(db, rota):
 
 def _post_premissas(**mudancas):
     dados = {
-        "ano_conexao": "2026", "horizonte_anos": "25", "razao_cc_ca_max": "1,5", "cobrar_disponibilidade": "on",
+        "ano_conexao": "2026", "horizonte_anos": "25", "razao_cc_ca_max": "1,5",
         "mo_por_kwp": "550,00", "mo_por_kwp_solo": "700", "mo_minima": "4.500,00", "dias_preco_velho": "15",
         "perdas": "14", "perda_clipping": "1", "simultaneidade": "35", "reajuste_anual": "8",
         "degradacao_ano1": "2", "degradacao_anual": "0,55",

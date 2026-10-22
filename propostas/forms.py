@@ -1,6 +1,9 @@
+import re
+from datetime import date
 from decimal import Decimal
 
 from django import forms
+from django.db.models import Q
 
 from clientes.forms import MunicipioSelect, _limpar
 from clientes.models import UnidadeConsumidora
@@ -181,9 +184,19 @@ class Passo1Form(forms.Form):
         label="CPF ou CNPJ (opcional agora)", required=False,
         widget=forms.TextInput(attrs={"data-mascara": "cpf_cnpj", "inputmode": "numeric"}),
     )
-    ligacao = forms.ChoiceField(label="Ligação", choices=UnidadeConsumidora.Ligacao.choices)
+    # Ligação e tarifa começam sem escolha: o vendedor apressado não passa direto (A14).
+    ligacao = forms.ChoiceField(
+        label="Ligação", choices=[("", "Escolha a ligação")] + UnidadeConsumidora.Ligacao.choices,
+        help_text="Veja no padrão de entrada ou na conta: 1 fase = monofásica, 2 = bifásica, 3 = trifásica.",
+    )
     tipo_tarifa = forms.ModelChoiceField(
-        queryset=TarifaVigente.objects.none(), label="Tipo de tarifa", empty_label=None,
+        queryset=TarifaVigente.objects.none(), label="Tipo de tarifa", empty_label="Escolha o tipo",
+        help_text="Residencial, rural ou comercial: está escrito na conta, em \"classe\".",
+    )
+    # Aparece só quando o telefone ou o CPF já são de um cliente com outro nome (A04).
+    mesma_pessoa = forms.ChoiceField(
+        label="É a mesma pessoa?", required=False, widget=forms.RadioSelect,
+        choices=[("sim", "Sim, usar a ficha que já existe"), ("nao", "Não, é outra pessoa")],
     )
 
     def __init__(self, *args, **kwargs):
@@ -221,6 +234,8 @@ class Passo2Form(forms.ModelForm):
         label="CPF ou CNPJ do titular", required=False,
         widget=forms.TextInput(attrs={"data-mascara": "cpf_cnpj", "inputmode": "numeric"}),
     )
+    # Aparece só quando um valor foge do normal (A06): o vendedor confere com o cliente e confirma.
+    confirmo = forms.BooleanField(label="Conferi com o cliente: o valor está certo", required=False)
 
     class Meta:
         model = Proposta
@@ -238,8 +253,10 @@ class Passo2Form(forms.ModelForm):
                    "arquivo_fatura", "cpf_cnpj"],
     }
 
-    def __init__(self, *args, perfis=(), **kwargs):
+    def __init__(self, *args, perfis=(), config=None, exigir_confirmacao=True, **kwargs):
         super().__init__(*args, **kwargs)
+        self.config = config
+        self.exigir_confirmacao = exigir_confirmacao  # a prévia ao vivo calcula mesmo sem a confirmação
         if self.is_bound:
             origem = self.data.get("origem_consumo")
             self.data = self.data.copy()
@@ -270,6 +287,41 @@ class Passo2Form(forms.ModelForm):
     def clean_cpf_cnpj(self):
         return _limpar(limpar_cpf_cnpj, self.cleaned_data["cpf_cnpj"])
 
+    def clean_numero_uc(self):
+        numero = self.cleaned_data["numero_uc"].strip()
+        if numero and (re.search(r"[^\d./\-\s]", numero) or len(re.sub(r"\D", "", numero)) < 4):
+            raise forms.ValidationError("Copie o número da UC como está na conta: só números.")
+        return numero
+
+    def clean_competencia(self):
+        competencia = self.cleaned_data["competencia"]
+        if competencia:
+            hoje = date.today()
+            if (competencia.year, competencia.month) > (hoje.year, hoje.month):
+                raise forms.ValidationError("O mês da fatura não pode ser no futuro.")
+            if (hoje.year - competencia.year) * 12 + hoje.month - competencia.month > 13:
+                raise forms.ValidationError("Fatura com mais de 13 meses. Peça uma recente ao cliente.")
+        return competencia
+
+    def _valores_fora_do_normal(self, dados):
+        """Avisos que pedem confirmação do vendedor (A06). Limites em Configurações."""
+        config, avisos = self.config, []
+        if not config:
+            return avisos
+        conta = dados.get("conta_informada")
+        if conta is not None and conta > config.conta_alta:
+            avisos.append(f"Conta de R$ {formatar_reais(conta)} é alta para o padrão.")
+        for campo in ("kwh_informado", "fatura_kwh"):
+            if dados.get(campo) is not None and dados[campo] > config.consumo_alto:
+                avisos.append(f"Consumo de {dados[campo]:.0f} kWh/mês é alto para o padrão.")
+        kwh, valor, tarifa = dados.get("fatura_kwh"), dados.get("valor_fatura"), self.instance.tipo_tarifa
+        if kwh and valor and tarifa and tarifa.aliquota_tributos:
+            por_kwh, vigente = valor / kwh, tarifa.tarifa_com_tributos
+            if abs(por_kwh / vigente - 1) > config.tolerancia_tarifa_fatura:
+                avisos.append(f"A fatura dá R$ {formatar_reais(por_kwh)}/kWh e a tarifa vigente é "
+                              f"R$ {formatar_reais(vigente)}/kWh. Confira o consumo e o valor.")
+        return avisos
+
     def clean_folga(self):
         folga = self.cleaned_data["folga"]
         return None if folga is None else Decimal(str(round(folga, 4)))
@@ -295,6 +347,9 @@ class Passo2Form(forms.ModelForm):
             self.add_error("iluminacao_publica", "A iluminação pública não pode ser negativa.")
         elif conta is not None and iluminacao is not None and iluminacao >= conta:
             self.add_error("iluminacao_publica", "A iluminação pública precisa ser menor que a conta.")
+        avisos = self._valores_fora_do_normal(dados)
+        if avisos and self.exigir_confirmacao and not dados.get("confirmo"):
+            self.add_error("confirmo", " ".join(avisos) + " Confira com o cliente e marque a caixa.")
         return dados
 
 
@@ -357,6 +412,11 @@ class Passo3Form(forms.ModelForm):
         fase = "tri" if self.instance.ligacao == "tri" else "mono"
         self.fields["inversor"].queryset = self.fields["inversor"].queryset.filter(fase=fase)
         self.fields["inversor"].label_from_instance = lambda e: f"{e.descricao} · {e.distribuidor}"
+        # Só cotações dentro da validade, mais a já escolhida (A01).
+        hoje = date.today()
+        self.fields["cotacao"].queryset = Cotacao.objects.filter(
+            Q(validade__isnull=True) | Q(validade__gte=hoje) | Q(pk=self.instance.cotacao_id)
+        )
         self.fields["cotacao"].label_from_instance = (
             lambda c: f"{c.distribuidor} {c.numero} · {c.data:%d/%m/%Y} · R$ {formatar_reais(c.total)}")
         if not self.is_bound:
@@ -388,6 +448,10 @@ class Passo3Form(forms.ModelForm):
 
 class AceiteForm(forms.Form):
     data_aceite = forms.DateField(label="Data do aceite", widget=forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"))
+
+
+class DesfazerAceiteForm(forms.Form):
+    motivo = forms.CharField(label="Por que desfazer o aceite?", widget=forms.Textarea(attrs={"rows": 2}))
 
 
 class PerdaForm(forms.Form):

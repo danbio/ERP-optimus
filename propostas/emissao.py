@@ -10,7 +10,7 @@ from django.core.files.base import ContentFile
 from django.utils import timezone
 
 from .models import Proposta
-from .montagem import gravar_resultado, montar
+from .montagem import gravar_resultado, impedimentos_de_emissao, montar
 
 
 class ErroEmissao(Exception):
@@ -33,8 +33,9 @@ def preparar_emissao(proposta):
             raise ErroEmissao("Preencha o kit e o investimento antes de emitir.")
     else:
         m = montar(proposta)
-        if not m.resultado:
-            raise ErroEmissao(m.mensagem or "Complete os passos da proposta antes de emitir.")
+        motivos = impedimentos_de_emissao(m)
+        if motivos:
+            raise ErroEmissao(" ".join(motivos))
         proposta.modulo, proposta.qtd_modulos = m.modulo, m.qtd_modulos
         proposta.inversor, proposta.qtd_inversores = m.inversor, m.qtd_inversores
         proposta.cabo_preto_m, proposta.cabo_vermelho_m = m.cabo_preto, m.cabo_vermelho
@@ -67,7 +68,7 @@ def rascunho_aberto(proposta):
 
 def revisar(proposta):
     """Nova versão em rascunho, copiando tudo (inclusive o kit). Devolve a nova proposta."""
-    if proposta.status not in (Proposta.Status.EMITIDA, Proposta.Status.PERDIDA):
+    if proposta.status not in (Proposta.Status.EMITIDA, Proposta.Status.PERDIDA, Proposta.Status.ACEITA):
         raise ErroEmissao(f"Uma proposta {proposta.get_status_display().lower()} não pode ser revisada.")
     aberto = rascunho_aberto(proposta)
     if aberto:
@@ -83,6 +84,8 @@ def revisar(proposta):
     nova.data_aceite = None
     nova.motivo_perda = ""
     nova.obs_perda = ""
+    nova.aceite_desfeito_em = None
+    nova.motivo_aceite_desfeito = ""
     nova.pdf = ""
     nova.save()
     for item in itens:
@@ -98,7 +101,24 @@ def aceitar(proposta, data):
     proposta.status = Proposta.Status.ACEITA
     proposta.data_aceite = data
     proposta.save(update_fields=["status", "data_aceite"])
-    _outras_versoes(proposta).update(status=Proposta.Status.SUBSTITUIDA)
+    # Só as emitidas e uma aceita antes viram substituídas; um rascunho aberto continua editável (A11).
+    _outras_versoes(proposta).filter(
+        status__in=[Proposta.Status.EMITIDA, Proposta.Status.ACEITA]
+    ).update(status=Proposta.Status.SUBSTITUIDA)
+
+
+def desfazer_aceite(proposta, motivo):
+    """Volta a aceita para emitida, com o motivo (D33: vendedor ou gestor). As versões que o aceite
+    substituiu continuam substituídas; para usar uma delas, revise."""
+    if proposta.status != Proposta.Status.ACEITA:
+        raise ErroEmissao("Só uma proposta aceita pode ter o aceite desfeito.")
+    if not motivo.strip():
+        raise ErroEmissao("Informe por que o aceite foi desfeito.")
+    proposta.status = Proposta.Status.EMITIDA
+    proposta.data_aceite = None
+    proposta.aceite_desfeito_em = timezone.localdate()
+    proposta.motivo_aceite_desfeito = motivo.strip()
+    proposta.save(update_fields=["status", "data_aceite", "aceite_desfeito_em", "motivo_aceite_desfeito"])
 
 
 def marcar_perdida(proposta, motivo, observacao=""):

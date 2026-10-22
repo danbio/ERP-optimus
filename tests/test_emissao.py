@@ -65,9 +65,10 @@ def test_rascunho_incompleto_nao_emite(base):
     navegador, proposta = _ate_passo2(base)
     from propostas.models import TarifaVigente
     TarifaVigente.objects.update(fiob_kwh=None)
-    _emitir(navegador, proposta)
+    resposta = _emitir(navegador, proposta)
     assert proposta.status == "rascunho" and not proposta.pdf
-    html = navegador.get(reverse("propostas:detalhe", args=[proposta.pk])).content.decode()
+    assert resposta.url == reverse("propostas:passo", args=[proposta.pk, 4])
+    html = navegador.get(resposta.url).content.decode()
     assert "Não foi possível emitir" in html
 
 
@@ -124,11 +125,43 @@ def test_aceite_grava_a_data_e_substitui_as_outras_versoes(base):
     v2.refresh_from_db()
     assert v2.status == "aceita" and v2.data_aceite.isoformat() == "2026-10-20"
     assert v1.status == "substituida"
-    # Aceita não volta a ser revisada nem perdida.
+    # Aceita não vira perdida (desfaça o aceite antes), mas pode ser revisada (A11).
     navegador.post(reverse("propostas:perdida", args=[v2.pk]), {"motivo_perda": "preco"})
-    navegador.post(reverse("propostas:revisar", args=[v2.pk]))
     v2.refresh_from_db()
-    assert v2.status == "aceita" and Proposta.objects.filter(numero=v1.numero).count() == 2
+    assert v2.status == "aceita"
+    navegador.post(reverse("propostas:revisar", args=[v2.pk]))
+    v3 = Proposta.objects.get(numero=v1.numero, versao=3)
+    assert v3.status == "rascunho" and v3.origem == v2
+
+
+def test_aceite_nao_substitui_rascunho_aberto(base):
+    navegador, v1 = _rascunho_completo(base)
+    _emitir(navegador, v1)
+    navegador.post(reverse("propostas:revisar", args=[v1.pk]))
+    v2 = Proposta.objects.get(numero=v1.numero, versao=2)
+    navegador.post(reverse("propostas:aceitar", args=[v1.pk]), {"data_aceite": "2026-10-20"})
+    v1.refresh_from_db()
+    v2.refresh_from_db()
+    assert v1.status == "aceita" and v2.status == "rascunho"
+
+
+def test_desfazer_aceite_exige_motivo_e_volta_para_emitida(base):
+    navegador, proposta = _rascunho_completo(base)
+    _emitir(navegador, proposta)
+    navegador.post(reverse("propostas:aceitar", args=[proposta.pk]), {"data_aceite": "2026-10-20"})
+    navegador.post(reverse("propostas:desfazer_aceite", args=[proposta.pk]), {"motivo": "  "})
+    proposta.refresh_from_db()
+    assert proposta.status == "aceita"
+    navegador.post(reverse("propostas:desfazer_aceite", args=[proposta.pk]),
+                   {"motivo": "Cliente desistiu do financiamento"})
+    proposta.refresh_from_db()
+    assert proposta.status == "emitida" and proposta.data_aceite is None
+    assert proposta.aceite_desfeito_em == timezone.localdate()
+    assert proposta.motivo_aceite_desfeito == "Cliente desistiu do financiamento"
+    resposta = navegador.get(reverse("propostas:detalhe", args=[proposta.pk]))
+    assert "Cliente desistiu do financiamento" in resposta.content.decode()
+    # GET não desfaz nada.
+    assert navegador.get(reverse("propostas:desfazer_aceite", args=[proposta.pk])).status_code == 405
 
 
 def test_perdida_grava_o_motivo(base):
@@ -174,3 +207,17 @@ def test_proposta_antiga_emite_e_revisa_no_formulario_antigo(proposta_alesio):
     resposta = navegador.post(reverse("propostas:revisar", args=[proposta_alesio.pk]))
     nova = Proposta.objects.get(numero=proposta_alesio.numero, versao=2)
     assert resposta.url == reverse("propostas:legado_editar", args=[nova.pk])
+
+
+def test_rotas_protegidas(base):
+    """A23: passo inexistente, voltar para site externo e ações por GET."""
+    navegador, proposta = _rascunho_completo(base)
+    assert navegador.get(reverse("propostas:passo", args=[proposta.pk, 9])).status_code == 404
+    assert navegador.post(reverse("propostas:previa", args=[proposta.pk, 0])).status_code == 404
+    resposta = navegador.post(reverse("propostas:modo_cliente"), {"voltar": "https://exemplo.com/"})
+    assert resposta.url == reverse("propostas:lista")
+    resposta = navegador.post(reverse("propostas:modo_cliente"), {"voltar": "/propostas/"})
+    assert resposta.url == "/propostas/"
+    for rota in ("emitir", "revisar", "aceitar", "perdida", "desfazer_aceite"):
+        assert navegador.get(reverse(f"propostas:{rota}", args=[proposta.pk])).status_code == 405
+    assert navegador.get(reverse("propostas:modo_cliente")).status_code == 405

@@ -91,6 +91,11 @@ class Proposta(models.Model):
     origem = models.ForeignKey(
         "self", on_delete=models.SET_NULL, null=True, blank=True, related_name="revisoes"
     )
+    # Local da instalação. Fica na proposta (não no cliente) para mudar sem afetar outras propostas (A04).
+    municipio = models.ForeignKey(
+        "core.Municipio", on_delete=models.PROTECT, null=True, blank=True, related_name="+",
+        verbose_name="município da instalação",
+    )
     cliente = models.ForeignKey(Cliente, on_delete=models.PROTECT, related_name="propostas")
     uc = models.ForeignKey(
         UnidadeConsumidora, on_delete=models.PROTECT, related_name="propostas", null=True, blank=True
@@ -103,6 +108,9 @@ class Proposta(models.Model):
     data_aceite = models.DateField("data do aceite", null=True, blank=True)
     motivo_perda = models.CharField("motivo da perda", max_length=15, choices=MotivoPerda.choices, blank=True)
     obs_perda = models.TextField("observação da perda", blank=True)
+    # Aceite desfeito (D33): a última vez, com o motivo. Volta a ser emitida.
+    aceite_desfeito_em = models.DateField("aceite desfeito em", null=True, blank=True)
+    motivo_aceite_desfeito = models.TextField("motivo do aceite desfeito", blank=True)
     validade_dias = models.PositiveIntegerField(default=15)
     investimento = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
 

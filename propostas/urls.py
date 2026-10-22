@@ -20,6 +20,7 @@ urlpatterns = [
     path("<int:pk>/revisar/", views.proposta_revisar, name="revisar"),
     path("<int:pk>/aceitar/", views.proposta_aceitar, name="aceitar"),
     path("<int:pk>/perdida/", views.proposta_perdida, name="perdida"),
+    path("<int:pk>/desfazer-aceite/", views.proposta_desfazer_aceite, name="desfazer_aceite"),
     path("recalcular/", views.recalcular, name="recalcular"),
     path("kit/nova-linha/", views.kit_nova_linha, name="kit_nova_linha"),
     path("fatura/nova/", views.fatura_novo, name="fatura_novo"),

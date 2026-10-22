@@ -45,7 +45,7 @@
           <div class="barra-acoes barra-acoes--plana assistente__acoes">
             {% if passo > 1 %}<a href="{% url 'propostas:passo' proposta.pk passo|add:'-1' %}" class="btn btn--secundario">Voltar</a>{% endif %}
             <span class="barra-acoes__espaco"></span>
-            <button type="submit" class="btn">{% if passo == 3 %}Ver proposta{% else %}Continuar{% endif %}</button>
+            <button type="submit" class="btn">{% if passo == 3 %}Ver o resultado{% else %}Continuar{% endif %}</button>
           </div>
         </form>
       {% endif %}

@@ -15,6 +15,7 @@
     --aviso: #F6E7BF;
     --erro-claro: #F8E6E2;
     --branco: #FFFFFF;
+    --marca-rascunho: rgba(180, 68, 47, 0.14);
 
     /* Tipografia */
     --fonte: "Poppins", Arial, sans-serif;
@@ -23,6 +24,7 @@
     --texto-base: 1rem;
     --texto-lg: 1.25rem;
     --texto-xl: 1.75rem;
+    --texto-marca: 7rem;
 
     /* Espaçamento */
     --esp-1: 0.25rem;

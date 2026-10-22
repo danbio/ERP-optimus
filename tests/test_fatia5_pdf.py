@@ -40,7 +40,8 @@ def proposta_alesio(uc_alesio, fatura_alesio):  # noqa: F811
     proposta = Proposta.objects.create(
         numero="OPT-2026-0001", cliente=uc_alesio.cliente, uc=uc_alesio, fatura=fatura_alesio, investimento="92502.81",
         forma_pagamento="A combinar", validade_dias=15, beneficios=config.beneficios_padrao,
-        escopo=config.escopo_padrao, texto_sobre=config.texto_sobre, premissas=config.premissas_padrao,
+        escopo=config.escopo_padrao, texto_sobre=config.texto_sobre,
+        premissas=config.premissas_padrao | {"cobrar_disponibilidade": True},  # caso Alesio guarda as suas (D33)
         emissao=date(2026, 10, 15),
     )
     ItemKit.objects.create(proposta=proposta, tipo="modulo", descricao="Módulo Huansheng 615 W",

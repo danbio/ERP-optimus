@@ -662,4 +662,21 @@
       padding: 1.2mm 3mm;
     }
   }
+
+  /* Pré-visualização de rascunho (A09): marca d'água em toda a tela. O PDF limpo só sai da emitida. */
+  .proposta-doc--rascunho::after {
+    content: "RASCUNHO";
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--texto-marca);
+    font-weight: 700;
+    letter-spacing: var(--esp-2);
+    color: var(--marca-rascunho);
+    transform: rotate(-30deg);
+    pointer-events: none;
+    z-index: 10;
+  }
 }

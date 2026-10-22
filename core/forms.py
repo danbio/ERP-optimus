@@ -109,7 +109,6 @@ class PremissasForm(forms.Form):
         label="Sobrecarga máxima do inversor (CC/CA)", min_value=1, max_value=2, decimal_places=2,
         widget=forms.TextInput(attrs={"inputmode": "decimal"}), localize=True,
     )
-    cobrar_disponibilidade = forms.BooleanField(label="Cobrar custo de disponibilidade", required=False)
 
     mo_por_kwp = CampoReais(label="Mão de obra por kWp (R$)")
     mo_por_kwp_solo = CampoReais(label="Mão de obra por kWp em solo (R$)")
@@ -128,7 +127,7 @@ class PremissasForm(forms.Form):
         premissas = config.premissas_padrao
         inicial = {chave: premissas.get(chave) for chave, _ in PREMISSAS_PERCENTUAIS}
         inicial |= {chave: premissas.get(chave) for chave in (
-            "ano_conexao", "horizonte_anos", "razao_cc_ca_max", "cobrar_disponibilidade",
+            "ano_conexao", "horizonte_anos", "razao_cc_ca_max",
         )}
         inicial |= {f"orientacao_{chave}": config.fatores_orientacao.get(chave) for chave, _ in ORIENTACOES}
         inicial |= {
@@ -145,7 +144,7 @@ class PremissasForm(forms.Form):
         premissas["ano_conexao"] = dados["ano_conexao"]
         premissas["horizonte_anos"] = dados["horizonte_anos"]
         premissas["razao_cc_ca_max"] = float(dados["razao_cc_ca_max"])
-        premissas["cobrar_disponibilidade"] = dados["cobrar_disponibilidade"]
+        premissas["cobrar_disponibilidade"] = False  # a disponibilidade não entra na economia (D33)
         config.premissas_padrao = premissas
         config.fatores_orientacao = {chave: dados[f"orientacao_{chave}"] for chave, _ in ORIENTACOES}
         config.mo_por_kwp = dados["mo_por_kwp"]

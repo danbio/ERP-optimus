@@ -12,16 +12,16 @@
 
 Objetivo: nenhuma proposta errada sai sem aviso. Cada item entra com o teste que reproduz o caso do relatório (A16).
 
-- [ ] **A03** Disponibilidade fora do dimensionamento e da economia (D33): `geracao_necessaria = consumo × (1 + folga)`; premissa padrão `cobrar_disponibilidade = False`. Caso Alesio inalterado.
-- [ ] **A02** Emissão bloqueada com alerta de erro, economia ≤ 0 ou mão de obra zerada. Acima de 75 kWp: só aviso (D33). Motivo do bloqueio no topo do passo 4.
-- [ ] **A01** Cotação vinculada com kWp diferente do sistema (mais de 5%): erro que bloqueia a emissão, com a opção "usar a quantidade da cotação". O select mostra só cotações do distribuidor do módulo e dentro da validade.
-- [ ] **A04** Cliente achado pelo telefone ou CPF: perguntar "É esta pessoa?" em vez de sobrescrever nome e município. Nome e município só mudam na tela do cliente.
-- [ ] **A06** Plausibilidade: aviso com confirmação para conta ou consumo acima do limite (limites em Configurações); erro para fatura com R$/kWh a mais de 30% da tarifa vigente, mês futuro ou com mais de 13 meses, UC fora do formato.
-- [ ] **A11** Aceite substitui só as emitidas. "Desfazer aceite" para vendedor e gestor, com motivo (D33). Aceita pode ser revisada.
-- [ ] **A14** Ligação e tipo de tarifa começam em "Escolha", com ajuda de como identificar.
-- [ ] **A15** Passo 4: erros no topo, dois botões ("Pré-visualizar" e "Emitir e baixar PDF") com confirmação, vírgula decimal e textos na língua do vendedor.
-- [ ] **A09** Pré-visualização do rascunho com marca d'água "RASCUNHO"; PDF limpo só da emitida.
-- [ ] **A23** Passo fora de 1–4, "voltar" externo no modo cliente e ações sem `@require_POST`.
+- [x] **A03** Disponibilidade fora do dimensionamento e da economia (D33): `geracao_necessaria = consumo × (1 + folga)`; premissa padrão `cobrar_disponibilidade = False`. Caso Alesio inalterado.
+- [x] **A02** Emissão bloqueada com alerta de erro, economia ≤ 0 ou mão de obra zerada. Acima de 75 kWp: só aviso (D33). Motivo do bloqueio no topo do passo 4.
+- [x] **A01** Cotação vinculada com kWp diferente do sistema (mais de 5%): erro que bloqueia a emissão, com a opção "usar a quantidade da cotação". O select mostra só cotações do distribuidor do módulo e dentro da validade.
+- [x] **A04** Cliente achado pelo telefone ou CPF: perguntar "É esta pessoa?" em vez de sobrescrever nome e município. Nome e município só mudam na tela do cliente.
+- [x] **A06** Plausibilidade: aviso com confirmação para conta ou consumo acima do limite (limites em Configurações); erro para fatura com R$/kWh a mais de 30% da tarifa vigente, mês futuro ou com mais de 13 meses, UC fora do formato.
+- [x] **A11** Aceite substitui só as emitidas. "Desfazer aceite" para vendedor e gestor, com motivo (D33). Aceita pode ser revisada.
+- [x] **A14** Ligação e tipo de tarifa começam em "Escolha", com ajuda de como identificar.
+- [x] **A15** Passo 4: erros no topo, dois botões ("Pré-visualizar" e "Emitir e baixar PDF") com confirmação, vírgula decimal e textos na língua do vendedor.
+- [x] **A09** Pré-visualização do rascunho com marca d'água "RASCUNHO"; PDF limpo só da emitida.
+- [x] **A23** Passo fora de 1–4, "voltar" externo no modo cliente e ações sem `@require_POST`.
 
 ## Rodada 2 · Login e registro
 
@@ -92,6 +92,8 @@ Depende da chave da API Anthropic no `.env`.
 
 ---
 
-## Pergunta em aberto
+## Resolvido na rodada 1
 
-- **Conta com o sistema (A03):** sem a disponibilidade no cálculo, a "conta com o sistema" pode aparecer abaixo do mínimo que a Energisa cobra (30, 50 ou 100 kWh). Mostrar esse mínimo como piso só na conta exibida, sem mexer na economia?
+- **Conta com o sistema (A03):** a conta exibida tem como piso a disponibilidade (30, 50 ou 100 kWh × tarifa) mais a iluminação pública. A economia e o dimensionamento continuam sem a disponibilidade (D33).
+- **A01:** o select de cotações esconde as vencidas; cotação de outro distribuidor aparece, mas vira erro que bloqueia a emissão (o filtro por distribuidor entra com o kit do catálogo, rodada 4).
+- **A09:** o PDF de rascunho só é recusado nas propostas v2; o formulário antigo continua com PDF até ser removido (rodada 3).

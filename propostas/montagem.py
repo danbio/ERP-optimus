@@ -81,9 +81,11 @@ class Montagem:
         if not self.resultado or self.resultado.payback_meses <= 0:
             return ""
         anos, meses = divmod(round(self.resultado.payback_meses), 12)
+        texto_anos = f"{anos} ano" if anos == 1 else f"{anos} anos"
+        texto_meses = f"{meses} mês" if meses == 1 else f"{meses} meses"
         if not anos:
-            return f"{meses} meses"
-        return f"{anos} anos" + (f" e {meses} meses" if meses else "")
+            return texto_meses
+        return texto_anos + (f" e {texto_meses}" if meses else "")
 
 
 def fase_do_inversor(ligacao):
@@ -92,9 +94,29 @@ def fase_do_inversor(ligacao):
 
 
 def municipio_da_proposta(proposta):
+    """Local da instalação: o da proposta (passo 1); nas antigas, o da UC ou o do cliente."""
+    if proposta.municipio_id:
+        return proposta.municipio
     if proposta.uc and proposta.uc.municipio_id:
         return proposta.uc.municipio
     return proposta.cliente.municipio if proposta.cliente_id else None
+
+
+def _num(valor, casas=2):
+    """1.5 → "1,50": números nos alertas com vírgula, como o vendedor lê."""
+    return f"{valor:.{casas}f}".replace(".", ",")
+
+
+def impedimentos_de_emissao(m):
+    """O que impede emitir a proposta (A02). Lista vazia = pode emitir."""
+    if not m.resultado:
+        return [m.mensagem or "Complete os passos da proposta antes de emitir."]
+    motivos = [a["texto"] for a in m.alertas if a["tipo"] == "erro"]
+    if m.resultado.economia_mensal_ano1 <= 0:
+        motivos.append("Com estes dados o sistema não gera economia. Confira o consumo e a quantidade de módulos.")
+    if not m.mao_de_obra or m.mao_de_obra - m.desconto <= 0:
+        motivos.append("A mão de obra está zerada. Informe o valor da instalação.")
+    return motivos
 
 
 # Tabela de iluminação pública usada por tipo de tarifa (D32). B2 rural não tem estimativa.
@@ -153,6 +175,18 @@ def _metros_de_cabo(cotacao, cor):
         if "cabo" in texto and cor in texto and item.unidade == "m":
             return int(item.quantidade)
     return 0
+
+
+def _conferir_cotacao(cotacao, m, tolerancia):
+    """A cotação escolhida precisa ser do mesmo distribuidor e do mesmo tamanho do sistema (A01)."""
+    if cotacao.distribuidor.lower() != m.modulo.distribuidor.lower():
+        m.alerta("erro", f"A cotação é da {cotacao.distribuidor} e o módulo é da {m.modulo.distribuidor}. "
+                         "Escolha a cotação do mesmo distribuidor.")
+    kwp_cotacao = float(cotacao.kwp)
+    if abs(m.kwp - kwp_cotacao) > kwp_cotacao * tolerancia:
+        quantidade = round(kwp_cotacao * 1000 / m.modulo.potencia_w)
+        m.alerta("erro", f"A cotação {cotacao.numero or ''} é de {_num(kwp_cotacao)} kWp e o sistema tem "
+                         f"{_num(m.kwp)} kWp. Use {quantidade} módulos ou escolha outra cotação.".replace("  ", " "))
 
 
 def _consumo(proposta, m):
@@ -238,7 +272,7 @@ def montar(proposta, config=None):
     fator = premissas["fator_orientacao"] if "fator_orientacao" in premissas else 1.0
     perdas, clipping = premissas["perdas"], premissas["perda_clipping"]
     m.kwp_necessario = calculo.kwp_necessario(
-        m.consumo, folga, m.disponibilidade, irradiacao, perdas, clipping, fator,
+        m.consumo, folga, irradiacao, perdas, clipping, fator,
     )
 
     m.modulo = proposta.modulo or sugerir_modulo()
@@ -288,11 +322,17 @@ def montar(proposta, config=None):
         m.area = m.qtd_modulos * float(m.modulo.area_m2)
 
     if m.sobrecarga > sobrecarga_max:
-        m.alerta("erro", f"Sobrecarga de {m.sobrecarga:.2f} acima de {sobrecarga_max:.2f}. Escolha um inversor maior.")
+        m.alerta("erro", f"Inversor pequeno demais: os módulos somam {_num(m.sobrecarga)} vezes a potência dele "
+                         f"(máximo {_num(sobrecarga_max)}). Escolha um inversor maior ou mais um inversor.")
     elif m.sobrecarga < 0.8:
-        m.alerta("aviso", f"Sobrecarga de {m.sobrecarga:.2f}: inversor grande para o sistema. Há modelo menor?")
+        m.alerta("aviso", f"Inversor grande para o sistema: os módulos somam só {_num(m.sobrecarga)} vezes a "
+                          "potência dele. Há modelo menor?")
     if m.inversor.fase and m.inversor.fase != fase:
         m.alerta("erro", f"Ligação {proposta.get_ligacao_display().lower()} com inversor {m.inversor.get_fase_display().lower()}.")
+    limite = float(config.limite_microgeracao_kwp)
+    if m.kwp > limite:
+        m.alerta("aviso", f"Sistema de {_num(m.kwp)} kWp: acima de {_num(limite, 0)} kWp deixa de ser microgeração "
+                          "(Grupo A). Confira com o gestor.", interno=False)
 
     # ---- Preço
     if proposta.custo_kit is not None:
@@ -306,9 +346,11 @@ def montar(proposta, config=None):
                           f"{m.cotacao_ref.data:%d/%m/%Y}. Cote o kit e informe o valor real.")
     else:
         m.mensagem = f"Sem cotação de referência da {m.modulo.distribuidor}. Informe o custo do kit."
+    if proposta.cotacao_id:
+        _conferir_cotacao(proposta.cotacao, m, float(config.tolerancia_kwp_cotacao))
     referencia_preco = proposta.cotacao or m.cotacao_ref
     if referencia_preco and referencia_preco.idade_dias > config.dias_preco_velho:
-        m.alerta("aviso", f"Preço do kit com {referencia_preco.idade_dias} dias. Peça cotação nova.")
+        m.alerta("aviso", f"Preço do kit com {referencia_preco.idade_dias} dias. Peça uma cotação nova.")
 
     solo = proposta.tipo_estrutura == "solo"
     m.mo_sugerida = calculo.mao_de_obra_sugerida(
@@ -349,8 +391,8 @@ def montar(proposta, config=None):
     )
     try:
         m.resultado = calculo.calcular(entrada)
-    except ZeroDivisionError:
-        m.mensagem = "Com estes dados o sistema não gera economia. Confira consumo e quantidade de módulos."
+    except ZeroDivisionError:  # economia exatamente zero: o retorno não existe
+        m.mensagem = "Com estes dados o sistema não gera economia. Confira o consumo e a quantidade de módulos."
         return m
     for texto in m.resultado.alertas:
         if not texto.startswith("Razão CC/CA"):  # a sobrecarga já tem alerta próprio
@@ -360,7 +402,10 @@ def montar(proposta, config=None):
         m.conta_hoje = float(proposta.conta_informada)  # o valor que o cliente paga, com bandeira e iluminação
     else:
         m.conta_hoje = m.consumo * m.tarifa_kwh + m.iluminacao
-    m.conta_com_sistema = max(m.conta_hoje - m.resultado.economia_mensal_ano1, 0)
+    # A economia ignora a disponibilidade (D33), mas a conta mostrada não fica abaixo do mínimo que a
+    # distribuidora cobra: disponibilidade (30/50/100 kWh) mais a iluminação pública.
+    conta_minima = m.disponibilidade * m.tarifa_kwh + m.iluminacao
+    m.conta_com_sistema = max(m.conta_hoje - m.resultado.economia_mensal_ano1, conta_minima)
 
     taxas = [(t.banco, t.prazo_meses, float(t.taxa_mensal)) for t in TaxaFinanciamento.objects.all()]
     m.financiamento = [

@@ -1,9 +1,14 @@
 <h2>Proposta para {{ proposta.cliente.nome }}</h2>
-<p class="ajuda">{{ m.kwp|floatformat:2 }} kWp · {{ m.qtd_modulos }} módulos · {{ proposta.cliente.municipio.nome }}/TO · {{ proposta.tipo_tarifa.get_tipo_display }}</p>
+<p class="ajuda">{{ m.kwp|floatformat:2 }} kWp · {{ m.qtd_modulos }} módulos · {{ m.municipio.nome }}/{{ m.municipio.uf }} · {{ proposta.tipo_tarifa.get_tipo_display }}</p>
 
 {% if proposta.nivel == "estimativa" %}<p class="aviso-estimativa">{{ aviso_estimativa }}</p>{% endif %}
 
-{% if m.mensagem %}
+{% if impedimentos %}
+  <div class="impedimentos interno">
+    <p class="alerta alerta--erro"><b>Ainda não dá para emitir.</b> Corrija antes:</p>
+    {% for motivo in impedimentos %}<p class="alerta alerta--erro">{{ motivo }}</p>{% endfor %}
+  </div>
+{% elif m.mensagem %}
   <p class="alerta alerta--erro">{{ m.mensagem }}</p>
 {% endif %}
 
@@ -51,7 +56,7 @@
 
   {% if m.alertas %}
     <div class="alertas">
-      {% for a in m.alertas %}<p class="alerta alerta--{{ a.tipo }}{% if a.interno %} interno{% endif %}">{{ a.texto }}</p>{% endfor %}
+      {% for a in m.alertas %}{% if a.tipo != "erro" %}<p class="alerta alerta--{{ a.tipo }}{% if a.interno %} interno{% endif %}">{{ a.texto }}</p>{% endif %}{% endfor %}
     </div>
   {% endif %}
 {% endif %}
@@ -61,11 +66,25 @@
   <span class="barra-acoes__espaco"></span>
   <a href="{% url 'propostas:lista' %}" class="btn btn--secundario">Rascunho salvo · ver propostas</a>
   {% if m.resultado %}
-    <a href="{% url 'propostas:preview' proposta.pk %}" class="btn btn--secundario" target="_blank">Ver proposta</a>
-    <a href="{% url 'propostas:pdf' proposta.pk %}" class="btn btn--secundario" target="_blank">Gerar PDF</a>
-    <form method="post" action="{% url 'propostas:emitir' proposta.pk %}">
-      {% csrf_token %}
-      <button type="submit" class="btn btn--ouro">Emitir proposta</button>
-    </form>
+    <a href="{% url 'propostas:preview' proposta.pk %}" class="btn btn--secundario" target="_blank">Pré-visualizar</a>
   {% endif %}
 </div>
+
+{% if m.resultado and not impedimentos %}
+  <details class="confirmar-emissao">
+    <summary class="btn btn--ouro">Emitir e gerar o PDF</summary>
+    <div class="confirmar-emissao__corpo">
+      <p>Depois de emitida, a proposta não muda mais. Para corrigir, você cria uma nova versão com o mesmo número.</p>
+      <ul>
+        <li>{{ proposta.cliente.nome }}, {{ m.municipio.nome }}/{{ m.municipio.uf }}</li>
+        <li>{{ m.kwp|floatformat:2 }} kWp, {{ m.qtd_modulos }} módulos</li>
+        <li>Investimento: R$ {{ m.investimento|floatformat:"2g" }}</li>
+        <li>{% if proposta.nivel == "estimativa" %}Estimativa, sem fatura{% else %}Confirmada pela fatura{% endif %}</li>
+      </ul>
+      <form method="post" action="{% url 'propostas:emitir' proposta.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn--ouro">Confirmo, emitir agora</button>
+      </form>
+    </div>
+  </details>
+{% endif %}

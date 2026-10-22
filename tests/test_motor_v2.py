@@ -37,20 +37,20 @@ def test_kwh_pela_conta_recusa_conta_menor_que_iluminacao():
 
 
 def test_geracao_necessaria():
-    assert geracao_necessaria(800, 0.10, 50) == pytest.approx(830)
-    assert geracao_necessaria(40, 0, 50) == 0  # consome menos que a disponibilidade
+    assert geracao_necessaria(800, 0.10) == pytest.approx(880)
+    assert geracao_necessaria(40, 0) == 40  # a disponibilidade não entra (D33)
 
 
 def test_kwp_necessario_bate_com_a_geracao():
-    kwp = kwp_necessario(800, 0.0, 50, GURUPI, 0.14, 0.01, 1.0)
+    kwp = kwp_necessario(750, 0.0, GURUPI, 0.14, 0.01, 1.0)
     gerado_ano = sum(kwp * irr * dias * 0.86 * 0.99 for irr, dias in zip(GURUPI, [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]))
     assert gerado_ano / 12 == pytest.approx(750)
     assert kwp == pytest.approx(5.26, abs=0.01)
 
 
 def test_kwp_necessario_cresce_com_orientacao_pior():
-    norte = kwp_necessario(800, 0.1, 50, GURUPI, 0.14, 0.01, 1.0)
-    leste = kwp_necessario(800, 0.1, 50, GURUPI, 0.14, 0.01, 0.9)
+    norte = kwp_necessario(800, 0.1, GURUPI, 0.14, 0.01, 1.0)
+    leste = kwp_necessario(800, 0.1, GURUPI, 0.14, 0.01, 0.9)
     assert leste == pytest.approx(norte / 0.9)
 
 
