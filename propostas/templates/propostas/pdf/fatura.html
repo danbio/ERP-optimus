@@ -51,11 +51,7 @@
   {% endif %}
 
   <p class="doc-nota">
-    {% if fiob_informado %}
-      TUSD Fio B informada: R$ {{ fiob_kwh|floatformat:4 }}/kWh. É a parcela cobrada sobre a energia compensada, conforme a Lei 14.300/2022.
-    {% else %}
-      O serviço de distribuição (R$ {{ fatura.valor_distribuicao|floatformat:"2g" }} no mês, ≈ R$ {{ fiob_kwh|floatformat:2 }}/kWh com tributos) é a parcela usada como referência para a cobrança do Fio B sobre a energia compensada, conforme a Lei 14.300/2022.
-    {% endif %}
+    TUSD Fio B: R$ {{ fiob_kwh|floatformat:4 }}/kWh. É a parcela cobrada sobre a energia compensada, conforme a Lei 14.300/2022.
   </p>
   {% include "propostas/pdf/_rodape.html" %}
 </section>

@@ -28,24 +28,20 @@ def preparar_emissao(proposta, usuario=None):
     """
     if proposta.status != Proposta.Status.RASCUNHO:
         raise ErroEmissao("Só um rascunho pode ser emitido.")
-    if proposta.eh_antiga:
-        if not proposta.investimento or not proposta.itens_kit.exists():
-            raise ErroEmissao("Preencha o kit e o investimento antes de emitir.")
-    else:
-        m = montar(proposta)
-        motivos = impedimentos_de_emissao(m)
-        if motivos:
-            raise ErroEmissao(" ".join(motivos))
-        proposta.modulo, proposta.qtd_modulos = m.modulo, m.qtd_modulos
-        proposta.inversor, proposta.qtd_inversores = m.inversor, m.qtd_inversores
-        proposta.cabo_preto_m, proposta.cabo_vermelho_m = m.cabo_preto, m.cabo_vermelho
-        proposta.custo_kit = _reais(m.custo_kit)
-        proposta.mao_de_obra = _reais(m.mao_de_obra)
-        proposta.desconto, proposta.desconto_pct = _reais(m.desconto), None
-        if m.prazo:
-            proposta.prazo_comparacao = m.prazo
-        gravar_resultado(proposta, m)  # snapshot das premissas e dos resultados, kit e investimento
-        proposta.registro = registro_da_emissao(proposta, m, proposta.premissas)
+    m = montar(proposta)
+    motivos = impedimentos_de_emissao(m)
+    if motivos:
+        raise ErroEmissao(" ".join(motivos))
+    proposta.modulo, proposta.qtd_modulos = m.modulo, m.qtd_modulos
+    proposta.inversor, proposta.qtd_inversores = m.inversor, m.qtd_inversores
+    proposta.cabo_preto_m, proposta.cabo_vermelho_m = m.cabo_preto, m.cabo_vermelho
+    proposta.custo_kit = _reais(m.custo_kit)
+    proposta.mao_de_obra = _reais(m.mao_de_obra)
+    proposta.desconto, proposta.desconto_pct = _reais(m.desconto), None
+    if m.prazo:
+        proposta.prazo_comparacao = m.prazo
+    gravar_resultado(proposta, m)  # snapshot das premissas e dos resultados, kit e investimento
+    proposta.registro = registro_da_emissao(proposta, m, proposta.premissas)
     if not proposta.numero:
         proposta.numero = Proposta.proximo_numero()  # número definitivo só na primeira emissão (A13)
     proposta.status = Proposta.Status.EMITIDA

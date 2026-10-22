@@ -11,7 +11,7 @@ from django.urls import reverse
 from clientes.models import Cliente
 from orcamentos import views
 from orcamentos.importacao import aplicar_importacao
-from orcamentos.models import ItemOrcamento, MarkupSegmento, Orcamento, Produto, TabelaPreco
+from orcamentos.models import MarkupSegmento, Orcamento, Produto, TabelaPreco
 from orcamentos.services.tabela_intelbras import LeituraTabela, ler_tabela
 
 

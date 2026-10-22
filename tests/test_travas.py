@@ -13,7 +13,7 @@ from propostas.models import Cotacao, Equipamento, Proposta
 from propostas.services import calculo
 from propostas.montagem import impedimentos_de_emissao, montar
 
-from .test_proposta_v2 import _ate_passo2, _passo1, _passo2, _passo3, base  # noqa: F401 (fixture)
+from .test_proposta_v2 import _ate_passo2, _passo1, _passo2, _passo3
 
 
 @pytest.fixture(autouse=True)

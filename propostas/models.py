@@ -13,17 +13,6 @@ class FaturaReferencia(models.Model):
     kwh = models.PositiveIntegerField("consumo (kWh)")
     dias_ciclo = models.PositiveIntegerField("dias do ciclo")
     valor_total = models.DecimalField(max_digits=10, decimal_places=2)
-    # Os três abaixo só a proposta antiga (fatia 4) usa; na v2 a tarifa vem de TarifaVigente (D29).
-    tarifa_kwh = models.DecimalField(
-        "tarifa com tributos (R$/kWh)", max_digits=10, decimal_places=6, null=True, blank=True
-    )
-    valor_distribuicao = models.DecimalField(
-        "serviço de distribuição, sem tributos (R$)", max_digits=10, decimal_places=2, null=True, blank=True
-    )
-    impostos = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    tusd_fiob_kwh = models.DecimalField(
-        "TUSD Fio B informada (R$/kWh)", max_digits=10, decimal_places=6, null=True, blank=True
-    )
     composicao = models.JSONField(
         null=True, blank=True, help_text='Opcional: [{"item": "...", "pct": 31.68}, ...]'
     )
@@ -54,7 +43,7 @@ class FioBEscalonamento(models.Model):
 class Proposta(models.Model):
     """Só `rascunho` é editável. "Revisar" uma emitida cria nova versão em rascunho copiando tudo.
 
-    Proposta v2 (D17–D29): `origem_consumo` preenchido. Proposta antiga (fatia 4): vazio.
+    Entrada em 4 passos (D17–D29); a proposta da fatia 4 (formulário antigo) foi removida na rodada 3.
     """
 
     class Status(models.TextChoices):
@@ -214,11 +203,6 @@ class Proposta(models.Model):
     @property
     def situacao_display(self):
         return "Vencida" if self.vencida else self.get_status_display()
-
-    @property
-    def eh_antiga(self):
-        """Proposta da fatia 4: tem fatura completa e não passou pelos 4 passos."""
-        return not self.origem_consumo and self.fatura_id is not None
 
     @classmethod
     def proximo_numero(cls, ano=None):

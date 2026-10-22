@@ -1,4 +1,4 @@
-"""Fatia 5: PDF da proposta.
+"""Fatia 5: PDF da proposta (gráficos, cores, anexo da fatura).
 
 O Playwright é trocado por um PDF falso nos testes da view (como no orçamento),
 para os testes rodarem sem Chromium. A mescla do anexo usa PDFs de verdade,
@@ -6,21 +6,18 @@ gerados pelo pypdf.
 """
 
 import io
-from datetime import date
 
-import pytest
-from django.core.files.base import ContentFile
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client
 from django.urls import reverse
 from pypdf import PdfReader, PdfWriter
 
-from core.models import ConfigEmpresa
 from propostas import views
-from propostas.models import ItemKit, Proposta
+from propostas.models import Proposta
 from propostas.services import graficos
 from propostas.services.pdf import ler_cores, mesclar_anexo
 
-from .test_fatia4_proposta_view import fatura_alesio, uc_alesio  # noqa: F401 (fixtures)
+from .test_proposta_v2 import _passo1, _passo2, _passo3
 
 CORES = {"navy": "#123643", "gold": "#D4A429", "ink": "#1E2A30", "muted": "#6B7A80", "line": "#DCE2E4", "erro": "#B4442F"}
 
@@ -32,23 +29,6 @@ def _pdf_em_branco(n_paginas, largura=595, altura=842):
     buffer = io.BytesIO()
     escritor.write(buffer)
     return buffer.getvalue()
-
-
-@pytest.fixture
-def proposta_alesio(uc_alesio, fatura_alesio):  # noqa: F811
-    config = ConfigEmpresa.obter()
-    proposta = Proposta.objects.create(
-        numero="OPT-2026-0001", cliente=uc_alesio.cliente, uc=uc_alesio, fatura=fatura_alesio, investimento="92502.81",
-        forma_pagamento="A combinar", validade_dias=15, beneficios=config.beneficios_padrao,
-        escopo=config.escopo_padrao, texto_sobre=config.texto_sobre,
-        premissas=config.premissas_padrao | {"cobrar_disponibilidade": True},  # caso Alesio guarda as suas (D33)
-        emissao=date(2026, 10, 15),
-    )
-    ItemKit.objects.create(proposta=proposta, tipo="modulo", descricao="Módulo Huansheng 615 W",
-                           quantidade=90, potencia_w=615, ordem=0)
-    ItemKit.objects.create(proposta=proposta, tipo="inversor", descricao="Inversor Deye SUN-20K-G05",
-                           quantidade=2, potencia_w=20000, ordem=1)
-    return proposta
 
 
 def test_ler_cores_de_tokens_css(settings):
@@ -75,27 +55,9 @@ def test_mesclar_anexo_carimba_nas_ultimas_paginas():
     assert len(resultado.pages) == 9
 
 
-@pytest.mark.django_db
-def test_preview_mostra_numeros_do_caso_alesio(proposta_alesio):
-    resposta = Client().get(reverse("propostas:preview", args=[proposta_alesio.pk]))
-    assert resposta.status_code == 200
-    html = resposta.content.decode()
-    assert "On-grid 55,35 kWp" in html
-    assert "7.237 kWh" in html  # geração média mensal
-    assert "R$ 6.774" in html  # economia mensal (1º ano)
-    assert "≈ 14 meses" in html  # payback
-    assert "R$ 1,67 por Wp" in html
-    assert "R$ 3.070.505" in html  # saldo acumulado ano 25
-    assert "75% (2027), 90% (2028) e 100% (2029 em diante)" in html
-    assert "/7</span>" in html  # sem fatura anexada: 7 páginas
-    assert "<svg" in html
-
-
-@pytest.mark.django_db
-def test_pdf_com_fatura_anexada(proposta_alesio, monkeypatch):
-    fatura = proposta_alesio.fatura
-    fatura.arquivo.save("fatura.pdf", ContentFile(_pdf_em_branco(2)), save=True)
-
+def test_pdf_com_fatura_anexada(base, monkeypatch, settings, tmp_path):
+    """Proposta confirmada: a fatura entra como Anexo I, depois das 7 páginas fixas."""
+    settings.MEDIA_ROOT = tmp_path
     html_recebido = {}
 
     def falso_html_para_pdf(html):
@@ -103,7 +65,16 @@ def test_pdf_com_fatura_anexada(proposta_alesio, monkeypatch):
         return _pdf_em_branco(9)  # 7 páginas fixas + 2 molduras do anexo
 
     monkeypatch.setattr(views, "html_para_pdf", falso_html_para_pdf)
-    resposta = Client().get(reverse("propostas:pdf", args=[proposta_alesio.pk]))
+    navegador = Client()
+    _passo1(navegador, base)
+    proposta = Proposta.objects.get()
+    _passo2(navegador, proposta, base, origem_consumo="fatura", conta_informada="", numero_uc="123456",
+            endereco="Rua 1", competencia="2026-09-01", fatura_kwh="620", dias_ciclo="31", valor_fatura="845,30",
+            cpf_cnpj="529.982.247-25",
+            arquivo_fatura=SimpleUploadedFile("fatura.pdf", _pdf_em_branco(2), content_type="application/pdf"))
+    _passo3(navegador, proposta)
+    navegador.post(reverse("propostas:emitir", args=[proposta.pk]))
+    resposta = navegador.get(reverse("propostas:pdf", args=[proposta.pk]))
 
     assert resposta.status_code == 200
     assert resposta["Content-Type"] == "application/pdf"

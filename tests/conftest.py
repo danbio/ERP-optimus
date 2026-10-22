@@ -1,7 +1,12 @@
 """Configuração comum dos testes."""
 
+from decimal import Decimal
+
 import pytest
 from django.test import Client
+
+from core.models import ConfigEmpresa, Municipio
+from propostas.models import Bandeira, TarifaVigente, TaxaFinanciamento
 
 
 @pytest.fixture(autouse=True)
@@ -23,3 +28,17 @@ def entrar_como_gestor(request, monkeypatch):
         self.force_login(gestor)
 
     monkeypatch.setattr(Client, "__init__", criar_e_entrar)
+
+
+@pytest.fixture
+def base(db):
+    """Tarifas com tributos e Fio B preenchidos pelo gestor e duas taxas de financiamento."""
+    TarifaVigente.objects.update(aliquota_tributos=Decimal("0.25"), fiob_kwh=Decimal("0.30"))
+    TaxaFinanciamento.objects.create(banco="BV", prazo_meses=60, taxa_mensal=Decimal("0.0159"), vigente_desde="2026-10-21")
+    TaxaFinanciamento.objects.create(banco="BV", prazo_meses=12, taxa_mensal=Decimal("0.0139"), vigente_desde="2026-10-21")
+    return {
+        "b1": TarifaVigente.objects.get(tipo="B1"),
+        "gurupi": Municipio.objects.get(codigo_ibge=1709500),
+        "verde": Bandeira.objects.get(nome="Verde"),
+        "perfil": ConfigEmpresa.obter().perfis_simultaneidade[0]["nome"],
+    }

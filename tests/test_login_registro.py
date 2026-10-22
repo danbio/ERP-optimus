@@ -13,7 +13,7 @@ from propostas import views
 from propostas.models import Proposta
 from propostas.montagem import premissas_da_proposta
 
-from .test_proposta_v2 import _ate_passo2, _passo3, base  # noqa: F401 (fixture)
+from .test_proposta_v2 import _ate_passo2, _passo3
 
 
 @pytest.fixture(autouse=True)
