@@ -544,7 +544,8 @@
     align-items: center;
     gap: 4mm;
     background: var(--light);
-    margin-bottom: 3mm;
+    margin-bottom: 2mm;
+    break-inside: avoid;
 
     & .kit__qtd {
       align-self: stretch;
@@ -552,9 +553,9 @@
       place-items: center;
       background: var(--navy);
       color: var(--gold);
-      font-size: 12pt;
+      font-size: 11pt;
       font-weight: 700;
-      padding: 4mm 0;
+      padding: 2.5mm 0;
     }
 
     & strong {

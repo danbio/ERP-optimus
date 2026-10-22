@@ -31,6 +31,7 @@ class EquipamentoForm(forms.ModelForm):
         fields = [
             "tipo", "distribuidor", "codigo", "fabricante", "modelo", "descricao", "potencia_w",
             "fase", "tensao", "tipo_estrutura", "area_m2", "preco_referencia", "preco_em",
+            "funcao", "pecas_por_embalagem", "mppts", "modulos_por_micro", "espessura_mm",
             "foto", "datasheet", "ativo",
         ]
         labels = {
@@ -51,6 +52,8 @@ class EquipamentoForm(forms.ModelForm):
         dados = super().clean()
         if dados.get("tipo") in ("modulo", "inversor", "microinversor") and not dados.get("potencia_w"):
             self.add_error("potencia_w", "Informe a potência: o dimensionamento usa este valor.")
+        if dados.get("tipo") == "microinversor" and not dados.get("modulos_por_micro"):
+            self.add_error("modulos_por_micro", "Informe quantos módulos ligam em cada micro.")
         if dados.get("tipo") == "inversor" and not dados.get("fase"):
             self.add_error("fase", "Informe a fase: a sugestão de inversor filtra pela ligação do cliente.")
         return dados
@@ -315,18 +318,28 @@ class DescontoField(forms.CharField):
         return reais, None
 
 
+# Papéis do kit que o vendedor pode trocar ou mudar a quantidade no passo 3 (D34).
+PAPEIS_EDITAVEIS = [valor for valor, _ in Equipamento.Funcao.choices if valor != "juncao"]
+EXTRAS_EM_BRANCO = 2
+
+
 class Passo3Form(forms.ModelForm):
+    """Sistema e preço (D34): módulo e quantidade primeiro, depois inversor, fileiras, kit e preço.
+
+    Os itens do kit têm campos `kit_<papel>_equipamento` e `kit_<papel>_qtd` (vazio = sugestão;
+    quantidade 0 = tirar do kit) e os acrescentados, `extra_<n>_equipamento` e `extra_<n>_qtd`.
+    """
+
     modulo = forms.ModelChoiceField(
         queryset=Equipamento.objects.filter(tipo="modulo", ativo=True, potencia_w__isnull=False),
-        required=False, label="Módulo", empty_label="Sugestão do sistema",
+        required=False, label="Módulo", empty_label="Sugestão do sistema (menor R$/Wp)",
     )
     inversor = forms.ModelChoiceField(
-        queryset=Equipamento.objects.filter(tipo="inversor", ativo=True, potencia_w__isnull=False),
-        required=False, label="Inversor", empty_label="Sugestão do sistema",
+        queryset=Equipamento.objects.none(), required=False, label="Inversor", empty_label="Sugestão do sistema",
     )
     cotacao = forms.ModelChoiceField(
         queryset=Cotacao.objects.all(), required=False, label="Cotação do kit para esta proposta",
-        empty_label="Ainda não cotei",
+        empty_label="Ainda não cotei (usar o catálogo)",
     )
     custo_kit = CampoReais(label="Custo do kit (R$, com frete)", required=False)
     mao_de_obra = CampoReais(label="Mão de obra (R$)", required=False)
@@ -334,25 +347,35 @@ class Passo3Form(forms.ModelForm):
 
     class Meta:
         model = Proposta
-        fields = ["orientacao", "tipo_estrutura", "modulo", "qtd_modulos", "inversor", "qtd_inversores",
-                  "cabo_preto_m", "cabo_vermelho_m", "cotacao", "custo_kit", "mao_de_obra"]
+        fields = ["orientacao", "tipo_estrutura", "modulo", "qtd_modulos", "tipo_inversor", "inversor",
+                  "qtd_inversores", "fileiras", "cotacao", "custo_kit", "mao_de_obra"]
         labels = {
             "orientacao": "Orientação do telhado", "tipo_estrutura": "Estrutura",
             "qtd_modulos": "Quantidade de módulos", "qtd_inversores": "Quantidade de inversores",
-            "cabo_preto_m": "Cabo solar preto 4 mm (m)", "cabo_vermelho_m": "Cabo solar vermelho 4 mm (m)",
+            "tipo_inversor": "Tipo de inversor", "fileiras": "Módulos por fileira",
         }
-        widgets = {campo: forms.NumberInput(attrs={"inputmode": "numeric", "min": 0}) for campo in (
-            "qtd_modulos", "qtd_inversores", "cabo_preto_m", "cabo_vermelho_m")}
+        help_texts = {"fileiras": 'Ex.: 6+5 são duas fileiras, uma de 6 e outra de 5. Em branco, o sistema divide.'}
+        widgets = {
+            "qtd_modulos": forms.NumberInput(attrs={"inputmode": "numeric", "min": 0}),
+            "qtd_inversores": forms.NumberInput(attrs={"inputmode": "numeric", "min": 0}),
+            "tipo_inversor": forms.RadioSelect,
+            "fileiras": forms.TextInput(attrs={"inputmode": "numeric", "placeholder": "6+5"}),
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["orientacao"].required = True
         self.fields["orientacao"].choices = Proposta.Orientacao.choices
         self.fields["tipo_estrutura"] = forms.ChoiceField(label="Estrutura", choices=Equipamento.TipoEstrutura.choices)
-        self.fields["modulo"].label_from_instance = lambda e: f"{e.descricao} · {e.distribuidor}"
+        self.fields["tipo_inversor"].choices = Proposta.TipoInversor.choices
+        self.fields["tipo_inversor"].required = False  # sem escolha: inversor string
+        self.fields["modulo"].label_from_instance = _rotulo_com_preco
         fase = "tri" if self.instance.ligacao == "tri" else "mono"
-        self.fields["inversor"].queryset = self.fields["inversor"].queryset.filter(fase=fase)
-        self.fields["inversor"].label_from_instance = lambda e: f"{e.descricao} · {e.distribuidor}"
+        self.fields["inversor"].queryset = Equipamento.objects.filter(
+            Q(tipo="inversor", fase=fase) | Q(tipo="microinversor"), ativo=True, potencia_w__isnull=False,
+        ).order_by("tipo", "potencia_w", "preco_referencia")
+        self.fields["inversor"].label_from_instance = (
+            lambda e: ("Micro · " if e.tipo == "microinversor" else "") + _rotulo_com_preco(e))
         # Só cotações dentro da validade, mais a já escolhida (A01).
         hoje = date.today()
         self.fields["cotacao"].queryset = Cotacao.objects.filter(
@@ -365,6 +388,58 @@ class Passo3Form(forms.ModelForm):
                 self.initial["desconto_texto"] = f"{formatar_percentual(float(self.instance.desconto_pct))}%"
             elif self.instance.desconto is not None:
                 self.initial["desconto_texto"] = formatar_reais(self.instance.desconto)
+        self._campos_do_kit()
+
+    def _campos_do_kit(self):
+        ajustes = self.instance.ajustes_kit or {}
+        for papel in PAPEIS_EDITAVEIS:
+            ajuste = ajustes.get(papel) or {}
+            campo = forms.ModelChoiceField(
+                queryset=Equipamento.objects.filter(funcao=papel, ativo=True).order_by("preco_referencia"),
+                required=False, empty_label="Sugestão do sistema", label="Item",
+                initial=ajuste.get("equipamento"))
+            campo.label_from_instance = _rotulo_com_preco
+            self.fields[f"kit_{papel}_equipamento"] = campo
+            self.fields[f"kit_{papel}_qtd"] = forms.IntegerField(
+                required=False, min_value=0, label="Quantidade", initial=ajuste.get("quantidade"),
+                widget=forms.NumberInput(attrs={"inputmode": "numeric", "min": 0}))
+        extras = ajustes.get("extras", [])
+        catalogo = Equipamento.objects.filter(ativo=True).exclude(tipo__in=["modulo", "inversor", "microinversor"])
+        for n in range(len(extras) + EXTRAS_EM_BRANCO):
+            extra = extras[n] if n < len(extras) else {}
+            campo = forms.ModelChoiceField(queryset=catalogo.order_by("tipo", "descricao"), required=False,
+                                           empty_label="Acrescentar item do catálogo", label="Item",
+                                           initial=extra.get("equipamento"))
+            campo.label_from_instance = _rotulo_com_preco
+            self.fields[f"extra_{n}_equipamento"] = campo
+            self.fields[f"extra_{n}_qtd"] = forms.IntegerField(
+                required=False, min_value=0, label="Quantidade", initial=extra.get("quantidade"),
+                widget=forms.NumberInput(attrs={"inputmode": "numeric", "min": 0}))
+        self.n_extras = len(extras) + EXTRAS_EM_BRANCO
+
+    def linhas_do_kit(self, m):
+        """Para o template: cada item do kit montado com os campos de troca e de quantidade."""
+        linhas = []
+        for linha in m.kit if m else []:
+            if linha.funcao in PAPEIS_EDITAVEIS:
+                linhas.append({"linha": linha, "item": self[f"kit_{linha.funcao}_equipamento"],
+                               "qtd": self[f"kit_{linha.funcao}_qtd"]})
+        return linhas
+
+    def extras(self):
+        return [{"item": self[f"extra_{n}_equipamento"], "qtd": self[f"extra_{n}_qtd"]} for n in range(self.n_extras)]
+
+    def clean_tipo_inversor(self):
+        return self.cleaned_data.get("tipo_inversor") or Proposta.TipoInversor.STRING
+
+    def clean_fileiras(self):
+        texto = (self.cleaned_data.get("fileiras") or "").strip()
+        if not texto:
+            return ""
+        partes = [p for p in re.split(r"[+,;\s]+", texto) if p]
+        if not all(p.isdigit() and int(p) > 0 for p in partes):
+            raise forms.ValidationError("Use só números separados por +, por exemplo 6+5.")
+        return "+".join(str(int(p)) for p in partes)
 
     def clean(self):
         dados = super().clean()
@@ -375,14 +450,41 @@ class Passo3Form(forms.ModelForm):
             self.add_error("custo_kit", "O custo do kit precisa ser maior que zero.")
         if dados.get("mao_de_obra") is not None and dados["mao_de_obra"] < 0:
             self.add_error("mao_de_obra", "A mão de obra não pode ser negativa.")
+        for n in range(self.n_extras):
+            if dados.get(f"extra_{n}_equipamento") and dados.get(f"extra_{n}_qtd") is None:
+                self.add_error(f"extra_{n}_qtd", "Informe a quantidade.")
         return dados
+
+    def ajustes_kit(self):
+        """Trocas e quantidades digitadas pelo vendedor, no formato de `Proposta.ajustes_kit`."""
+        dados, ajustes = self.cleaned_data, {}
+        for papel in PAPEIS_EDITAVEIS:
+            ajuste = {}
+            if dados.get(f"kit_{papel}_equipamento"):
+                ajuste["equipamento"] = dados[f"kit_{papel}_equipamento"].pk
+            if dados.get(f"kit_{papel}_qtd") is not None:
+                ajuste["quantidade"] = dados[f"kit_{papel}_qtd"]
+            if ajuste:
+                ajustes[papel] = ajuste
+        ajustes["extras"] = [
+            {"equipamento": dados[f"extra_{n}_equipamento"].pk, "quantidade": dados[f"extra_{n}_qtd"]}
+            for n in range(self.n_extras)
+            if dados.get(f"extra_{n}_equipamento") and dados.get(f"extra_{n}_qtd")
+        ]
+        return ajustes
 
     def save(self, commit=True):
         proposta = super().save(commit=False)
         proposta.desconto, proposta.desconto_pct = self.cleaned_data.get("desconto_texto") or (None, None)
+        proposta.ajustes_kit = self.ajustes_kit()
         if commit:
             proposta.save()
         return proposta
+
+
+def _rotulo_com_preco(equipamento):
+    preco = f" · R$ {formatar_reais(equipamento.preco_referencia)}" if equipamento.preco_referencia is not None else ""
+    return f"{equipamento.descricao} · {equipamento.distribuidor}{preco}"
 
 
 # ---------- Emissão e versões (fatia v2.7, D31)

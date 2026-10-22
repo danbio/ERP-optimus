@@ -5,7 +5,7 @@
   <div class="kit">
     {% for item in itens_kit %}
       <div class="kit__item">
-        <div class="kit__qtd">{{ item.quantidade }}×</div>
+        <div class="kit__qtd">{{ item.quantidade }}{% if item.unidade == "m" %} m{% else %}×{% endif %}</div>
         <div>
           <strong>{{ item.descricao }}</strong>
           {% if item.modelo %}<span>{{ item.modelo }}</span>{% endif %}

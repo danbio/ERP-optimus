@@ -11,15 +11,20 @@
   {% if m.mensagem %}<p class="alerta alerta--erro destaque__mensagem">{{ m.mensagem }}</p>{% endif %}
 
   {% if passo == 3 and m.modulo %}
+    <p class="destaque__info">
+      {% if m.micro %}{{ m.qtd_inversores }} microinversor{{ m.qtd_inversores|pluralize:"es" }}{% else %}{{ m.strings }} string{{ m.strings|pluralize }}{% endif %}
+      · fileiras {{ m.fileiras_texto }}{% if m.fileiras_sugeridas %} (sugestão){% endif %}
+      · sobrecarga {{ m.sobrecarga|floatformat:2 }}
+      {% if m.kit_da_cotacao %}· kit da cotação {{ proposta.cotacao.distribuidor }} {{ proposta.cotacao.numero }}{% endif %}
+    </p>
     <ul class="kit-lista">
-      <li><b>{{ m.qtd_modulos }}×</b> {{ m.modulo.descricao }}<small>{{ m.modulo.potencia_w }} W · {{ m.modulo.distribuidor }} · {% if m.modulo_sugerido %}menor R$/Wp nas cotações{% else %}escolhido pelo vendedor{% endif %}{% if m.qtd_modulos != m.qtd_modulos_sugerida %} · sugestão: {{ m.qtd_modulos_sugerida }}{% endif %}</small></li>
-      {% if m.inversor %}<li><b>{{ m.qtd_inversores }}×</b> {{ m.inversor.descricao }}<small>{{ m.inversor.get_fase_display }} · sobrecarga {{ m.sobrecarga|floatformat:2 }}</small></li>{% endif %}
-      {% if m.estrutura %}<li><b>1×</b> Estrutura para {{ m.estrutura|lower }}<small>para {{ m.qtd_modulos }} módulos</small></li>{% endif %}
-      {% if m.cabo_preto %}<li><b>{{ m.cabo_preto }} m</b> Cabo solar 4 mm preto</li>{% endif %}
-      {% if m.cabo_vermelho %}<li><b>{{ m.cabo_vermelho }} m</b> Cabo solar 4 mm vermelho</li>{% endif %}
+      {% for linha in m.kit %}
+        <li><b>{{ linha.quantidade }}{% if linha.unidade == "m" %} m{% else %}×{% endif %}</b> {{ linha.descricao }}
+          <small>{% if linha.rotulo %}{{ linha.rotulo }}{% elif linha.funcao == "modulo" %}Módulo {{ m.modulo.potencia_w }} W{% if m.modulo_sugerido %} · menor R$/Wp{% endif %}{% elif linha.funcao == "inversor" %}{{ m.inversor.get_tipo_display }}{% if m.inversor.fase %} · {{ m.inversor.get_fase_display }}{% endif %}{% else %}Item a mais{% endif %}{% if linha.sugerida is not None and linha.quantidade != linha.sugerida %} · sugestão: {{ linha.sugerida }}{% endif %}{% if linha.alterada %} · alterado pelo vendedor{% endif %}<span class="interno">{% if linha.preco is not None %} · R$ {{ linha.preco|floatformat:"2g" }} cada = R$ {{ linha.subtotal|floatformat:"2g" }}{% endif %}</span></small></li>
+      {% endfor %}
     </ul>
     <div class="interno precos-sugeridos">
-      <p class="ajuda">Kit: {% if m.custo_kit is not None %}R$ {{ m.custo_kit|floatformat:"2g" }}{% if m.custo_kit_estimado %} (estimado: R$ {{ m.cotacao_ref.rs_por_wp|floatformat:2 }}/Wp da cotação {{ m.cotacao_ref.distribuidor }} de {{ m.cotacao_ref.data|date:"d/m/Y" }}){% endif %}{% else %}—{% endif %}.
+      <p class="ajuda">{% if m.produtos_kit is not None %}Produtos R$ {{ m.produtos_kit|floatformat:"2g" }} + frete R$ {{ m.frete_kit|floatformat:"2g" }} = {% endif %}Kit: {% if m.custo_kit is not None %}R$ {{ m.custo_kit|floatformat:"2g" }}{% else %}—{% endif %}.
       Mão de obra sugerida: R$ {{ m.mo_sugerida|floatformat:"2g" }}.</p>
     </div>
   {% endif %}

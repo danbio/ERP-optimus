@@ -17,6 +17,10 @@ from propostas.models import Equipamento
 from propostas.services.catalogo_belenus import DISTRIBUIDOR, ler_catalogo_belenus
 
 
+# Campos lidos da descrição que o gestor pode corrigir; numa reimportação, a correção fica.
+CORRIGIDOS_NA_TELA = ("funcao", "mppts", "modulos_por_micro", "espessura_mm", "tipo_estrutura", "fase")
+
+
 class Command(BaseCommand):
     help = "Importa o CSV do catálogo Belenus (gerado por importar/extrair_belenus.py)."
 
@@ -36,6 +40,11 @@ class Command(BaseCommand):
         novos = atualizados = fotos = datasheets = 0
         for item in itens:
             foto = item.pop("foto")
+            existente = Equipamento.objects.filter(distribuidor=DISTRIBUIDOR, codigo=item["codigo"]).first()
+            if existente:  # o que o gestor corrigiu na tela não volta ao lido da descrição (D34)
+                for campo in CORRIGIDOS_NA_TELA:
+                    if getattr(existente, campo) not in (None, ""):
+                        item.pop(campo)
             equipamento, criado = Equipamento.objects.update_or_create(
                 distribuidor=DISTRIBUIDOR, codigo=item["codigo"],
                 defaults=item | {"preco_em": data_precos if item["preco_referencia"] else None},

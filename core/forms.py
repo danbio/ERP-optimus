@@ -122,7 +122,22 @@ class PremissasForm(forms.Form):
     mo_por_kwp = CampoReais(label="Mão de obra por kWp (R$)")
     mo_por_kwp_solo = CampoReais(label="Mão de obra por kWp em solo (R$)")
     mo_minima = CampoReais(label="Mão de obra mínima (R$)")
-    dias_preco_velho = forms.IntegerField(label="Preço do kit fica velho após (dias)", min_value=1, max_value=365)
+    dias_preco_velho = forms.IntegerField(label="Cotação do kit fica velha após (dias)", min_value=1, max_value=365)
+
+    # Kit montado pelo catálogo (D34)
+    distribuidor_kit = forms.CharField(label="Distribuidor do kit", max_length=60)
+    frete_kit = CampoPercentual(label="Frete sobre os produtos do kit (%)", maximo=50)
+    dias_catalogo_velho = forms.IntegerField(
+        label="Preço do catálogo fica velho após (dias)", min_value=1, max_value=365)
+    metros_cabo_por_string = forms.IntegerField(
+        label="Cabo solar por string, de cada cor (m)", min_value=0, max_value=200)
+    pares_conector_por_string = forms.IntegerField(
+        label="Pares de conector por string ou micro", min_value=0, max_value=20)
+    modulos_por_string_min = forms.IntegerField(label="Mínimo de módulos por string", min_value=1, max_value=40)
+    modulos_por_string_max = forms.IntegerField(label="Máximo de módulos por string", min_value=1, max_value=40)
+    espessura_modulo_padrao = forms.IntegerField(
+        label="Moldura do módulo sem cadastro (mm)", min_value=20, max_value=60,
+        help_text="Escolhe o grampo final quando o módulo não tem a espessura cadastrada.")
 
     # Travas da proposta (A06, A01, A02): acima disso o sistema pede confirmação ou avisa.
     conta_alta = CampoReais(label="Conta alta: pedir confirmação acima de (R$)")
@@ -137,6 +152,8 @@ class PremissasForm(forms.Form):
     CAMPOS_DA_CONFIG = (
         "mo_por_kwp", "mo_por_kwp_solo", "mo_minima", "dias_preco_velho", "prazo_homologacao_dias",
         "conta_alta", "consumo_alto", "tolerancia_tarifa_fatura", "tolerancia_kwp_cotacao", "limite_microgeracao_kwp",
+        "distribuidor_kit", "frete_kit", "dias_catalogo_velho", "metros_cabo_por_string", "pares_conector_por_string",
+        "modulos_por_string_min", "modulos_por_string_max", "espessura_modulo_padrao",
     )
 
     def __init__(self, *args, **kwargs):
@@ -145,6 +162,13 @@ class PremissasForm(forms.Form):
             self.fields[chave] = CampoPercentual(label=rotulo)
         for chave, rotulo in ORIENTACOES:
             self.fields[f"orientacao_{chave}"] = CampoPercentual(label=rotulo, maximo=100)
+
+    def clean(self):
+        dados = super().clean()
+        minimo, maximo = dados.get("modulos_por_string_min"), dados.get("modulos_por_string_max")
+        if minimo and maximo and minimo > maximo:
+            self.add_error("modulos_por_string_max", "O máximo precisa ser maior ou igual ao mínimo.")
+        return dados
 
     @classmethod
     def da_config(cls, config):

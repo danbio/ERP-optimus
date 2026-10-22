@@ -69,6 +69,18 @@ class ConfigEmpresa(models.Model):
     # Ano de conexão do rascunho = hoje + prazo de homologação (A17, D36).
     prazo_homologacao_dias = models.PositiveSmallIntegerField("prazo até a conexão (dias)", default=60)
 
+    # Kit montado pelo catálogo (D34)
+    distribuidor_kit = models.CharField("distribuidor do kit", max_length=60, default="Belenus")
+    frete_kit = models.DecimalField("frete sobre o kit (fração)", max_digits=5, decimal_places=4, default=0.07)
+    dias_catalogo_velho = models.PositiveIntegerField("dias para o preço do catálogo ficar velho", default=30)
+    metros_cabo_por_string = models.PositiveSmallIntegerField("cabo solar por string, de cada cor (m)", default=15)
+    pares_conector_por_string = models.PositiveSmallIntegerField("pares de conector por string", default=2)
+    modulos_por_string_min = models.PositiveSmallIntegerField("mínimo de módulos por string", default=4)
+    modulos_por_string_max = models.PositiveSmallIntegerField("máximo de módulos por string", default=12)
+    espessura_modulo_padrao = models.PositiveSmallIntegerField(
+        "espessura da moldura do módulo sem cadastro (mm)", default=35,
+    )
+
     class Meta:
         verbose_name = "Configuração da empresa"
         verbose_name_plural = "Configuração da empresa"
