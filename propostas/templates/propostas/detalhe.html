@@ -12,7 +12,7 @@
     <div class="barra-acoes barra-acoes--plana">
       <h3>{{ proposta.cliente.nome }}</h3>
       {% include "propostas/_situacao.html" with p=proposta %}
-      {% if not proposta.eh_antiga %}<span class="badge">{{ proposta.get_nivel_display }}</span>{% endif %}
+      <span class="badge">{{ proposta.get_nivel_display }}</span>
       <span class="barra-acoes__espaco"></span>
       {% if proposta.status == "rascunho" %}
         <a href="{% url 'propostas:editar' proposta.pk %}" class="btn btn--secundario">Continuar editando</a>
@@ -64,7 +64,7 @@
             {% csrf_token %}
             <button type="submit" class="btn btn--secundario">Revisar</button>
           </form>
-          {% if proposta.nivel == "estimativa" and not proposta.eh_antiga %}
+          {% if proposta.nivel == "estimativa" %}
             <form method="post" action="{% url 'propostas:revisar' proposta.pk %}">
               {% csrf_token %}
               <input type="hidden" name="para" value="fatura">

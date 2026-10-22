@@ -237,80 +237,90 @@ def _consumo(proposta, m):
 
 
 def montar(proposta, config=None):
+    """Tudo o que as telas e o PDF mostram, em etapas: tarifa → consumo → sistema → preço → financeiro.
+
+    Cada etapa preenche `m`; se faltar algo, grava `m.mensagem` e a montagem para ali.
+    """
     config = config or ConfigEmpresa.obter()
     m = Montagem()
     premissas = premissas_da_proposta(proposta, config)
+    falta_tarifa = _etapa_tarifa(proposta, m)
+    if m.mensagem:
+        return m
+    consumo_motor = _etapa_consumo(proposta, m)
+    if consumo_motor is None:
+        m.mensagem = m.mensagem or falta_tarifa
+        return m
+    if not _etapa_sistema(proposta, m, config, premissas):
+        return m
+    if not _etapa_preco(proposta, m, config):
+        return m
+    if falta_tarifa:
+        m.mensagem = falta_tarifa
+        m.alerta("erro", falta_tarifa)
+        return m
+    _etapa_financeiro(proposta, m, premissas, consumo_motor)
+    return m
 
-    # ---- Tarifa
+
+def _etapa_tarifa(proposta, m):
+    """Tarifa com tributos (R$/kWh). Devolve o aviso de tarifa incompleta, que só pesa no financeiro."""
     tarifa = proposta.tipo_tarifa
-    falta_tarifa = ""
     if not tarifa:
         m.mensagem = "Escolha o tipo de tarifa (passo 1)."
-        return m
-    if not tarifa.aliquota_tributos or tarifa.fiob_kwh is None:
-        falta_tarifa = (f"A tarifa {tarifa.get_tipo_display()} está sem tributos ou sem Fio B. "
-                        "O gestor preenche em Configurações → Tarifas.")
+        return ""
     if tarifa.aliquota_tributos:
         m.tarifa_kwh = float(tarifa.tarifa_com_tributos)
+    if not tarifa.aliquota_tributos or tarifa.fiob_kwh is None:
+        return (f"A tarifa {tarifa.get_tipo_display()} está sem tributos ou sem Fio B. "
+                "O gestor preenche em Configurações → Tarifas.")
+    return ""
 
-    # ---- Consumo
+
+def _etapa_consumo(proposta, m):
+    """Consumo, iluminação pública e consumo com folga. Devolve (kWh, dias) para o motor, ou None."""
     m.disponibilidade = UnidadeConsumidora.DISPONIBILIDADE_KWH.get(proposta.ligacao, 0)
     m.municipio = municipio_da_proposta(proposta)
     consumo_motor = _consumo(proposta, m)
     if consumo_motor is None:
-        if not m.mensagem:
-            m.mensagem = falta_tarifa
-        return m
+        return None
     if proposta.origem_consumo != proposta.OrigemConsumo.CONTA:
         tabela = tabela_iluminacao(proposta, m.municipio) if proposta.iluminacao_publica is None else None
         if tabela:
             m.iluminacao, m.iluminacao_estimada = calculo.iluminacao_pela_tabela(m.consumo, *tabela), True
         else:
             m.iluminacao = float(proposta.iluminacao_publica or 0)
-    folga = float(proposta.folga or 0)
-    m.consumo_alvo = m.consumo * (1 + folga)
+    m.consumo_alvo = calculo.geracao_necessaria(m.consumo, float(proposta.folga or 0))
+    return consumo_motor
 
-    # ---- Dimensionamento
+
+def _etapa_sistema(proposta, m, config, premissas):
+    """Módulo, quantidade, inversor, cabos, geração e alertas do sistema. False se faltar catálogo ou irradiação."""
     if not m.municipio or not m.municipio.irradiacao:
         m.mensagem = "O município do cliente está sem irradiação. Atualize em Configurações → Municípios."
-        return m
+        return False
     irradiacao = m.municipio.irradiacao
-    fator = premissas["fator_orientacao"] if "fator_orientacao" in premissas else 1.0
+    fator = premissas.get("fator_orientacao", 1.0)
     perdas, clipping = premissas["perdas"], premissas["perda_clipping"]
-    m.kwp_necessario = calculo.kwp_necessario(
-        m.consumo, folga, irradiacao, perdas, clipping, fator,
-    )
+    m.kwp_necessario = calculo.kwp_necessario(m.consumo, float(proposta.folga or 0), irradiacao, perdas, clipping, fator)
 
     m.modulo = proposta.modulo or sugerir_modulo()
     m.modulo_sugerido = proposta.modulo_id is None
     if not m.modulo:
         m.mensagem = "Nenhum módulo no catálogo. Cadastre em Catálogo solar."
-        return m
+        return False
     m.cotacao_ref = referencia_do_distribuidor(m.modulo.distribuidor)
     m.qtd_modulos_sugerida = calculo.quantidade_modulos(m.kwp_necessario, m.modulo.potencia_w)
     m.qtd_modulos = proposta.qtd_modulos or m.qtd_modulos_sugerida
     m.kwp = m.qtd_modulos * m.modulo.potencia_w / 1000
 
-    sobrecarga_max = m.sobrecarga_max = premissas["razao_cc_ca_max"]
+    m.sobrecarga_max = premissas["razao_cc_ca_max"]
     m.estrutura = dict(Equipamento.TipoEstrutura.choices).get(proposta.tipo_estrutura, "")
     fase = fase_do_inversor(proposta.ligacao)
-    m.inversor_sugerido = proposta.inversor_id is None
-    if proposta.inversor_id:
-        m.inversor = proposta.inversor
-        m.qtd_inversores = proposta.qtd_inversores or max(
-            1, math.ceil(m.kwp / (m.inversor.potencia_w / 1000 * sobrecarga_max)))
-    else:
-        candidatos = inversores_candidatos(fase, m.modulo.distribuidor)
-        escolhido, m.qtd_inversores = calculo.sugerir_inversor(
-            m.kwp, [{"kw": e.potencia_w / 1000, "fase": e.fase, "equipamento": e} for e in candidatos],
-            fase, sobrecarga_max,
-        )
-        m.inversor = escolhido["equipamento"] if escolhido else None
-        if proposta.qtd_inversores and m.inversor:
-            m.qtd_inversores = proposta.qtd_inversores
+    _escolher_inversor(proposta, m, fase)
     if not m.inversor:
         m.mensagem = "Nenhum inversor da fase da ligação no catálogo. Cadastre em Catálogo solar."
-        return m
+        return False
     m.kw_ca = m.inversor.potencia_w / 1000 * m.qtd_inversores
     m.sobrecarga = m.kwp / m.kw_ca
 
@@ -319,18 +329,37 @@ def montar(proposta, config=None):
     m.cabo_vermelho = (proposta.cabo_vermelho_m if proposta.cabo_vermelho_m is not None
                        else _metros_de_cabo(referencia_cabos, "vermelho"))
 
-    gera_por_kwp_mes = sum(
-        irr * dias * (1 - perdas) * (1 - clipping) * fator
-        for irr, dias in zip(irradiacao, calculo.DIAS_MES_ANO_COMUM)
-    ) / 12
-    m.geracao_media = m.kwp * gera_por_kwp_mes
+    m.geracao_media = m.kwp * calculo.geracao_por_kwp_mes(irradiacao, perdas, clipping, fator)
     if m.modulo.area_m2:
         m.area = m.qtd_modulos * float(m.modulo.area_m2)
+    _alertas_do_sistema(proposta, m, config, premissas, fase)
+    return True
 
-    if m.sobrecarga > sobrecarga_max:
+
+def _escolher_inversor(proposta, m, fase):
+    """O inversor escolhido pelo vendedor, ou o sugerido da fase com sobrecarga dentro do limite (D19)."""
+    m.inversor_sugerido = proposta.inversor_id is None
+    if proposta.inversor_id:
+        m.inversor = proposta.inversor
+        m.qtd_inversores = proposta.qtd_inversores or max(
+            1, math.ceil(m.kwp / (m.inversor.potencia_w / 1000 * m.sobrecarga_max)))
+        return
+    candidatos = inversores_candidatos(fase, m.modulo.distribuidor)
+    escolhido, m.qtd_inversores = calculo.sugerir_inversor(
+        m.kwp, [{"kw": e.potencia_w / 1000, "fase": e.fase, "equipamento": e} for e in candidatos],
+        fase, m.sobrecarga_max,
+    )
+    m.inversor = escolhido["equipamento"] if escolhido else None
+    if proposta.qtd_inversores and m.inversor:
+        m.qtd_inversores = proposta.qtd_inversores
+
+
+def _alertas_do_sistema(proposta, m, config, premissas, fase):
+    sobrecarga_min = premissas.get("sobrecarga_min", 0.8)  # snapshots antigos não têm a chave (A25)
+    if m.sobrecarga > m.sobrecarga_max:
         m.alerta("erro", f"Inversor pequeno demais: os módulos somam {_num(m.sobrecarga)} vezes a potência dele "
-                         f"(máximo {_num(sobrecarga_max)}). Escolha um inversor maior ou mais um inversor.")
-    elif m.sobrecarga < 0.8:
+                         f"(máximo {_num(m.sobrecarga_max)}). Escolha um inversor maior ou mais um inversor.")
+    elif m.sobrecarga < sobrecarga_min:
         m.alerta("aviso", f"Inversor grande para o sistema: os módulos somam só {_num(m.sobrecarga)} vezes a "
                           "potência dele. Há modelo menor?")
     if m.inversor.fase and m.inversor.fase != fase:
@@ -340,7 +369,9 @@ def montar(proposta, config=None):
         m.alerta("aviso", f"Sistema de {_num(m.kwp)} kWp: acima de {_num(limite, 0)} kWp deixa de ser microgeração "
                           "(Grupo A). Confira com o gestor.", interno=False)
 
-    # ---- Preço
+
+def _etapa_preco(proposta, m, config):
+    """Custo do kit, mão de obra, desconto e investimento. False se não houver custo do kit."""
     if proposta.custo_kit is not None:
         m.custo_kit = float(proposta.custo_kit)
     elif proposta.cotacao_id:
@@ -373,33 +404,28 @@ def montar(proposta, config=None):
     if m.mao_de_obra - m.desconto < float(config.mo_minima):
         m.alerta("aviso", f"Mão de obra com desconto abaixo do mínimo de R$ {formatar_reais(config.mo_minima)}.")
     if m.custo_kit is None:
-        return m
+        return False
     m.investimento = m.custo_kit + m.mao_de_obra - m.desconto
     m.rs_por_wp = m.investimento / (m.kwp * 1000)
-
     if proposta.nivel == proposta.Nivel.ESTIMATIVA:
         m.alerta("aviso", "Proposta de estimativa: vai com o aviso de dados não confirmados.", interno=False)
+    return True
 
-    # ---- Resultado financeiro
-    if falta_tarifa:
-        m.mensagem = falta_tarifa
-        m.alerta("erro", falta_tarifa)
-        return m
+
+def _etapa_financeiro(proposta, m, premissas, consumo_motor):
+    """Motor de cálculo (economia, retorno), conta de luz antes e depois e tabela de financiamento."""
+    tarifa = proposta.tipo_tarifa
     kwh_fatura, dias = consumo_motor
     digitos = re.sub(r"\D", "", proposta.cliente.cpf_cnpj or "")
     entrada = calculo.EntradaCalculo(
-        kwp=m.kwp, kw_ca=m.kw_ca, irradiacao=irradiacao, kwh_fatura=float(kwh_fatura), dias_ciclo=dias,
+        kwp=m.kwp, kw_ca=m.kw_ca, irradiacao=m.municipio.irradiacao, kwh_fatura=float(kwh_fatura), dias_ciclo=dias,
         tarifa=m.tarifa_kwh, fiob_kwh=float(tarifa.fiob_kwh), disponibilidade_kwh=m.disponibilidade,
         investimento=m.investimento,
         fiob_pct_por_ano={f.ano: float(f.percentual) / 100 for f in FioBEscalonamento.objects.all()},
         premissas=premissas, classe=tarifa.tipo[:2], cliente_pessoa_juridica=len(digitos) > 11,
-        fator_orientacao=fator,
+        fator_orientacao=premissas.get("fator_orientacao", 1.0),
     )
-    try:
-        m.resultado = calculo.calcular(entrada)
-    except ZeroDivisionError:  # economia exatamente zero: o retorno não existe
-        m.mensagem = "Com estes dados o sistema não gera economia. Confira o consumo e a quantidade de módulos."
-        return m
+    m.resultado = calculo.calcular(entrada)
     for texto in m.resultado.alertas:
         if not texto.startswith("Razão CC/CA"):  # a sobrecarga já tem alerta próprio
             m.alerta("aviso", texto)
@@ -423,7 +449,6 @@ def montar(proposta, config=None):
         m.parcela = next(linha for linha in m.financiamento if linha["prazo"] == m.prazo)
         m.conta_com_parcela = m.conta_com_sistema + m.parcela["parcela"]
     m.barra_max = max(m.conta_hoje, m.conta_com_parcela or 0)
-    return m
 
 
 def gravar_resultado(proposta, m):
@@ -431,6 +456,7 @@ def gravar_resultado(proposta, m):
     config = ConfigEmpresa.obter()
     proposta.premissas = premissas_da_proposta(proposta, config)
     proposta.investimento = Decimal(f"{m.investimento:.2f}") if m.investimento is not None else None
+    proposta.kwp = Decimal(f"{m.kwp:.3f}") if m.kwp else None
     proposta.resultados = {}
     if m.resultado:
         proposta.resultados = {

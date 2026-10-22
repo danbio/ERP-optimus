@@ -190,6 +190,15 @@
     background: var(--erro-claro);
   }
 
+  .paginacao {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--esp-3);
+    margin-top: var(--esp-4);
+    font-size: var(--texto-sm);
+  }
+
   .kit-linhas {
     & .kit-linha {
       display: grid;
@@ -379,6 +388,11 @@
   .busca.busca--linha {
     flex: 1;
     min-width: 200px;
+    margin-bottom: 0;
+  }
+
+  .busca.busca--mes {
+    width: auto;
     margin-bottom: 0;
   }
 

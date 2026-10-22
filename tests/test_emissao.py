@@ -3,16 +3,13 @@
 from datetime import timedelta
 
 import pytest
-from django.test import Client as Navegador
 from django.urls import reverse
 from django.utils import timezone
 
-from propostas import views
+from propostas.views import documento
 from propostas.models import Proposta
 
-from .test_fatia4_proposta_view import fatura_alesio, uc_alesio  # noqa: F401 (fixtures)
-from .test_fatia5_pdf import proposta_alesio  # noqa: F401 (fixture)
-from .test_proposta_v2 import _ate_passo2, _passo2, _passo3, base  # noqa: F401 (fixture)
+from .test_proposta_v2 import _ate_passo2, _passo2, _passo3
 
 PDF_FALSO = b"%PDF-1.4 falso"
 
@@ -20,7 +17,7 @@ PDF_FALSO = b"%PDF-1.4 falso"
 @pytest.fixture(autouse=True)
 def sem_chromium(monkeypatch, settings, tmp_path):
     settings.MEDIA_ROOT = tmp_path
-    monkeypatch.setattr(views, "html_para_pdf", lambda html: PDF_FALSO)
+    monkeypatch.setattr(documento, "html_para_pdf", lambda html: PDF_FALSO)
 
 
 def _rascunho_completo(base, **passo2):
@@ -78,7 +75,7 @@ def test_pdf_que_falha_deixa_como_rascunho(base, monkeypatch):
     def falha(html):
         raise ErroPDF("Chromium não encontrado")
 
-    monkeypatch.setattr(views, "html_para_pdf", falha)
+    monkeypatch.setattr(documento, "html_para_pdf", falha)
     navegador, proposta = _rascunho_completo(base)
     _emitir(navegador, proposta)
     assert proposta.status == "rascunho" and proposta.emissao is None and proposta.custo_kit is None
@@ -197,17 +194,6 @@ def test_get_nas_acoes_nao_altera_nada(base):
     navegador.get(reverse("propostas:emitir", args=[proposta.pk]))
     proposta.refresh_from_db()
     assert proposta.status == "rascunho"
-
-
-def test_proposta_antiga_emite_e_revisa_no_formulario_antigo(proposta_alesio):
-    navegador = Navegador()
-    navegador.post(reverse("propostas:emitir", args=[proposta_alesio.pk]))
-    proposta_alesio.refresh_from_db()
-    assert proposta_alesio.status == "emitida" and proposta_alesio.pdf
-    resposta = navegador.post(reverse("propostas:revisar", args=[proposta_alesio.pk]))
-    nova = Proposta.objects.get(numero=proposta_alesio.numero, versao=2)
-    assert resposta.url == reverse("propostas:legado_editar", args=[nova.pk])
-
 
 def test_rotas_protegidas(base):
     """A23: passo inexistente, voltar para site externo e ações por GET."""

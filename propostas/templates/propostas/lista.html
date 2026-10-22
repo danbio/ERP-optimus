@@ -13,6 +13,7 @@
           <option value="{{ valor }}"{% if request.GET.status == valor %} selected{% endif %}>{{ rotulo }}</option>
         {% endfor %}
       </select>
+      <input type="month" name="mes" value="{{ mes }}" class="busca busca--mes" aria-label="Mês de emissão" title="Mês de emissão">
       <button type="submit" class="btn btn--secundario">Filtrar</button>
       <a href="{% url 'propostas:nova' %}" class="btn">+ nova proposta</a>
     </form>
@@ -23,7 +24,7 @@
           <tr><th>Número</th><th>Cliente</th><th>Nível</th><th class="num">kWp</th><th class="num">Investimento</th><th>Situação</th><th>Emissão</th></tr>
         </thead>
         <tbody>
-          {% for proposta in propostas %}
+          {% for proposta in pagina %}
             <tr>
               <td><a href="{% url 'propostas:editar' proposta.pk %}">{{ proposta.identificacao }}</a></td>
               <td>{{ proposta.cliente.nome }}<br><span class="ajuda">{{ proposta.cliente.telefone_formatado }}</span></td>
@@ -34,10 +35,17 @@
               <td>{{ proposta.emissao|date:"d/m/Y"|default:"—" }}</td>
             </tr>
           {% empty %}
-            <tr><td colspan="7">{% if busca %}Nenhuma proposta para "{{ busca }}".{% else %}Nenhuma proposta cadastrada.{% endif %}</td></tr>
+            <tr><td colspan="7">{% if busca or mes or request.GET.status %}Nenhuma proposta com estes filtros.{% else %}Nenhuma proposta cadastrada.{% endif %}</td></tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
+    {% if pagina.has_other_pages %}
+      <nav class="paginacao" aria-label="Páginas">
+        {% if pagina.has_previous %}<a href="?{{ filtros }}&amp;pagina={{ pagina.previous_page_number }}" class="btn btn--secundario btn--pequeno">Anteriores</a>{% endif %}
+        <span>Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
+        {% if pagina.has_next %}<a href="?{{ filtros }}&amp;pagina={{ pagina.next_page_number }}" class="btn btn--secundario btn--pequeno">Próximas</a>{% endif %}
+      </nav>
+    {% endif %}
   </div>
 {% endblock %}

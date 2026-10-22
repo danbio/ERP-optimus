@@ -9,25 +9,8 @@ from django.urls import reverse
 
 from clientes.models import Cliente
 from core.models import ConfigEmpresa, Municipio
-from propostas.models import Bandeira, ItemKit, Proposta, TarifaVigente, TaxaFinanciamento
+from propostas.models import ItemKit, Proposta, TarifaVigente
 from propostas.montagem import montar
-
-from .test_fatia4_proposta_view import fatura_alesio, uc_alesio  # noqa: F401 (fixtures)
-from .test_fatia5_pdf import proposta_alesio  # noqa: F401 (fixture)
-
-
-@pytest.fixture
-def base(db):
-    """Tarifas com tributos e Fio B preenchidos pelo gestor e duas taxas de financiamento."""
-    TarifaVigente.objects.update(aliquota_tributos=Decimal("0.25"), fiob_kwh=Decimal("0.30"))
-    TaxaFinanciamento.objects.create(banco="BV", prazo_meses=60, taxa_mensal=Decimal("0.0159"), vigente_desde="2026-10-21")
-    TaxaFinanciamento.objects.create(banco="BV", prazo_meses=12, taxa_mensal=Decimal("0.0139"), vigente_desde="2026-10-21")
-    return {
-        "b1": TarifaVigente.objects.get(tipo="B1"),
-        "gurupi": Municipio.objects.get(codigo_ibge=1709500),
-        "verde": Bandeira.objects.get(nome="Verde"),
-        "perfil": ConfigEmpresa.obter().perfis_simultaneidade[0]["nome"],
-    }
 
 
 def _passo1(navegador, base, **mudancas):
@@ -262,15 +245,6 @@ def test_escolher_prazo_para_comparar(base):
     assert proposta.prazo_comparacao == 12
     assert montar(proposta).parcela["prazo"] == 12
 
-
-def test_proposta_antiga_abre_no_formulario_antigo(proposta_alesio):
-    navegador = Navegador()
-    resposta = navegador.get(reverse("propostas:editar", args=[proposta_alesio.pk]))
-    assert resposta.url == reverse("propostas:legado_editar", args=[proposta_alesio.pk])
-    resposta = navegador.get(reverse("propostas:passo", args=[proposta_alesio.pk, 2]))
-    assert resposta.url == reverse("propostas:legado_editar", args=[proposta_alesio.pk])
-
-
 def test_lista_busca_por_telefone(base):
     navegador = Navegador()
     _passo1(navegador, base)
@@ -287,19 +261,6 @@ def _ate_passo2(base, **mudancas):
     _passo2(navegador, proposta, base, **mudancas)
     proposta.refresh_from_db()
     return navegador, proposta
-
-
-def test_formulario_antigo_exige_uc_fatura_e_investimento(uc_alesio, fatura_alesio):
-    from propostas.forms import FaturaReferenciaForm, PropostaForm
-
-    form = PropostaForm({"uc": "", "fatura": "", "investimento": "", "validade_dias": "15"})
-    assert not form.is_valid()
-    assert {"uc", "fatura", "investimento"} <= set(form.errors)
-    fatura_v2 = type(fatura_alesio).objects.create(
-        uc=uc_alesio, competencia="2026-09-01", kwh=500, dias_ciclo=30, valor_total=Decimal("700"))
-    assert fatura_v2 not in PropostaForm().fields["fatura"].queryset
-    assert {"tarifa_kwh", "valor_distribuicao", "impostos"} <= set(FaturaReferenciaForm({}).errors)
-
 
 def test_campos_da_aba_nao_escolhida_sao_ignorados(base):
     _, proposta = _ate_passo2(base, origem_consumo="kwh", kwh_informado="800", conta_informada="abc",

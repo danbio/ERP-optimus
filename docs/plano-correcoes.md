@@ -23,7 +23,7 @@ Objetivo: nenhuma proposta errada sai sem aviso. Cada item entra com o teste que
 - [x] **A09** Pré-visualização do rascunho com marca d'água "RASCUNHO"; PDF limpo só da emitida.
 - [x] **A23** Passo fora de 1–4, "voltar" externo no modo cliente e ações sem `@require_POST`.
 
-## Rodada 2 · Login e registro (D36)
+## Rodada 2 · Login e registro (D36, PR #14)
 
 Precisa estar pronta antes de liberar o acesso pelo celular fora da loja.
 
@@ -34,15 +34,15 @@ Precisa estar pronta antes de liberar o acesso pelo celular fora da loja.
 - [x] **A17** Ano de conexão derivado da data de emissão + prazo de homologação (Configurações).
 - [x] **A30** `waitress` no `requirements.txt`.
 
-## Rodada 3 · Limpeza antes das regras novas
+## Rodada 3 · Limpeza antes das regras novas (feita)
 
 Feita antes do dimensionamento pelo catálogo, porque ele reescreve `montar()`.
 
-- [ ] **A24** Remover o fluxo da fatia 4 (formulário antigo, `_montar_entrada`, `recalcular`, `kit_nova_linha`, `fatura_novo`, `_contexto_antigo`, ramos `eh_antiga`, campos de fatura só dele). Fica `calcular()` e o teste do caso Alesio.
-- [ ] **A26** `montar()` em etapas pequenas (consumo → sistema → preço → financeiro), calculado uma vez por requisição, sem `ZeroDivisionError` como controle de fluxo.
-- [ ] **A25** Uma função por regra (geração por kWp, fase do inversor); limites de cobertura e sobrecarga mínima em Configurações.
-- [ ] **A27** `views.py` dividido (passos, emissão, catálogo, documento do PDF).
-- [ ] **A28** Lista com kWp gravado, paginação e filtro por mês.
+- [x] **A24** Remover o fluxo da fatia 4 (formulário antigo, `_montar_entrada`, `recalcular`, `kit_nova_linha`, `fatura_novo`, `_contexto_antigo`, ramos `eh_antiga`, campos de fatura só dele). Fica `calcular()` e o teste do caso Alesio.
+- [x] **A26** `montar()` em etapas pequenas (consumo → sistema → preço → financeiro), calculado uma vez por requisição, sem `ZeroDivisionError` como controle de fluxo.
+- [x] **A25** Uma função por regra (geração por kWp, fase do inversor); limites de cobertura e sobrecarga mínima em Configurações.
+- [x] **A27** `views.py` dividido (passos, emissão, catálogo, documento do PDF).
+- [x] **A28** Lista com kWp gravado, paginação e filtro por mês.
 
 ## Rodada 4 · Dimensionamento pelo catálogo (D34)
 
@@ -103,3 +103,11 @@ Depende da chave da API Anthropic no `.env`.
 - **A10:** o histórico de tarifas e taxas fica no JSON `registro` de cada emissão, com os valores usados; as tabelas continuam editadas no lugar.
 - **A12:** o PDF continua dentro da transação (se falhar, nada é gravado); o SQLite em WAL evita travar as leituras.
 - Os limites das travas da rodada 1 ficaram editáveis em Configurações → Premissas.
+
+## Resolvido na rodada 3
+
+- **A24:** propostas antigas já emitidas continuam com o PDF guardado; um rascunho antigo abre nos 4 passos e precisa ser completado.
+- **A25:** cobertura mínima e máxima e sobrecarga mínima do inversor estão em Configurações → Premissas. Snapshots antigos sem essas chaves usam 80%, 130% e 0,8.
+- **A26:** sem economia, o retorno fica 0 ("não se paga") em vez de erro de divisão; a emissão continua bloqueada (A02).
+- **A27:** `propostas/views/` com `passos.py`, `versoes.py` (lista e ações), `catalogo.py` e `documento.py` (PDF).
+- **A28:** kWp gravado na proposta, 50 por página e filtro pelo mês de emissão.
