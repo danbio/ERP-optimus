@@ -202,9 +202,24 @@ Detalha D07 com o alinhamento de 21/10 (versão nova mantém o número, aceite s
 - **Vencida:** não é gravada. É a emitida com a validade (emissão + dias) já passada, calculada na hora em que se mostra; continua podendo ser aceita ou revisada.
 - **Tela da proposta emitida:** resumo, PDF e os botões acima. A lista mostra a situação, inclusive "vencida", e filtra por ela.
 
+## D32 · 2026-10-22 · Tributos, Fio B e iluminação pública conferidos
+Conferido em 4 faturas reais (Out/26 e Jul/26, com e sem GD) e nas fontes oficiais.
+- **Tributos = 27,40%** no campo "tributos" da tarifa (`(TUSD+TE)/(1−a)`):
+  - ICMS 20% (Lei TO 1.287/2001, art. 27, II; os 25% caíram pela ADI 7.113);
+  - PIS 1,65% e COFINS 7,60% sobre a base sem ICMS: `1 − 0,9075 × 0,80 = 0,274`.
+  - Conferência B1 Out/26: `0,992780 / 0,726 = 1,367460`, igual à fatura.
+  - B2 rural com inscrição de produtor tem base de ICMS de 48% (17,96%); a carga usa 27,40% (sem inscrição) e o gestor ajusta se quiser. Baixa renda é isenta de ICMS até 80 kWh; acima, 27,40%.
+- **Fio B = 0,441478 R$/kWh** para B1, baixa renda, B2 e B3. Fonte: ANEEL, dados abertos "Componentes Tarifárias", REH 3.323/2026 (vigência 26/08/2026). Na fatura de Out/26, `60% × 0,441478 = 0,264887` contra 0,264904 cobrado. A ANEEL publica o Fio B, ao contrário do que se supunha em D29.
+- A migration grava esses valores **só onde o gestor ainda não preencheu** (tributos 0 ou Fio B vazio), na tarifa de vigência 26/08/2026.
+- **Iluminação pública (CIP/COSIP) não é percentual.** Em Gurupi (LC 38/2022, arts. 113–125, Anexo VII) é um valor fixo por faixa de consumo medido, em UFIRG (R$ 4,61 em 2026). Conferido: 380 kWh → 6,40 UFIRG = R$ 29,50; 897 e 905 kWh → 11,75 UFIRG = R$ 54,17.
+  - Nova tabela `FaixaIluminacao` (município, classe residencial ou não residencial, até quantos kWh, valor em unidades fiscais) e o valor da unidade fiscal no `Municipio`. Gurupi entra por migration. Outros municípios: o gestor cadastra no admin, ou o vendedor digita.
+  - Classe: B1 e baixa renda usam a tabela residencial; B3, a não residencial. B2 rural não tem estimativa automática (depende da localização do imóvel).
+  - Se o vendedor deixar a iluminação em branco no passo 2, o sistema estima pela tabela (pelo valor da conta, resolve o consumo e a faixa juntos). Se digitar um valor, inclusive 0, vale o digitado.
+- **Pendente (perguntado ao usuário):** na energia compensada só a TE é isenta de ICMS (RICMS-TO art. 2º, CXXXI, § 15); o ICMS sobre a TUSD (~R$ 0,19/kWh) continua. O motor ainda não desconta isso.
+
 ## Pendências de validação
 - [ ] Regra de custo de disponibilidade para GD após a Lei 14.300 (item 3 de D08).
-- [ ] Valor da TUSD Fio B vigente na Energisa TO por subgrupo (B1/B2/B3).
+- [x] Valor da TUSD Fio B vigente na Energisa TO por subgrupo (B1/B2/B3): 0,441478 R$/kWh (D32).
 - [ ] Irradiação mensal por município: substituir estimativas regionais pelo PVGIS (D21).
 - [ ] Percentual de Fio B a partir de 2029 (definição ANEEL). Premissa atual: 100%.
 - [ ] Orçamentos: confirmar se o PSD da tabela corresponde ao preço real de compra no distribuidor (D13).

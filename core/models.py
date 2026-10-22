@@ -80,6 +80,12 @@ class Municipio(models.Model):
     )
     fonte_irradiacao = models.CharField("fonte da irradiação", max_length=255, blank=True)
     atualizado_em = models.DateField("irradiação atualizada em", null=True, blank=True)
+    # Iluminação pública (D32): a lei municipal fixa o valor por faixa de consumo, em unidade fiscal.
+    valor_unidade_fiscal = models.DecimalField(
+        "valor da unidade fiscal (R$)", max_digits=10, decimal_places=4, null=True, blank=True,
+        help_text="Ex.: UFIRG de Gurupi. Muda todo ano.",
+    )
+    lei_iluminacao = models.CharField("lei da iluminação pública", max_length=255, blank=True)
 
     class Meta:
         verbose_name = "Município"
@@ -92,3 +98,25 @@ class Municipio(models.Model):
     @property
     def media_irradiacao(self):
         return sum(self.irradiacao) / 12 if self.irradiacao else None
+
+
+class FaixaIluminacao(models.Model):
+    """Uma faixa da tabela de iluminação pública (CIP/COSIP) do município (D32)."""
+
+    class Classe(models.TextChoices):
+        RESIDENCIAL = "residencial", "Residencial"
+        NAO_RESIDENCIAL = "nao_residencial", "Não residencial"
+
+    municipio = models.ForeignKey(Municipio, on_delete=models.CASCADE, related_name="faixas_iluminacao")
+    classe = models.CharField(max_length=20, choices=Classe.choices)
+    ate_kwh = models.PositiveIntegerField("até (kWh)", null=True, blank=True, help_text="Vazio = sem limite.")
+    unidades = models.DecimalField("valor (unidades fiscais)", max_digits=8, decimal_places=2)
+
+    class Meta:
+        verbose_name = "Faixa de iluminação pública"
+        verbose_name_plural = "Faixas de iluminação pública"
+        ordering = ["municipio", "classe", models.F("ate_kwh").asc(nulls_last=True)]
+
+    def __str__(self):
+        limite = f"até {self.ate_kwh} kWh" if self.ate_kwh is not None else "acima"
+        return f"{self.municipio} · {self.get_classe_display()} · {limite}"

@@ -30,6 +30,8 @@ class Montagem:
     consumo: float | None = None        # kWh/mês, média
     consumo_alvo: float | None = None   # com folga
     disponibilidade: int = 0
+    iluminacao: float = 0.0             # iluminação pública (R$/mês)
+    iluminacao_estimada: bool = False   # True quando veio da tabela do município (D32)
 
     # Sistema
     municipio: object = None
@@ -93,6 +95,19 @@ def municipio_da_proposta(proposta):
     if proposta.uc and proposta.uc.municipio_id:
         return proposta.uc.municipio
     return proposta.cliente.municipio if proposta.cliente_id else None
+
+
+# Tabela de iluminação pública usada por tipo de tarifa (D32). B2 rural não tem estimativa.
+CLASSE_ILUMINACAO = {"B1": "residencial", "B1_BAIXA_RENDA": "residencial", "B3": "nao_residencial"}
+
+
+def tabela_iluminacao(proposta, municipio):
+    """(faixas, valor da unidade fiscal) do município para a classe da proposta, ou None."""
+    classe = CLASSE_ILUMINACAO.get(proposta.tipo_tarifa.tipo if proposta.tipo_tarifa else "")
+    if not classe or not municipio or not municipio.valor_unidade_fiscal:
+        return None
+    faixas = [(f.ate_kwh, float(f.unidades)) for f in municipio.faixas_iluminacao.filter(classe=classe)]
+    return (faixas, float(municipio.valor_unidade_fiscal)) if faixas else None
 
 
 def premissas_da_proposta(proposta, config):
@@ -163,10 +178,16 @@ def _consumo(proposta, m):
         if m.tarifa_kwh is None:
             return None
         adicional = float(proposta.bandeira.adicional_kwh) if proposta.bandeira_id else 0.0
+        tabela = tabela_iluminacao(proposta, m.municipio) if proposta.iluminacao_publica is None else None
         try:
-            m.consumo = calculo.kwh_pela_conta(
-                float(proposta.conta_informada), float(proposta.iluminacao_publica or 0), m.tarifa_kwh, adicional
-            )
+            if tabela:
+                m.consumo, m.iluminacao = calculo.kwh_pela_conta_com_tabela(
+                    float(proposta.conta_informada), m.tarifa_kwh, adicional, *tabela
+                )
+                m.iluminacao_estimada = True
+            else:
+                m.iluminacao = float(proposta.iluminacao_publica or 0)
+                m.consumo = calculo.kwh_pela_conta(float(proposta.conta_informada), m.iluminacao, m.tarifa_kwh, adicional)
         except ValueError as erro:
             m.mensagem = str(erro)
             return None
@@ -194,16 +215,22 @@ def montar(proposta, config=None):
 
     # ---- Consumo
     m.disponibilidade = UnidadeConsumidora.DISPONIBILIDADE_KWH.get(proposta.ligacao, 0)
+    m.municipio = municipio_da_proposta(proposta)
     consumo_motor = _consumo(proposta, m)
     if consumo_motor is None:
         if not m.mensagem:
             m.mensagem = falta_tarifa
         return m
+    if proposta.origem_consumo != proposta.OrigemConsumo.CONTA:
+        tabela = tabela_iluminacao(proposta, m.municipio) if proposta.iluminacao_publica is None else None
+        if tabela:
+            m.iluminacao, m.iluminacao_estimada = calculo.iluminacao_pela_tabela(m.consumo, *tabela), True
+        else:
+            m.iluminacao = float(proposta.iluminacao_publica or 0)
     folga = float(proposta.folga or 0)
     m.consumo_alvo = m.consumo * (1 + folga)
 
     # ---- Dimensionamento
-    m.municipio = municipio_da_proposta(proposta)
     if not m.municipio or not m.municipio.irradiacao:
         m.mensagem = "O município do cliente está sem irradiação. Atualize em Configurações → Municípios."
         return m
@@ -332,7 +359,7 @@ def montar(proposta, config=None):
     if proposta.origem_consumo == proposta.OrigemConsumo.CONTA:
         m.conta_hoje = float(proposta.conta_informada)  # o valor que o cliente paga, com bandeira e iluminação
     else:
-        m.conta_hoje = m.consumo * m.tarifa_kwh + float(proposta.iluminacao_publica or 0)
+        m.conta_hoje = m.consumo * m.tarifa_kwh + m.iluminacao
     m.conta_com_sistema = max(m.conta_hoje - m.resultado.economia_mensal_ano1, 0)
 
     taxas = [(t.banco, t.prazo_meses, float(t.taxa_mensal)) for t in TaxaFinanciamento.objects.all()]

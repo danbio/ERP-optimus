@@ -91,6 +91,7 @@ def config_municipios(request):
     municipios = Municipio.objects.filter(uf="TO")
     return _render_config(request, "core/config_municipios.html", {
         "municipios": municipios,
+        "com_iluminacao": Municipio.objects.filter(faixas_iluminacao__isnull=False).distinct(),
         "pendentes": dados_oficiais.municipios_para_atualizar("TO").count(),
     })
 

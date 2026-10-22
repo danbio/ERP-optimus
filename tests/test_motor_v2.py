@@ -4,7 +4,9 @@ import pytest
 
 from propostas.services.calculo import (
     geracao_necessaria,
+    iluminacao_pela_tabela,
     kwh_pela_conta,
+    kwh_pela_conta_com_tabela,
     kwp_necessario,
     mao_de_obra_sugerida,
     parcela_price,
@@ -90,3 +92,32 @@ def test_tabela_financiamento_escolhe_o_melhor_banco_por_prazo():
     tabela = tabela_financiamento(30000, taxas)
     assert [(t["prazo"], t["banco"]) for t in tabela] == [(12, "Sicredi"), (60, "BV"), (72, "Sicredi")]
     assert tabela[0]["parcela"] == pytest.approx(parcela_price(30000, 0.0149, 12))
+
+
+# ---------- Iluminação pública por faixa (D32) ----------
+
+FAIXAS_GURUPI_RES = [(100, 0), (150, 1.83), (200, 2.74), (250, 3.66), (300, 4.57), (350, 5.48), (400, 6.40),
+                     (450, 7.31), (500, 8.22), (800, 9.14), (1500, 11.75), (None, 14.36)]
+
+
+@pytest.mark.parametrize("kwh, esperado", [(90, 0), (100, 0), (380, 29.50), (897, 54.17), (905, 54.17), (2000, 66.20)])
+def test_iluminacao_pela_tabela_confere_com_as_faturas(kwh, esperado):
+    assert iluminacao_pela_tabela(kwh, FAIXAS_GURUPI_RES, 4.61) == pytest.approx(esperado, abs=0.01)
+
+
+def test_kwh_pela_conta_com_tabela_acha_consumo_e_faixa_juntos():
+    tarifa = 0.992780 / 0.726
+    # Conta de 380 kWh: 380 × tarifa + R$ 29,50 de iluminação
+    kwh, iluminacao = kwh_pela_conta_com_tabela(380 * tarifa + 29.50, tarifa, 0, FAIXAS_GURUPI_RES, 4.61)
+    assert kwh == pytest.approx(380, abs=0.1)
+    assert iluminacao == pytest.approx(29.50, abs=0.01)
+    # Conta pequena, na faixa isenta
+    assert kwh_pela_conta_com_tabela(80, tarifa, 0, FAIXAS_GURUPI_RES, 4.61)[1] == 0
+
+
+def test_kwh_pela_conta_com_tabela_na_virada_de_faixa():
+    tarifa = 0.992780 / 0.726
+    # Entre 100 kWh isentos (R$ 136,75) e 101 kWh com R$ 8,44 não há conta exata: fica na faixa de cima.
+    kwh, iluminacao = kwh_pela_conta_com_tabela(140, tarifa, 0, FAIXAS_GURUPI_RES, 4.61)
+    assert iluminacao == pytest.approx(8.44, abs=0.01)
+    assert kwh == pytest.approx((140 - 8.4363) / tarifa)

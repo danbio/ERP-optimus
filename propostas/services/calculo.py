@@ -169,6 +169,36 @@ def kwh_pela_conta(conta: float, iluminacao_publica: float, tarifa: float, adici
     return (conta - iluminacao_publica) / (tarifa + adicional_bandeira)
 
 
+def iluminacao_pela_tabela(kwh: float, faixas: list, valor_unidade: float) -> float:
+    """Iluminação pública (R$) pela tabela do município (D32).
+
+    `faixas`: [(até quantos kWh ou None, unidades fiscais)], em ordem crescente.
+    """
+    consumo = round(kwh)
+    for ate, unidades in faixas:
+        if ate is None or consumo <= ate:
+            return unidades * valor_unidade
+    return 0.0
+
+
+def kwh_pela_conta_com_tabela(conta: float, tarifa: float, adicional_bandeira: float,
+                              faixas: list, valor_unidade: float) -> tuple[float, float]:
+    """Consumo e iluminação pública a partir só do valor da conta (D32). Devolve (kWh, iluminação).
+
+    A iluminação depende do consumo, que depende da conta menos a iluminação: testa faixa a faixa,
+    de baixo para cima, e fica com a primeira em que o consumo calculado não passa do limite dela.
+    Na virada de uma faixa o consumo pode sair um pouco abaixo do início dela; fica assim mesmo.
+    """
+    for ate, unidades in faixas:
+        iluminacao = unidades * valor_unidade
+        if conta <= iluminacao:
+            break
+        kwh = (conta - iluminacao) / (tarifa + adicional_bandeira)
+        if ate is None or round(kwh) <= ate:
+            return kwh, iluminacao
+    raise ValueError("O valor da conta precisa ser maior que a iluminação pública.")
+
+
 def geracao_necessaria(consumo_kwh: float, folga: float, disponibilidade: int) -> float:
     """kWh/mês que o sistema precisa gerar: consumo com folga menos o mínimo que a distribuidora cobra."""
     return max(consumo_kwh * (1 + folga) - disponibilidade, 0.0)
