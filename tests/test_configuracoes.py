@@ -101,7 +101,10 @@ def test_numero_aneel():
 def test_carga_inicial_de_tarifas_e_bandeiras(db):
     b1 = TarifaVigente.objects.get(tipo="B1")
     assert (b1.tusd, b1.te) == (Decimal("0.683270"), Decimal("0.309510"))
-    assert b1.fiob_desatualizado
+    # Tributos e Fio B conferidos em faturas e na ANEEL (D32)
+    assert (b1.aliquota_tributos, b1.fiob_kwh) == (Decimal("0.2740"), Decimal("0.441478"))
+    assert round(b1.tarifa_com_tributos, 6) == Decimal("1.367466")
+    assert not b1.fiob_desatualizado
     assert list(Bandeira.objects.values_list("nome", flat=True)) == [
         "Verde", "Amarela", "Vermelha patamar 1", "Vermelha patamar 2",
     ]
@@ -266,7 +269,7 @@ def test_tributos_acima_do_limite_recusados(db):
     b1 = TarifaVigente.objects.get(tipo="B1")
     assert _post_tarifas(**{f"tarifa-{b1.pk}-aliquota_tributos": "75"}).status_code == 200
     b1.refresh_from_db()
-    assert b1.aliquota_tributos == 0
+    assert b1.aliquota_tributos == Decimal("0.2740")  # não mudou
 
 
 def test_atualizar_tarifas_sem_internet_avisa_e_nao_apaga(db, monkeypatch):

@@ -2,6 +2,25 @@
 
 {% block config %}
   <div class="card">
+    <h3>Iluminação pública</h3>
+    <p class="ajuda">Quando o vendedor deixa a iluminação em branco, a proposta estima pela tabela da lei municipal (valor por faixa de consumo, em unidade fiscal). Atualize o valor da unidade fiscal todo ano.</p>
+    <table class="tabela tabela--compacta">
+      <thead><tr><th>Município</th><th class="num">Unidade fiscal (R$)</th><th>Lei</th><th></th></tr></thead>
+      <tbody>
+        {% for m in com_iluminacao %}
+          <tr>
+            <td>{{ m.nome }}</td>
+            <td class="num">{{ m.valor_unidade_fiscal|floatformat:"2g"|default:"—" }}</td>
+            <td>{{ m.lei_iluminacao|default:"—" }}</td>
+            <td><a href="{% url 'admin:core_municipio_change' m.pk %}">Editar tabela</a></td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="4">Nenhum município com tabela cadastrada.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card">
     <div class="barra-acoes barra-acoes--plana">
       <h3>Irradiação dos municípios do Tocantins</h3>
       <span class="barra-acoes__espaco"></span>

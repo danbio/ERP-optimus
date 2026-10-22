@@ -38,7 +38,7 @@
       <tr><td>Classificação</td><td class="num">Baixa tensão – {{ proposta.tipo_tarifa.get_tipo_display }} · ligação {{ ligacao }}</td></tr>
       {% if proposta.origem_consumo == "rs" %}
         <tr><td>Valor da conta informado</td><td class="num">R$ {{ proposta.conta_informada|floatformat:"2g" }}</td></tr>
-        <tr><td>Iluminação pública</td><td class="num">R$ {{ proposta.iluminacao_publica|default:0|floatformat:"2g" }}</td></tr>
+        <tr><td>Iluminação pública{% if m.iluminacao_estimada %} (estimada pela lei municipal){% endif %}</td><td class="num">R$ {{ m.iluminacao|floatformat:"2g" }}</td></tr>
         {% if proposta.bandeira %}<tr><td>Bandeira tarifária</td><td class="num">{{ proposta.bandeira.nome }}</td></tr>{% endif %}
       {% else %}
         <tr><td>Consumo informado</td><td class="num">{{ proposta.kwh_informado|floatformat:"0g" }} kWh/mês</td></tr>

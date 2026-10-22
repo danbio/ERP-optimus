@@ -364,3 +364,54 @@ def test_passo4_tem_botao_do_pdf(base):
     navegador, proposta = _proposta_completa(base)
     html = navegador.get(reverse("propostas:passo", args=[proposta.pk, 4])).content.decode()
     assert reverse("propostas:pdf", args=[proposta.pk]) in html
+
+
+# ---------- Iluminação pública estimada pela lei municipal (D32) ----------
+
+def test_iluminacao_em_branco_e_estimada_pela_tabela_de_gurupi(base):
+    navegador = Navegador()
+    _passo1(navegador, base)
+    proposta = Proposta.objects.get()
+    _passo2(navegador, proposta, base, iluminacao_publica="")
+    proposta.refresh_from_db()
+    assert proposta.iluminacao_publica is None
+    m = montar(proposta)
+    # Conta de R$ 500 com tarifa 1,3237: cerca de 359 kWh, faixa 351–400 = 6,40 UFIRG × 4,61 = R$ 29,50
+    assert m.iluminacao_estimada
+    assert m.iluminacao == pytest.approx(29.50, abs=0.01)
+    assert m.consumo == pytest.approx((500 - 29.504) / m.tarifa_kwh)
+    html = navegador.get(reverse("propostas:passo", args=[proposta.pk, 2])).content.decode()
+    assert "Iluminação pública estimada pela lei de Gurupi" in html
+
+
+def test_iluminacao_digitada_vale_mesmo_zero(base):
+    navegador = Navegador()
+    _passo1(navegador, base)
+    proposta = Proposta.objects.get()
+    _passo2(navegador, proposta, base, iluminacao_publica="0")
+    proposta.refresh_from_db()
+    m = montar(proposta)
+    assert not m.iluminacao_estimada and m.iluminacao == 0
+    assert m.consumo == pytest.approx(500 / m.tarifa_kwh)
+
+
+def test_consumo_em_kwh_soma_iluminacao_da_tabela_na_conta_de_hoje(base):
+    navegador = Navegador()
+    _passo1(navegador, base, ligacao="tri")
+    proposta = Proposta.objects.get()
+    _passo2(navegador, proposta, base, origem_consumo="kwh", kwh_informado="900", conta_informada="")
+    _passo3(navegador, proposta)
+    proposta.refresh_from_db()
+    m = montar(proposta)
+    assert m.iluminacao == pytest.approx(54.17, abs=0.01)  # 801–1.500 kWh = 11,75 UFIRG
+    assert m.conta_hoje == pytest.approx(900 * m.tarifa_kwh + m.iluminacao)
+
+
+def test_b2_rural_nao_estima_iluminacao(base):
+    navegador = Navegador()
+    _passo1(navegador, base, tipo_tarifa=TarifaVigente.objects.get(tipo="B2").pk)
+    proposta = Proposta.objects.get()
+    _passo2(navegador, proposta, base, iluminacao_publica="")
+    proposta.refresh_from_db()
+    m = montar(proposta)
+    assert not m.iluminacao_estimada and m.iluminacao == 0

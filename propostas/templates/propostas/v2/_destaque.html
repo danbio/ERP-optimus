@@ -2,6 +2,7 @@
   {% if passo == 2 %}
     <div><span class="destaque__rotulo">Consumo estimado</span><span class="destaque__valor">{% if m.consumo is not None %}{{ m.consumo|floatformat:0 }}{% else %}—{% endif %}</span> kWh/mês</div>
     <div><span class="destaque__rotulo">Com folga</span><span class="destaque__valor">{% if m.consumo_alvo is not None %}{{ m.consumo_alvo|floatformat:0 }}{% else %}—{% endif %}</span> kWh/mês</div>
+    {% if m.iluminacao_estimada %}<p class="ajuda">Iluminação pública estimada pela lei de {{ m.municipio.nome }}: R$ {{ m.iluminacao|floatformat:"2g" }}/mês. Se a conta mostrar outro valor, digite no campo.</p>{% endif %}
   {% else %}
     <div><span class="destaque__rotulo">Potência</span><span class="destaque__valor">{{ m.kwp|floatformat:2 }}</span> kWp</div>
     <div><span class="destaque__rotulo">Geração média</span><span class="destaque__valor">{{ m.geracao_media|floatformat:0|default:"—" }}</span> kWh/mês</div>

@@ -203,7 +203,7 @@ class Passo1Form(forms.Form):
 
 class Passo2Form(forms.ModelForm):
     conta_informada = CampoReais(label="Valor médio da conta (R$)", required=False)
-    iluminacao_publica = CampoReais(label="Iluminação pública na conta (R$, se souber)", required=False)
+    iluminacao_publica = CampoReais(label="Iluminação pública na conta (R$; em branco, o sistema estima)", required=False)
     folga = CampoPercentual(label="Folga para consumo futuro (%)", required=False)
     perfil_simultaneidade = forms.ChoiceField(label="Quando o cliente usa energia", choices=())
 
