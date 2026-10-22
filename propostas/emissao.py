@@ -10,7 +10,7 @@ from django.core.files.base import ContentFile
 from django.utils import timezone
 
 from .models import Proposta
-from .montagem import gravar_resultado, impedimentos_de_emissao, montar
+from .montagem import gravar_resultado, impedimentos_de_emissao, montar, registro_da_emissao
 
 
 class ErroEmissao(Exception):
@@ -21,7 +21,7 @@ def _reais(valor):
     return Decimal(f"{valor:.2f}")
 
 
-def preparar_emissao(proposta):
+def preparar_emissao(proposta, usuario=None):
     """Congela kit, preço e snapshot e marca como emitida (sem gravar o PDF ainda).
 
     Chamar dentro de uma transação: se o PDF não sair, tudo volta a rascunho.
@@ -45,8 +45,12 @@ def preparar_emissao(proposta):
         if m.prazo:
             proposta.prazo_comparacao = m.prazo
         gravar_resultado(proposta, m)  # snapshot das premissas e dos resultados, kit e investimento
+        proposta.registro = registro_da_emissao(proposta, m, proposta.premissas)
+    if not proposta.numero:
+        proposta.numero = Proposta.proximo_numero()  # número definitivo só na primeira emissão (A13)
     proposta.status = Proposta.Status.EMITIDA
     proposta.emissao = timezone.localdate()
+    proposta.emitida_por = usuario
     proposta.save()
 
 
@@ -58,7 +62,23 @@ def concluir_emissao(proposta, pdf):
 
 
 def _outras_versoes(proposta):
+    if not proposta.numero:
+        return Proposta.objects.none()
     return Proposta.objects.filter(numero=proposta.numero).exclude(pk=proposta.pk)
+
+
+def versoes(proposta):
+    """Todas as versões do mesmo número, da mais nova para a mais antiga."""
+    if not proposta.numero:
+        return Proposta.objects.filter(pk=proposta.pk)
+    return Proposta.objects.filter(numero=proposta.numero).order_by("-versao")
+
+
+def descartar(proposta):
+    """Apaga um rascunho que não vai virar proposta (A13). Emitidas nunca são apagadas."""
+    if proposta.status != Proposta.Status.RASCUNHO:
+        raise ErroEmissao("Só um rascunho pode ser descartado.")
+    proposta.delete()
 
 
 def rascunho_aberto(proposta):
@@ -87,6 +107,8 @@ def revisar(proposta):
     nova.aceite_desfeito_em = None
     nova.motivo_aceite_desfeito = ""
     nova.pdf = ""
+    nova.registro = {}
+    nova.emitida_por = nova.aceita_por = nova.perdida_por = nova.aceite_desfeito_por = None
     nova.save()
     for item in itens:
         item.pk = None
@@ -95,19 +117,20 @@ def revisar(proposta):
     return nova
 
 
-def aceitar(proposta, data):
+def aceitar(proposta, data, usuario=None):
     if proposta.status != Proposta.Status.EMITIDA:
         raise ErroEmissao("Só uma proposta emitida pode ser aceita.")
     proposta.status = Proposta.Status.ACEITA
     proposta.data_aceite = data
-    proposta.save(update_fields=["status", "data_aceite"])
+    proposta.aceita_por = usuario
+    proposta.save(update_fields=["status", "data_aceite", "aceita_por"])
     # Só as emitidas e uma aceita antes viram substituídas; um rascunho aberto continua editável (A11).
     _outras_versoes(proposta).filter(
         status__in=[Proposta.Status.EMITIDA, Proposta.Status.ACEITA]
     ).update(status=Proposta.Status.SUBSTITUIDA)
 
 
-def desfazer_aceite(proposta, motivo):
+def desfazer_aceite(proposta, motivo, usuario=None):
     """Volta a aceita para emitida, com o motivo (D33: vendedor ou gestor). As versões que o aceite
     substituiu continuam substituídas; para usar uma delas, revise."""
     if proposta.status != Proposta.Status.ACEITA:
@@ -118,13 +141,16 @@ def desfazer_aceite(proposta, motivo):
     proposta.data_aceite = None
     proposta.aceite_desfeito_em = timezone.localdate()
     proposta.motivo_aceite_desfeito = motivo.strip()
-    proposta.save(update_fields=["status", "data_aceite", "aceite_desfeito_em", "motivo_aceite_desfeito"])
+    proposta.aceite_desfeito_por = usuario
+    proposta.save(update_fields=["status", "data_aceite", "aceite_desfeito_em", "motivo_aceite_desfeito",
+                                 "aceite_desfeito_por"])
 
 
-def marcar_perdida(proposta, motivo, observacao=""):
+def marcar_perdida(proposta, motivo, observacao="", usuario=None):
     if proposta.status != Proposta.Status.EMITIDA:
         raise ErroEmissao("Só uma proposta emitida pode ser marcada como perdida.")
     proposta.status = Proposta.Status.PERDIDA
     proposta.motivo_perda = motivo
     proposta.obs_perda = observacao
-    proposta.save(update_fields=["status", "motivo_perda", "obs_perda"])
+    proposta.perdida_por = usuario
+    proposta.save(update_fields=["status", "motivo_perda", "obs_perda", "perdida_por"])

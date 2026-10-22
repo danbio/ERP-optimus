@@ -7,6 +7,7 @@ from propostas.models import Bandeira, TarifaVigente, TaxaFinanciamento
 from . import dados_oficiais
 from .forms import BandeirasFormSet, EmpresaForm, PerfisFormSet, PremissasForm, TarifaForm, TaxasForm
 from .models import ConfigEmpresa, Municipio
+from .permissoes import so_gestor
 
 
 def inicio(request):
@@ -28,6 +29,7 @@ def _render_config(request, template, contexto):
     return render(request, template, {"abas": ABAS, **contexto})
 
 
+@so_gestor
 def config_empresa(request):
     config = ConfigEmpresa.obter()
     form = EmpresaForm(request.POST or None, request.FILES or None, instance=config)
@@ -38,6 +40,7 @@ def config_empresa(request):
     return _render_config(request, "core/config_empresa.html", {"form": form})
 
 
+@so_gestor
 def config_premissas(request):
     config = ConfigEmpresa.obter()
     if request.method == "POST":
@@ -58,6 +61,7 @@ def config_premissas(request):
     return _render_config(request, "core/config_premissas.html", {"form": form, "perfis": perfis})
 
 
+@so_gestor
 def config_tarifas(request):
     tarifas = TarifaVigente.vigentes()
     ultima_atualizacao = max((t.atualizado_em for t in tarifas), default=None)
@@ -78,6 +82,7 @@ def config_tarifas(request):
     })
 
 
+@so_gestor
 def config_financiamento(request):
     form = TaxasForm(request.POST or None, taxas=TaxaFinanciamento.objects.all())
     if request.method == "POST" and form.is_valid():
@@ -87,6 +92,7 @@ def config_financiamento(request):
     return _render_config(request, "core/config_financiamento.html", {"form": form, "prazos": TaxaFinanciamento.PRAZOS})
 
 
+@so_gestor
 def config_municipios(request):
     municipios = Municipio.objects.filter(uf="TO")
     return _render_config(request, "core/config_municipios.html", {
@@ -101,6 +107,7 @@ IRRADIACAO_POR_VEZ = 20
 
 
 @require_POST
+@so_gestor
 def config_tarifas_atualizar(request):
     try:
         messages.success(request, dados_oficiais.atualizar_tarifas())
@@ -111,6 +118,7 @@ def config_tarifas_atualizar(request):
 
 
 @require_POST
+@so_gestor
 def config_municipios_atualizar(request):
     pendentes = dados_oficiais.municipios_para_atualizar("TO")
     lote = list(pendentes[:IRRADIACAO_POR_VEZ])

@@ -9,8 +9,11 @@ Campos vazios na proposta significam "usar a sugestão do sistema".
 
 import math
 import re
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
+from datetime import timedelta
 from decimal import Decimal
+
+from django.utils import timezone
 
 from clientes.models import UnidadeConsumidora
 from core.models import ConfigEmpresa
@@ -141,6 +144,9 @@ def premissas_da_proposta(proposta, config):
     if perfil:
         premissas["simultaneidade"] = perfil["simultaneidade"]
     premissas["fator_orientacao"] = config.fatores_orientacao.get(proposta.orientacao or "norte", 1.0)
+    # Ano em que o sistema deve ser conectado: vale para a regra do Fio B (A17).
+    conexao = timezone.localdate() + timedelta(days=config.prazo_homologacao_dias)
+    premissas["ano_conexao"] = conexao.year
     return premissas
 
 
@@ -456,3 +462,81 @@ def gravar_resultado(proposta, m):
             proposta=proposta, tipo=tipo, equipamento=equipamento, descricao=descricao,
             modelo=equipamento.codigo if equipamento else "", quantidade=quantidade, potencia_w=potencia, ordem=ordem,
         )
+
+
+def _equipamento(equipamento):
+    if not equipamento:
+        return None
+    return {"id": equipamento.pk, "codigo": equipamento.codigo, "descricao": equipamento.descricao,
+            "distribuidor": equipamento.distribuidor, "potencia_w": equipamento.potencia_w}
+
+
+def _decimal(valor):
+    return float(valor) if valor is not None else None
+
+
+def registro_da_emissao(proposta, m, premissas):
+    """Entradas e saídas do cálculo no momento da emissão (A10, D36), para auditoria.
+
+    Guarda os valores (não só as chaves), porque tarifas, taxas e catálogo mudam depois.
+    """
+    tarifa, fatura, cotacao, municipio = proposta.tipo_tarifa, proposta.fatura, proposta.cotacao, m.municipio
+    entradas = {
+        "cliente": {"id": proposta.cliente_id, "nome": proposta.cliente.nome},
+        "nivel": proposta.nivel,
+        "ligacao": proposta.ligacao,
+        "origem_consumo": proposta.origem_consumo,
+        "conta_informada": _decimal(proposta.conta_informada),
+        "kwh_informado": _decimal(proposta.kwh_informado),
+        "iluminacao_publica": _decimal(proposta.iluminacao_publica),
+        "bandeira": proposta.bandeira.nome if proposta.bandeira else None,
+        "fatura": {"id": fatura.pk, "competencia": fatura.competencia.isoformat(), "kwh": fatura.kwh,
+                   "dias_ciclo": fatura.dias_ciclo, "valor_total": _decimal(fatura.valor_total)} if fatura else None,
+        "folga": _decimal(proposta.folga),
+        "perfil_simultaneidade": proposta.perfil_simultaneidade,
+        "orientacao": proposta.orientacao,
+        "tipo_estrutura": proposta.tipo_estrutura,
+        "tarifa": {"id": tarifa.pk, "tipo": tarifa.tipo, "vigencia_inicio": tarifa.vigencia_inicio.isoformat(),
+                   "tusd": _decimal(tarifa.tusd), "te": _decimal(tarifa.te),
+                   "aliquota_tributos": _decimal(tarifa.aliquota_tributos), "fiob_kwh": _decimal(tarifa.fiob_kwh)},
+        "municipio": {"id": municipio.pk, "nome": municipio.nome, "irradiacao": municipio.irradiacao,
+                      "fonte_irradiacao": municipio.fonte_irradiacao},
+        "premissas": premissas,
+        "cotacao": {"id": cotacao.pk, "distribuidor": cotacao.distribuidor, "numero": cotacao.numero,
+                    "kwp": _decimal(cotacao.kwp), "total": _decimal(cotacao.total)} if cotacao else None,
+        "custo_kit_digitado": _decimal(proposta.custo_kit),
+        "mao_de_obra_digitada": _decimal(proposta.mao_de_obra),
+        "desconto_pct": _decimal(proposta.desconto_pct),
+    }
+    saidas = {
+        "consumo_kwh": m.consumo,
+        "consumo_alvo_kwh": m.consumo_alvo,
+        "tarifa_kwh": m.tarifa_kwh,
+        "iluminacao": m.iluminacao,
+        "iluminacao_estimada": m.iluminacao_estimada,
+        "modulo": _equipamento(m.modulo),
+        "qtd_modulos": m.qtd_modulos,
+        "modulo_sugerido": m.modulo_sugerido,
+        "inversor": _equipamento(m.inversor),
+        "qtd_inversores": m.qtd_inversores,
+        "inversor_sugerido": m.inversor_sugerido,
+        "cabo_preto_m": m.cabo_preto,
+        "cabo_vermelho_m": m.cabo_vermelho,
+        "kwp": m.kwp,
+        "kw_ca": m.kw_ca,
+        "sobrecarga": m.sobrecarga,
+        "geracao_media_kwh": m.geracao_media,
+        "custo_kit": m.custo_kit,
+        "custo_kit_estimado": m.custo_kit_estimado,
+        "mao_de_obra": m.mao_de_obra,
+        "mo_sugerida": m.mo_sugerida,
+        "desconto": m.desconto,
+        "investimento": m.investimento,
+        "resultado": asdict(m.resultado) if m.resultado else None,
+        "conta_hoje": m.conta_hoje,
+        "conta_com_sistema": m.conta_com_sistema,
+        "financiamento": m.financiamento,
+        "prazo": m.prazo,
+        "alertas": m.alertas,
+    }
+    return {"versao_registro": 1, "entradas": entradas, "saidas": saidas}

@@ -17,6 +17,5 @@ playwright==1.56.0
 matplotlib==3.11.2
 pypdf==6.21.1
 
-# Demais dependências do stack (waitress)
-# entram nas fatias em que forem efetivamente usadas —
-# ver docs/decisoes.md para a justificativa de cada uma.
+# Servidor de produção no PC Windows (D05, A30).
+waitress==3.0.2

@@ -66,6 +66,8 @@ class ConfigEmpresa(models.Model):
     limite_microgeracao_kwp = models.DecimalField(
         "limite da microgeração (kWp)", max_digits=6, decimal_places=2, default=75,
     )
+    # Ano de conexão do rascunho = hoje + prazo de homologação (A17, D36).
+    prazo_homologacao_dias = models.PositiveSmallIntegerField("prazo até a conexão (dias)", default=60)
 
     class Meta:
         verbose_name = "Configuração da empresa"

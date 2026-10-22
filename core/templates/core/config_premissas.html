@@ -13,7 +13,7 @@
         {% include "core/_campo.html" with campo=form.reajuste_anual %}
         {% include "core/_campo.html" with campo=form.degradacao_ano1 %}
         {% include "core/_campo.html" with campo=form.degradacao_anual %}
-        {% include "core/_campo.html" with campo=form.ano_conexao %}
+        {% include "core/_campo.html" with campo=form.prazo_homologacao_dias %}
         {% include "core/_campo.html" with campo=form.horizonte_anos %}
         {% include "core/_campo.html" with campo=form.razao_cc_ca_max %}
       </div>
@@ -50,6 +50,18 @@
         {% include "core/_campo.html" with campo=form.mo_por_kwp_solo %}
         {% include "core/_campo.html" with campo=form.mo_minima %}
         {% include "core/_campo.html" with campo=form.dias_preco_velho %}
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Travas da proposta</h3>
+      <p class="ajuda">Acima destes valores o vendedor precisa confirmar com o cliente, ou a proposta recebe um aviso.</p>
+      <div class="grade-campos grade-campos--3">
+        {% include "core/_campo.html" with campo=form.conta_alta %}
+        {% include "core/_campo.html" with campo=form.consumo_alto %}
+        {% include "core/_campo.html" with campo=form.tolerancia_tarifa_fatura %}
+        {% include "core/_campo.html" with campo=form.tolerancia_kwp_cotacao %}
+        {% include "core/_campo.html" with campo=form.limite_microgeracao_kwp %}
       </div>
     </div>
     <button type="submit" class="btn">Salvar</button>

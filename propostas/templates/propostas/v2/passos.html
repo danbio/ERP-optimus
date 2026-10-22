@@ -1,7 +1,7 @@
 {% extends "core/base.html" %}
 
-{% block titulo %}{% if proposta %}Proposta {{ proposta.numero }}{% else %}Nova proposta{% endif %}{% endblock %}
-{% block titulo_pagina %}{% if proposta %}Proposta {{ proposta.numero }}{% else %}Nova proposta solar{% endif %}{% endblock %}
+{% block titulo %}{% if proposta %}{% if proposta.numero %}Proposta {{ proposta.numero }}{% else %}Proposta em rascunho{% endif %}{% else %}Nova proposta{% endif %}{% endblock %}
+{% block titulo_pagina %}{% if proposta %}{% if proposta.numero %}Proposta {{ proposta.numero }}{% else %}Proposta em rascunho{% endif %}{% else %}Nova proposta solar{% endif %}{% endblock %}
 
 {% block conteudo %}
 <div class="assistente{% if modo_cliente %} modo-cliente{% endif %}">

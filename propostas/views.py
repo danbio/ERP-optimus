@@ -17,6 +17,7 @@ from django.views.decorators.http import require_POST
 from clientes.models import Cliente, UnidadeConsumidora
 from core.models import ConfigEmpresa
 from core.pdf import ErroPDF, html_para_pdf
+from core.permissoes import so_gestor
 from core.validacoes import formatar_reais, nomes_iguais
 
 from .forms import (
@@ -538,6 +539,7 @@ def solar_equipamentos(request):
     })
 
 
+@so_gestor
 def solar_equipamento(request, pk=None):
     equipamento = get_object_or_404(Equipamento, pk=pk) if pk else None
     form = EquipamentoForm(request.POST or None, request.FILES or None, instance=equipamento)
@@ -679,7 +681,10 @@ def _atualizar_cliente(cliente, dados, proposta):
         if dono:
             return [("cpf_cnpj", f"Este CPF/CNPJ já é de {dono.nome}.")]
     mudou = cliente.nome != dados["nome"] or cliente.telefone != dados["telefone"]
-    if mudou and cliente.propostas.exclude(numero=proposta.numero).exists():
+    outras = cliente.propostas.exclude(pk=proposta.pk)
+    if proposta.numero:
+        outras = outras.exclude(numero=proposta.numero)
+    if mudou and outras.exists():
         return [("nome", "Este cliente tem outras propostas. Corrija nome e telefone na ficha do cliente "
                          "(menu Clientes).")]
     cliente.nome, cliente.telefone = dados["nome"], dados["telefone"]
@@ -758,7 +763,7 @@ def _gravar_passo1(request, form, proposta):
     config = ConfigEmpresa.obter()
     if not proposta:
         proposta = Proposta(
-            numero=Proposta.proximo_numero(), versao=1, status=Proposta.Status.RASCUNHO,
+            versao=1, status=Proposta.Status.RASCUNHO,  # sem número até a primeira emissão (A13)
             validade_dias=config.validade_padrao_dias, beneficios=config.beneficios_padrao,
             escopo=config.escopo_padrao, texto_sobre=config.texto_sobre,
             perfil_simultaneidade=(config.perfis_simultaneidade[0]["nome"] if config.perfis_simultaneidade else ""),
@@ -856,7 +861,7 @@ def proposta_detalhe(request, pk):
     proposta = get_object_or_404(Proposta.objects.select_related("cliente"), pk=pk)
     return render(request, "propostas/detalhe.html", {
         "proposta": proposta,
-        "versoes": Proposta.objects.filter(numero=proposta.numero).order_by("-versao"),
+        "versoes": emissao.versoes(proposta),
         "rascunho_aberto": emissao.rascunho_aberto(proposta),
         "aceite_form": AceiteForm(initial={"data_aceite": timezone.localdate()}),
         "perda_form": PerdaForm(),
@@ -869,14 +874,14 @@ def proposta_emitir(request, pk):
     proposta = get_object_or_404(Proposta, pk=pk)
     try:
         with transaction.atomic():
-            emissao.preparar_emissao(proposta)
+            emissao.preparar_emissao(proposta, request.user)
             emissao.concluir_emissao(proposta, gerar_pdf(proposta))
     except (emissao.ErroEmissao, ErroPDF, ErroAnexo) as erro:
         messages.error(request, f"Não foi possível emitir: {erro}")
         if proposta.eh_antiga:
             return redirect("propostas:detalhe", pk=pk)
         return redirect("propostas:passo", pk=pk, n=4)  # volta para onde estão os motivos (A15)
-    messages.success(request, f"Proposta {proposta.numero} v{proposta.versao} emitida.")
+    messages.success(request, f"Proposta {proposta.identificacao} emitida.")
     return redirect("propostas:detalhe", pk=pk)
 
 
@@ -900,13 +905,26 @@ def proposta_aceitar(request, pk):
     form = AceiteForm(request.POST)
     if form.is_valid():
         try:
-            emissao.aceitar(proposta, form.cleaned_data["data_aceite"])
-            messages.success(request, f"Proposta {proposta.numero} v{proposta.versao} aceita.")
+            emissao.aceitar(proposta, form.cleaned_data["data_aceite"], request.user)
+            messages.success(request, f"Proposta {proposta.identificacao} aceita.")
         except emissao.ErroEmissao as erro:
             messages.error(request, str(erro))
     else:
         messages.error(request, "Informe a data do aceite.")
     return redirect("propostas:detalhe", pk=pk)
+
+
+@require_POST
+def proposta_descartar(request, pk):
+    proposta = get_object_or_404(Proposta, pk=pk)
+    try:
+        identificacao = proposta.identificacao
+        emissao.descartar(proposta)
+    except emissao.ErroEmissao as erro:
+        messages.error(request, str(erro))
+        return redirect("propostas:detalhe", pk=pk)
+    messages.success(request, f"{identificacao} descartado.")
+    return redirect("propostas:lista")
 
 
 @require_POST
@@ -917,8 +935,8 @@ def proposta_desfazer_aceite(request, pk):
         messages.error(request, "Informe por que o aceite foi desfeito.")
         return redirect("propostas:detalhe", pk=pk)
     try:
-        emissao.desfazer_aceite(proposta, form.cleaned_data["motivo"])
-        messages.success(request, f"Aceite da {proposta.numero} v{proposta.versao} desfeito.")
+        emissao.desfazer_aceite(proposta, form.cleaned_data["motivo"], request.user)
+        messages.success(request, f"Aceite da {proposta.identificacao} desfeito.")
     except emissao.ErroEmissao as erro:
         messages.error(request, str(erro))
     return redirect("propostas:detalhe", pk=pk)
@@ -930,8 +948,9 @@ def proposta_perdida(request, pk):
     form = PerdaForm(request.POST)
     if form.is_valid():
         try:
-            emissao.marcar_perdida(proposta, form.cleaned_data["motivo_perda"], form.cleaned_data["obs_perda"])
-            messages.success(request, f"Proposta {proposta.numero} v{proposta.versao} marcada como perdida.")
+            emissao.marcar_perdida(proposta, form.cleaned_data["motivo_perda"], form.cleaned_data["obs_perda"],
+                                   request.user)
+            messages.success(request, f"Proposta {proposta.identificacao} marcada como perdida.")
         except emissao.ErroEmissao as erro:
             messages.error(request, str(erro))
     else:

@@ -32,6 +32,48 @@
     }
   }
 
+  .sidebar__sair {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--esp-2);
+    margin-top: var(--esp-6);
+    font-size: var(--texto-sm);
+
+    & .btn {
+      color: var(--soft);
+      border-color: var(--soft);
+    }
+
+    & .btn:hover {
+      color: var(--branco);
+      border-color: var(--branco);
+    }
+  }
+
+  /* Tela de login (D36) */
+  .tela-entrar {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--esp-4);
+    background: var(--light);
+  }
+
+  .entrar {
+    width: 100%;
+    max-width: 360px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--esp-4);
+  }
+
+  .entrar__logo {
+    max-width: 160px;
+    margin: 0 auto var(--esp-2);
+  }
+
   .conteudo {
     flex: 1;
     padding: var(--esp-6);
@@ -127,6 +169,25 @@
       margin: var(--esp-2) 0 var(--esp-4);
       padding-left: var(--esp-5);
     }
+  }
+
+  /* Descartar rascunho (A13): discreto, com confirmação. */
+  .descartar {
+    margin-top: var(--esp-5);
+    font-size: var(--texto-sm);
+
+    & summary {
+      cursor: pointer;
+      color: var(--muted);
+    }
+  }
+
+  .descartar__corpo {
+    margin-top: var(--esp-2);
+    padding: var(--esp-3);
+    border: 1px solid var(--erro);
+    border-radius: var(--raio);
+    background: var(--erro-claro);
   }
 
   .kit-linhas {
@@ -879,6 +940,10 @@
       & .sidebar__logo {
         max-width: 90px;
         margin: 0 var(--esp-2) 0 0;
+      }
+
+      & .sidebar__sair {
+        margin: 0 0 0 auto;
       }
 
       & a {

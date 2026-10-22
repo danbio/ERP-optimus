@@ -103,7 +103,10 @@ ORIENTACOES = [
 class PremissasForm(forms.Form):
     """Premissas técnicas, fatores de orientação e mão de obra. Só o gestor altera (D19)."""
 
-    ano_conexao = forms.IntegerField(label="Ano de conexão", min_value=2023, max_value=2100)
+    prazo_homologacao_dias = forms.IntegerField(
+        label="Prazo da venda até a conexão (dias)", min_value=0, max_value=365,
+        help_text="Define o ano de conexão de cada proposta (regra do Fio B).",
+    )
     horizonte_anos = forms.IntegerField(label="Horizonte da análise (anos)", min_value=1, max_value=40)
     razao_cc_ca_max = forms.DecimalField(
         label="Sobrecarga máxima do inversor (CC/CA)", min_value=1, max_value=2, decimal_places=2,
@@ -114,6 +117,21 @@ class PremissasForm(forms.Form):
     mo_por_kwp_solo = CampoReais(label="Mão de obra por kWp em solo (R$)")
     mo_minima = CampoReais(label="Mão de obra mínima (R$)")
     dias_preco_velho = forms.IntegerField(label="Preço do kit fica velho após (dias)", min_value=1, max_value=365)
+
+    # Travas da proposta (A06, A01, A02): acima disso o sistema pede confirmação ou avisa.
+    conta_alta = CampoReais(label="Conta alta: pedir confirmação acima de (R$)")
+    consumo_alto = forms.IntegerField(label="Consumo alto: pedir confirmação acima de (kWh/mês)", min_value=1)
+    tolerancia_tarifa_fatura = CampoPercentual(label="R$/kWh da fatura: diferença aceita da tarifa (%)")
+    tolerancia_kwp_cotacao = CampoPercentual(label="kWp da cotação: diferença aceita do sistema (%)", maximo=50)
+    limite_microgeracao_kwp = forms.DecimalField(
+        label="Avisar acima de (kWp)", min_value=1, decimal_places=2, localize=True,
+        widget=forms.TextInput(attrs={"inputmode": "decimal"}),
+    )
+
+    CAMPOS_DA_CONFIG = (
+        "mo_por_kwp", "mo_por_kwp_solo", "mo_minima", "dias_preco_velho", "prazo_homologacao_dias",
+        "conta_alta", "consumo_alto", "tolerancia_tarifa_fatura", "tolerancia_kwp_cotacao", "limite_microgeracao_kwp",
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -126,14 +144,9 @@ class PremissasForm(forms.Form):
     def da_config(cls, config):
         premissas = config.premissas_padrao
         inicial = {chave: premissas.get(chave) for chave, _ in PREMISSAS_PERCENTUAIS}
-        inicial |= {chave: premissas.get(chave) for chave in (
-            "ano_conexao", "horizonte_anos", "razao_cc_ca_max",
-        )}
+        inicial |= {chave: premissas.get(chave) for chave in ("horizonte_anos", "razao_cc_ca_max")}
         inicial |= {f"orientacao_{chave}": config.fatores_orientacao.get(chave) for chave, _ in ORIENTACOES}
-        inicial |= {
-            "mo_por_kwp": config.mo_por_kwp, "mo_por_kwp_solo": config.mo_por_kwp_solo,
-            "mo_minima": config.mo_minima, "dias_preco_velho": config.dias_preco_velho,
-        }
+        inicial |= {campo: getattr(config, campo) for campo in cls.CAMPOS_DA_CONFIG}
         return cls(initial=inicial)
 
     def gravar(self, config):
@@ -141,16 +154,13 @@ class PremissasForm(forms.Form):
         premissas = dict(config.premissas_padrao)
         for chave, _ in PREMISSAS_PERCENTUAIS:
             premissas[chave] = dados[chave]
-        premissas["ano_conexao"] = dados["ano_conexao"]
         premissas["horizonte_anos"] = dados["horizonte_anos"]
         premissas["razao_cc_ca_max"] = float(dados["razao_cc_ca_max"])
         premissas["cobrar_disponibilidade"] = False  # a disponibilidade não entra na economia (D33)
         config.premissas_padrao = premissas
         config.fatores_orientacao = {chave: dados[f"orientacao_{chave}"] for chave, _ in ORIENTACOES}
-        config.mo_por_kwp = dados["mo_por_kwp"]
-        config.mo_por_kwp_solo = dados["mo_por_kwp_solo"]
-        config.mo_minima = dados["mo_minima"]
-        config.dias_preco_velho = dados["dias_preco_velho"]
+        for campo in self.CAMPOS_DA_CONFIG:
+            setattr(config, campo, dados[campo])
         config.save()
 
 

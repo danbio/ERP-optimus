@@ -23,8 +23,18 @@
       <a href="{% url 'orcamentos:lista' %}"{% if app == "orcamentos" and rota != "catalogo" %} class="ativo"{% endif %}>Orçamentos</a>
       <a href="{% url 'propostas:solar_equipamentos' %}"{% if rota|slice:":6" == "solar_" %} class="ativo"{% endif %}>Catálogo solar</a>
       <a href="{% url 'orcamentos:catalogo' %}"{% if rota == "catalogo" %} class="ativo"{% endif %}>Catálogo Intelbras</a>
-      <a href="{% url 'core:config_empresa' %}"{% if app == "core" and rota|slice:":7" == "config_" %} class="ativo"{% endif %}>Configurações</a>
+      {% if eh_gestor %}
+        <a href="{% url 'core:config_empresa' %}"{% if app == "core" and rota|slice:":7" == "config_" %} class="ativo"{% endif %}>Configurações</a>
+      {% endif %}
+      {% if user.is_superuser %}<a href="{% url 'admin:auth_user_changelist' %}">Usuários</a>{% endif %}
       {% endwith %}
+      {% if user.is_authenticated %}
+        <form method="post" action="{% url 'logout' %}" class="sidebar__sair">
+          {% csrf_token %}
+          <span>{{ user.get_full_name|default:user.username }}</span>
+          <button type="submit" class="btn btn--secundario btn--pequeno">Sair</button>
+        </form>
+      {% endif %}
     </nav>
     <div class="conteudo">
       <div class="topbar">

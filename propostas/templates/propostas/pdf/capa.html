@@ -15,7 +15,7 @@
     </p>
     {% if estimativa %}<p class="faixa-estimativa">{{ aviso_estimativa }}</p>{% endif %}
     <div class="capa__grade">
-      <div><div class="doc-rotulo">Nº da proposta</div>{{ proposta.numero }}{% if proposta.versao > 1 %} v{{ proposta.versao }}{% endif %}</div>
+      <div><div class="doc-rotulo">Nº da proposta</div>{{ proposta.numero|default:"RASCUNHO" }}{% if proposta.versao > 1 %} v{{ proposta.versao }}{% endif %}</div>
       <div><div class="doc-rotulo">Emissão</div>{{ emissao|date:"d/m/Y" }}</div>
       <div><div class="doc-rotulo">Válida até</div>{{ validade_ate|date:"d/m/Y" }}</div>
     </div>
