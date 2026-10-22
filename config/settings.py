@@ -38,7 +38,7 @@ if not ENV.get("SECRET_KEY"):
 
 # Leitura de fatura e cotação por IA (D37). Sem chave, a leitura avisa que não está configurada.
 GEMINI_API_KEY = ENV.get("GEMINI_API_KEY", "")
-GEMINI_MODELO = ENV.get("GEMINI_MODELO", "gemini-flash-latest")
+GEMINI_MODELO = ENV.get("GEMINI_MODELO", "gemini-flash-lite-latest")
 
 # Uso interno em rede local: aceita qualquer host da rede.
 ALLOWED_HOSTS = ["*"]
