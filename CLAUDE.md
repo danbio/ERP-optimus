@@ -2,6 +2,7 @@
 
 ERP interno da **Optimus Energia Solar** (Gurupi-TO). Uso interno, 2–5 usuários, rede local.
 Fase atual: **Proposta Solar v2**, redesenho da entrada de dados (ver `docs/spec-proposta-v2.md`, D17–D25). A `docs/spec-fase1.md` continua valendo para o motor de cálculo e o PDF.
+**Agora:** correções da revisão de 22/10/2026, em rodadas, seguindo `docs/plano-correcoes.md` (D33–D35).
 Módulo paralelo: **Orçamentos da revenda Intelbras** (ver `docs/spec-orcamentos.md`, D12–D15).
 
 ## Princípio número 1
@@ -117,7 +118,7 @@ O usuário típico é um **vendedor iniciante**, e o cliente muitas vezes **não
 
 ## Fluxo de trabalho
 
-1. Ler `docs/spec-proposta-v2.md` e implementar **uma fatia por vez** (v2.1 → v2.8), na ordem.
+1. Ler `docs/plano-correcoes.md` e implementar **uma rodada por vez**, na ordem, marcando os itens feitos. A spec v2 continua valendo onde D33–D35 não mudaram.
 2. Ao terminar a fatia: rodar testes, mostrar como validar no navegador, commit.
 3. Commits em português, mensagem curta: `fatia 2: motor de cálculo + caso de referência`.
 4. Decisão nova ou mudança de rumo → registrar em `docs/decisoes.md` **antes** de codar.
