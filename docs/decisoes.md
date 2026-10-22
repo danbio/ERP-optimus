@@ -215,7 +215,7 @@ Conferido em 4 faturas reais (Out/26 e Jul/26, com e sem GD) e nas fontes oficia
   - Nova tabela `FaixaIluminacao` (município, classe residencial ou não residencial, até quantos kWh, valor em unidades fiscais) e o valor da unidade fiscal no `Municipio`. Gurupi entra por migration. Outros municípios: o gestor cadastra no admin, ou o vendedor digita.
   - Classe: B1 e baixa renda usam a tabela residencial; B3, a não residencial. B2 rural não tem estimativa automática (depende da localização do imóvel).
   - Se o vendedor deixar a iluminação em branco no passo 2, o sistema estima pela tabela (pelo valor da conta, resolve o consumo e a faixa juntos). Se digitar um valor, inclusive 0, vale o digitado.
-- **Pendente (perguntado ao usuário):** na energia compensada só a TE é isenta de ICMS (RICMS-TO art. 2º, CXXXI, § 15); o ICMS sobre a TUSD (~R$ 0,19/kWh) continua. O motor ainda não desconta isso.
+- **ICMS sobre a TUSD compensada: o motor NÃO desconta (decisão do usuário, 22/10/2026).** Hoje a Energisa só isenta a TE (RICMS-TO art. 2º, CXXXI, § 15; ~R$ 0,19/kWh compensado), mas clientes vêm ganhando na Justiça o estorno, e foi noticiado que a partir de janeiro de 2027 a Energisa aplicará a regra mais benéfica. Reavaliar se isso não se confirmar.
 
 ## Pendências de validação
 - [ ] Regra de custo de disponibilidade para GD após a Lei 14.300 (item 3 de D08).
