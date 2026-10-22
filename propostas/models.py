@@ -70,6 +70,10 @@ class Proposta(models.Model):
         KWH = "kwh", "kWh por mês"
         FATURA = "fatura", "Fatura"
 
+    class TipoInversor(models.TextChoices):
+        STRING = "string", "Inversor string"
+        MICRO = "microinversor", "Microinversor"
+
     class Orientacao(models.TextChoices):
         NORTE = "norte", "Norte"
         NORDESTE_NOROESTE = "nordeste_noroeste", "Nordeste ou noroeste"
@@ -135,8 +139,16 @@ class Proposta(models.Model):
         "Equipamento", on_delete=models.PROTECT, null=True, blank=True, related_name="+",
     )
     qtd_inversores = models.PositiveSmallIntegerField("quantidade de inversores", null=True, blank=True)
-    cabo_preto_m = models.PositiveIntegerField("cabo solar preto (m)", null=True, blank=True)
-    cabo_vermelho_m = models.PositiveIntegerField("cabo solar vermelho (m)", null=True, blank=True)
+    tipo_inversor = models.CharField(
+        "tipo de inversor", max_length=13, choices=TipoInversor.choices, default=TipoInversor.STRING,
+    )
+    fileiras = models.CharField(
+        "módulos por fileira", max_length=120, blank=True, help_text='Ex.: "6+5". Vazio = o sistema divide.',
+    )
+    # Trocas do vendedor nos outros itens do kit (D34), por papel no kit:
+    # {"trilho": {"equipamento": 12, "quantidade": 8}, ..., "extras": [{"equipamento": 30, "quantidade": 2}]}.
+    # O que não está aqui segue a sugestão. Na emissão, o kit inteiro é gravado aqui.
+    ajustes_kit = models.JSONField("ajustes do kit", default=dict, blank=True)
     cotacao = models.ForeignKey(
         "Cotacao", on_delete=models.SET_NULL, null=True, blank=True, related_name="propostas_vinculadas",
         verbose_name="cotação do kit",
@@ -233,7 +245,13 @@ class ItemKit(models.Model):
     descricao = models.CharField(max_length=255)
     modelo = models.CharField(max_length=120, blank=True)
     quantidade = models.PositiveIntegerField(default=1)
+    unidade = models.CharField(max_length=10, default="un")
     potencia_w = models.PositiveIntegerField(null=True, blank=True)
+    funcao = models.CharField("papel no kit", max_length=25, blank=True)
+    preco_unitario = models.DecimalField(
+        "preço unitário (R$)", max_digits=12, decimal_places=2, null=True, blank=True,
+        help_text="Preço do catálogo, sem frete. Vazio quando o kit vem de uma cotação.",
+    )
     ordem = models.PositiveIntegerField(default=0)
 
     class Meta:
@@ -353,6 +371,20 @@ class Equipamento(models.Model):
         CONECTOR = "conector", "Conector"
         OUTRO = "outro", "Outro"
 
+    class Funcao(models.TextChoices):
+        """Papel do item na montagem automática do kit (D34)."""
+        TRILHO = "trilho", "Trilho"
+        MINI_TRILHO = "mini_trilho", "Mini trilho (telha metálica)"
+        FIXACAO = "fixacao", "Fixação no telhado (gancho, pé em L, suporte)"
+        GRAMPO_FINAL = "grampo_final", "Grampo final"
+        GRAMPO_INTERMEDIARIO = "grampo_intermediario", "Grampo intermediário"
+        ATERRAMENTO = "aterramento", "Aterramento"
+        JUNCAO = "juncao", "Junção de trilho"
+        SUPORTE_MICRO = "suporte_micro", "Suporte do microinversor"
+        CABO_PRETO = "cabo_preto", "Cabo solar preto"
+        CABO_VERMELHO = "cabo_vermelho", "Cabo solar vermelho"
+        CONECTOR = "conector", "Conector"
+
     class Fase(models.TextChoices):
         MONO = "mono", "Monofásico (220 V)"
         TRI = "tri", "Trifásico (380 V)"
@@ -375,6 +407,22 @@ class Equipamento(models.Model):
     tensao = models.PositiveSmallIntegerField("tensão (V)", null=True, blank=True)
     tipo_estrutura = models.CharField("tipo de estrutura", max_length=15, choices=TipoEstrutura.choices, blank=True)
     area_m2 = models.DecimalField("área (m²)", max_digits=6, decimal_places=3, null=True, blank=True)
+    # Montagem do kit pelo catálogo (D34). Lidos da descrição na importação; o gestor corrige na tela.
+    funcao = models.CharField(
+        "papel no kit", max_length=25, choices=Funcao.choices, blank=True,
+        help_text="Vazio: o item não entra sozinho no kit, só se o vendedor acrescentar.",
+    )
+    pecas_por_embalagem = models.PositiveSmallIntegerField(
+        "peças por embalagem", default=1, help_text='Peças (ou pares) vendidas juntas: "4 Pecas" = 4.',
+    )
+    mppts = models.PositiveSmallIntegerField("MPPT", null=True, blank=True, help_text="Só inversor string.")
+    modulos_por_micro = models.PositiveSmallIntegerField(
+        "módulos por microinversor", null=True, blank=True,
+    )
+    espessura_mm = models.PositiveSmallIntegerField(
+        "espessura da moldura (mm)", null=True, blank=True,
+        help_text="Módulo: espessura da moldura. Grampo final: moldura que ele prende.",
+    )
     preco_referencia = models.DecimalField(
         "preço de referência (R$)", max_digits=12, decimal_places=2, null=True, blank=True,
         help_text="Preço unitário no site do distribuidor, sem frete. Só referência (D28).",

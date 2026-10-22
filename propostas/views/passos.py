@@ -56,6 +56,9 @@ def _contexto_passos(request, proposta, n, form=None, m=None):
         "modo_cliente": _modo_cliente(request),
         "aviso_estimativa": ConfigEmpresa.obter().aviso_estimativa,
     }
+    if n == 3 and form is not None:
+        contexto["kit_editavel"] = form.linhas_do_kit(contexto["m"])
+        contexto["kit_extras"] = form.extras()
     if n == 4 and contexto["m"]:
         contexto["impedimentos"] = impedimentos_de_emissao(contexto["m"])
     return contexto

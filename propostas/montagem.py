@@ -19,7 +19,7 @@ from clientes.models import UnidadeConsumidora
 from core.models import ConfigEmpresa
 from core.validacoes import formatar_reais
 
-from .models import Cotacao, Equipamento, FioBEscalonamento, ItemKit, TaxaFinanciamento
+from .models import Equipamento, FioBEscalonamento, ItemKit, TaxaFinanciamento
 from .services import calculo
 
 
@@ -38,7 +38,6 @@ class Montagem:
 
     # Sistema
     municipio: object = None
-    cotacao_ref: Cotacao | None = None
     modulo: Equipamento | None = None
     modulo_sugerido: bool = True
     qtd_modulos: int = 0
@@ -46,8 +45,12 @@ class Montagem:
     inversor: Equipamento | None = None
     inversor_sugerido: bool = True
     qtd_inversores: int = 0
-    cabo_preto: int = 0
-    cabo_vermelho: int = 0
+    micro: bool = False                 # chave String × Microinversor (D34)
+    strings: int = 0                    # com microinversor: um por micro
+    fileiras: list = field(default_factory=list)  # módulos em cada fileira
+    fileiras_sugeridas: bool = True
+    kit: list = field(default_factory=list)       # [LinhaKit], na ordem do PDF
+    kit_da_cotacao: bool = False        # cotação vinculada substitui o catálogo (D35)
     kwp_necessario: float = 0.0
     kwp: float = 0.0
     kw_ca: float = 0.0
@@ -59,7 +62,8 @@ class Montagem:
 
     # Preço (interno)
     custo_kit: float | None = None
-    custo_kit_estimado: bool = False
+    produtos_kit: float | None = None   # soma dos itens do catálogo, sem frete
+    frete_kit: float = 0.0
     mo_sugerida: float | None = None
     mao_de_obra: float | None = None
     desconto: float = 0.0
@@ -76,6 +80,10 @@ class Montagem:
     conta_com_parcela: float | None = None
     barra_max: float = 0.0  # maior das contas, para o gráfico de barras
 
+    @property
+    def fileiras_texto(self):
+        return "+".join(str(n) for n in self.fileiras)
+
     def alerta(self, tipo, texto, interno=True):
         self.alertas.append({"tipo": tipo, "texto": texto, "interno": interno})
 
@@ -89,6 +97,33 @@ class Montagem:
         if not anos:
             return texto_meses
         return texto_anos + (f" e {texto_meses}" if meses else "")
+
+
+@dataclass
+class LinhaKit:
+    """Um item do kit (D34): do catálogo, da cotação ou acrescentado pelo vendedor."""
+
+    funcao: str                          # "modulo", "inversor", "trilho"... ou "extra"
+    equipamento: Equipamento | None
+    descricao: str
+    quantidade: int
+    unidade: str = "un"
+    sugerida: int | None = None          # quantidade que o sistema sugere
+    alterada: bool = False               # o vendedor trocou o item ou a quantidade
+
+    @property
+    def preco(self):
+        if self.equipamento and self.equipamento.preco_referencia is not None:
+            return float(self.equipamento.preco_referencia)
+        return None
+
+    @property
+    def subtotal(self):
+        return self.quantidade * self.preco if self.preco is not None else None
+
+    @property
+    def rotulo(self):
+        return Equipamento.Funcao(self.funcao).label if self.funcao in Equipamento.Funcao.values else ""
 
 
 def fase_do_inversor(ligacao):
@@ -150,37 +185,41 @@ def premissas_da_proposta(proposta, config):
     return premissas
 
 
-def referencia_do_distribuidor(distribuidor):
-    for cotacao in Cotacao.referencias():
-        if cotacao.distribuidor.lower() == distribuidor.lower():
-            return cotacao
-    return None
+def sugerir_modulo(distribuidor):
+    """Módulo ativo do distribuidor do kit com menor R$/Wp (D34)."""
+    modulos = Equipamento.objects.filter(
+        tipo="modulo", ativo=True, potencia_w__isnull=False, distribuidor__iexact=distribuidor)
+    escolhido = calculo.escolher_modulo(
+        [{"w": e.potencia_w, "preco": float(e.preco_referencia) if e.preco_referencia else None, "equipamento": e}
+         for e in modulos])
+    return escolhido["equipamento"] if escolhido else None
 
 
-def sugerir_modulo():
-    """Módulo da cotação de referência de menor R$/Wp; sem cotação, o módulo ativo de maior potência."""
-    for cotacao in Cotacao.referencias():
-        item = cotacao.itens.filter(equipamento__tipo="modulo", equipamento__ativo=True).first()
-        if item:
-            return item.equipamento
-    return Equipamento.objects.filter(tipo="modulo", ativo=True, potencia_w__isnull=False).order_by("-potencia_w").first()
+def inversores_candidatos(fase, distribuidor, tipo="inversor"):
+    """Inversores (ou microinversores) ativos do distribuidor do kit. String: só os da fase da ligação."""
+    todos = Equipamento.objects.filter(tipo=tipo, ativo=True, potencia_w__isnull=False,
+                                       distribuidor__iexact=distribuidor)
+    return list(todos.filter(fase=fase) if tipo == "inversor" else todos)
 
 
-def inversores_candidatos(fase, distribuidor):
-    """Inversores ativos da fase, do mesmo distribuidor do módulo; se não houver, de qualquer um."""
-    todos = Equipamento.objects.filter(tipo="inversor", ativo=True, fase=fase, potencia_w__isnull=False)
-    do_distribuidor = todos.filter(distribuidor__iexact=distribuidor) if distribuidor else todos.none()
-    return list(do_distribuidor) or list(todos)
+def _preco(equipamento):
+    return float(equipamento.preco_referencia) if equipamento.preco_referencia is not None else None
 
 
-def _metros_de_cabo(cotacao, cor):
-    if not cotacao:
-        return 0
-    for item in cotacao.itens.all():
-        texto = item.descricao.lower()
-        if "cabo" in texto and cor in texto and item.unidade == "m":
-            return int(item.quantidade)
-    return 0
+def item_do_catalogo(funcao, distribuidor, estrutura="", espessura=None):
+    """O item mais barato por peça para o papel no kit (D34), ou None.
+
+    Estrutura: o item do tipo de telhado, se houver; senão um item que serve para qualquer um.
+    Grampo final: o da espessura da moldura do módulo, se houver.
+    """
+    candidatos = list(Equipamento.objects.filter(funcao=funcao, ativo=True, distribuidor__iexact=distribuidor))
+    exatos = [e for e in candidatos if estrutura and e.tipo_estrutura == estrutura]
+    candidatos = exatos or [e for e in candidatos if not e.tipo_estrutura]
+    if espessura:
+        candidatos = [e for e in candidatos if e.espessura_mm == espessura] or candidatos
+    if not candidatos:
+        return None
+    return min(candidatos, key=lambda e: (_preco(e) is None, (_preco(e) or 0) / max(e.pecas_por_embalagem, 1)))
 
 
 def _conferir_cotacao(cotacao, m, tolerancia):
@@ -295,7 +334,10 @@ def _etapa_consumo(proposta, m):
 
 
 def _etapa_sistema(proposta, m, config, premissas):
-    """Módulo, quantidade, inversor, cabos, geração e alertas do sistema. False se faltar catálogo ou irradiação."""
+    """Módulo e quantidade, inversor, strings, fileiras, kit, geração e alertas. False se faltar catálogo ou irradiação.
+
+    A ordem é a do vendedor (D34): o módulo e a quantidade definem o resto do kit.
+    """
     if not m.municipio or not m.municipio.irradiacao:
         m.mensagem = "O município do cliente está sem irradiação. Atualize em Configurações → Municípios."
         return False
@@ -303,31 +345,40 @@ def _etapa_sistema(proposta, m, config, premissas):
     fator = premissas.get("fator_orientacao", 1.0)
     perdas, clipping = premissas["perdas"], premissas["perda_clipping"]
     m.kwp_necessario = calculo.kwp_necessario(m.consumo, float(proposta.folga or 0), irradiacao, perdas, clipping, fator)
+    da_cotacao = _principais_da_cotacao(proposta.cotacao) if proposta.cotacao_id else {}
 
-    m.modulo = proposta.modulo or sugerir_modulo()
-    m.modulo_sugerido = proposta.modulo_id is None
+    m.modulo = da_cotacao.get("modulo") or proposta.modulo or sugerir_modulo(config.distribuidor_kit)
+    m.modulo_sugerido = not da_cotacao.get("modulo") and proposta.modulo_id is None
     if not m.modulo:
-        m.mensagem = "Nenhum módulo no catálogo. Cadastre em Catálogo solar."
+        m.mensagem = f"Nenhum módulo da {config.distribuidor_kit} no catálogo. Importe o catálogo em Catálogo solar."
         return False
-    m.cotacao_ref = referencia_do_distribuidor(m.modulo.distribuidor)
     m.qtd_modulos_sugerida = calculo.quantidade_modulos(m.kwp_necessario, m.modulo.potencia_w)
-    m.qtd_modulos = proposta.qtd_modulos or m.qtd_modulos_sugerida
+    m.qtd_modulos = da_cotacao.get("qtd_modulos") or proposta.qtd_modulos or m.qtd_modulos_sugerida
     m.kwp = m.qtd_modulos * m.modulo.potencia_w / 1000
 
     m.sobrecarga_max = premissas["razao_cc_ca_max"]
     m.estrutura = dict(Equipamento.TipoEstrutura.choices).get(proposta.tipo_estrutura, "")
+    m.micro = proposta.tipo_inversor == proposta.TipoInversor.MICRO
     fase = fase_do_inversor(proposta.ligacao)
-    _escolher_inversor(proposta, m, fase)
+    _escolher_inversor(proposta, m, config, premissas, fase, da_cotacao)
     if not m.inversor:
-        m.mensagem = "Nenhum inversor da fase da ligação no catálogo. Cadastre em Catálogo solar."
+        tipo = "microinversor" if m.micro else "inversor da fase da ligação"
+        m.mensagem = f"Nenhum {tipo} que sirva no catálogo. Cadastre em Catálogo solar."
         return False
     m.kw_ca = m.inversor.potencia_w / 1000 * m.qtd_inversores
     m.sobrecarga = m.kwp / m.kw_ca
 
-    referencia_cabos = proposta.cotacao or m.cotacao_ref
-    m.cabo_preto = proposta.cabo_preto_m if proposta.cabo_preto_m is not None else _metros_de_cabo(referencia_cabos, "preto")
-    m.cabo_vermelho = (proposta.cabo_vermelho_m if proposta.cabo_vermelho_m is not None
-                       else _metros_de_cabo(referencia_cabos, "vermelho"))
+    if m.micro:
+        m.strings = m.qtd_inversores
+    else:
+        m.strings = calculo.strings_do_inversor(
+            m.qtd_modulos, (m.inversor.mppts or 1) * m.qtd_inversores,
+            config.modulos_por_string_min, config.modulos_por_string_max)
+    _definir_fileiras(proposta, m, config)
+    if proposta.cotacao_id:
+        _kit_da_cotacao(proposta.cotacao, m)
+    else:
+        _kit_do_catalogo(proposta, m, config)
 
     m.geracao_media = m.kwp * calculo.geracao_por_kwp_mes(irradiacao, perdas, clipping, fator)
     if m.modulo.area_m2:
@@ -336,22 +387,143 @@ def _etapa_sistema(proposta, m, config, premissas):
     return True
 
 
-def _escolher_inversor(proposta, m, fase):
-    """O inversor escolhido pelo vendedor, ou o sugerido da fase com sobrecarga dentro do limite (D19)."""
-    m.inversor_sugerido = proposta.inversor_id is None
-    if proposta.inversor_id:
-        m.inversor = proposta.inversor
-        m.qtd_inversores = proposta.qtd_inversores or max(
-            1, math.ceil(m.kwp / (m.inversor.potencia_w / 1000 * m.sobrecarga_max)))
+def _principais_da_cotacao(cotacao):
+    """Módulo e inversor da cotação vinculada, quando os itens estão ligados ao catálogo (D35)."""
+    principais = {}
+    for item in cotacao.itens.select_related("equipamento"):
+        equipamento = item.equipamento
+        if not equipamento:
+            continue
+        if equipamento.tipo == "modulo" and "modulo" not in principais:
+            principais["modulo"], principais["qtd_modulos"] = equipamento, int(item.quantidade)
+        elif equipamento.tipo in ("inversor", "microinversor") and "inversor" not in principais:
+            principais["inversor"], principais["qtd_inversores"] = equipamento, int(item.quantidade)
+    return principais
+
+
+def _escolher_inversor(proposta, m, config, premissas, fase, da_cotacao):
+    """O inversor da cotação ou do vendedor, ou o sugerido do tipo escolhido na chave (D19, D34)."""
+    tipo = "microinversor" if m.micro else "inversor"
+    if da_cotacao.get("inversor"):
+        m.inversor, m.qtd_inversores = da_cotacao["inversor"], da_cotacao["qtd_inversores"]
+        m.micro = m.inversor.tipo == "microinversor"
+        m.inversor_sugerido = False
         return
-    candidatos = inversores_candidatos(fase, m.modulo.distribuidor)
-    escolhido, m.qtd_inversores = calculo.sugerir_inversor(
-        m.kwp, [{"kw": e.potencia_w / 1000, "fase": e.fase, "equipamento": e} for e in candidatos],
-        fase, m.sobrecarga_max,
-    )
-    m.inversor = escolhido["equipamento"] if escolhido else None
+    escolhido = proposta.inversor if proposta.inversor_id and proposta.inversor.tipo == tipo else None
+    if proposta.inversor_id and not escolhido:
+        m.alerta("aviso", f"O inversor escolhido não é {'micro' if m.micro else 'string'}: "
+                          "o sistema sugeriu outro. Escolha de novo na lista.")
+    m.inversor_sugerido = escolhido is None
+    if escolhido:
+        m.inversor = escolhido
+        if m.micro:
+            sugerida = calculo.quantidade_micros(m.qtd_modulos, escolhido.modulos_por_micro or 1)
+        else:
+            sugerida = max(1, math.ceil(m.kwp / (escolhido.potencia_w / 1000 * m.sobrecarga_max)))
+        m.qtd_inversores = proposta.qtd_inversores or sugerida
+        return
+    candidatos = inversores_candidatos(fase, config.distribuidor_kit, tipo)
+    if m.micro:
+        sugerido, m.qtd_inversores = calculo.sugerir_micro(
+            m.qtd_modulos, m.modulo.potencia_w,
+            [{"w": e.potencia_w, "modulos": e.modulos_por_micro, "preco": _preco(e), "equipamento": e}
+             for e in candidatos], m.sobrecarga_max)
+    else:
+        sugerido, m.qtd_inversores = calculo.sugerir_inversor(
+            m.kwp, [{"kw": e.potencia_w / 1000, "fase": e.fase, "preco": _preco(e), "equipamento": e}
+                    for e in candidatos],
+            fase, m.sobrecarga_max, premissas.get("sobrecarga_min", 0.8))
+    m.inversor = sugerido["equipamento"] if sugerido else None
     if proposta.qtd_inversores and m.inversor:
         m.qtd_inversores = proposta.qtd_inversores
+
+
+def ler_fileiras(texto):
+    """"6+5" → [6, 5]. Texto vazio ou inválido → []. A validação com mensagem fica no formulário."""
+    partes = re.split(r"[+,;\s]+", (texto or "").strip())
+    return [int(p) for p in partes if p.isdigit() and int(p) > 0]
+
+
+def _definir_fileiras(proposta, m, config):
+    """Fileiras do vendedor ou, em branco, os módulos divididos igual entre as strings (D34)."""
+    m.fileiras = ler_fileiras(proposta.fileiras)
+    m.fileiras_sugeridas = not m.fileiras
+    if m.fileiras_sugeridas:
+        partes = math.ceil(m.qtd_modulos / config.modulos_por_string_max) if m.micro else m.strings
+        m.fileiras = calculo.dividir_em_fileiras(m.qtd_modulos, partes)
+
+
+def _kit_da_cotacao(cotacao, m):
+    """Kit = itens da cotação, como vieram; o catálogo é ignorado (D35)."""
+    m.kit_da_cotacao = True
+    itens = list(cotacao.itens.select_related("equipamento"))
+    if not itens:  # cotação registrada só com o total: o PDF mostra ao menos módulo e inversor
+        m.kit = [LinhaKit("modulo", None, m.modulo.descricao, m.qtd_modulos),
+                 LinhaKit("inversor", None, m.inversor.descricao, m.qtd_inversores)]
+        return
+    for item in itens:
+        equipamento = item.equipamento
+        funcao = equipamento.tipo if equipamento and equipamento.tipo in ("modulo", "inversor") else ""
+        m.kit.append(LinhaKit(funcao or (equipamento.funcao if equipamento else "") or "extra", None,
+                              item.descricao, int(item.quantidade), item.unidade))
+
+
+def _kit_do_catalogo(proposta, m, config):
+    """Kit completo pelo catálogo (D34): módulo, inversor, estrutura, cabos, conectores e os extras do vendedor."""
+    ajustes = proposta.ajustes_kit or {}
+    m.kit = [
+        LinhaKit("modulo", m.modulo, m.modulo.descricao, m.qtd_modulos, sugerida=m.qtd_modulos_sugerida,
+                 alterada=not m.modulo_sugerido or m.qtd_modulos != m.qtd_modulos_sugerida),
+        LinhaKit("inversor", m.inversor, m.inversor.descricao, m.qtd_inversores, alterada=not m.inversor_sugerido),
+    ]
+    espessura = m.modulo.espessura_mm or config.espessura_modulo_padrao
+    papeis = ["fixacao", "trilho", "mini_trilho", "grampo_final", "grampo_intermediario", "aterramento"]
+    if m.micro:
+        papeis.append("suporte_micro")
+    escolhidos = {}
+    for papel in papeis + ["cabo_vermelho", "cabo_preto", "conector"]:
+        ajuste = ajustes.get(papel) or {}
+        trocado = Equipamento.objects.filter(pk=ajuste.get("equipamento")).first() if ajuste.get("equipamento") else None
+        escolhidos[papel] = trocado or item_do_catalogo(
+            papel, config.distribuidor_kit, proposta.tipo_estrutura, espessura if papel == "grampo_final" else None)
+    pecas = {papel: e.pecas_por_embalagem for papel, e in escolhidos.items() if e}
+
+    sugeridas = calculo.quantidades_estrutura(m.fileiras, proposta.tipo_estrutura, pecas) if proposta.tipo_estrutura else {}
+    if m.micro:
+        sugeridas["suporte_micro"] = m.qtd_inversores
+    sugeridas |= calculo.quantidades_eletricas(
+        m.strings, 0 if m.micro else config.metros_cabo_por_string, config.pares_conector_por_string,
+        pecas.get("conector", 1))
+
+    for papel, sugerida in sugeridas.items():
+        ajuste = ajustes.get(papel) or {}
+        quantidade = ajuste["quantidade"] if ajuste.get("quantidade") is not None else sugerida
+        equipamento = escolhidos.get(papel)
+        if not equipamento:
+            m.alerta("aviso", f"Sem {Equipamento.Funcao(papel).label.lower()} da {config.distribuidor_kit} no "
+                              "catálogo. Acrescente o item à mão no kit.")
+            continue
+        if quantidade:
+            unidade = "m" if papel.startswith("cabo") else "un"
+            m.kit.append(LinhaKit(papel, equipamento, equipamento.descricao, quantidade, unidade, sugerida,
+                                  alterada=bool(ajuste)))
+    for extra in ajustes.get("extras", []):
+        equipamento = Equipamento.objects.filter(pk=extra.get("equipamento")).first()
+        if equipamento and extra.get("quantidade"):
+            m.kit.append(LinhaKit("extra", equipamento, equipamento.descricao, extra["quantidade"], alterada=True))
+
+
+def ajustes_do_kit_completo(m):
+    """O kit montado escrito como ajustes do vendedor: na emissão, congela itens e quantidades (D34)."""
+    ajustes = {"extras": []}
+    for linha in m.kit:
+        if linha.funcao in ("modulo", "inversor") or not linha.equipamento:
+            continue
+        if linha.funcao == "extra":
+            ajustes["extras"].append({"equipamento": linha.equipamento.pk, "quantidade": linha.quantidade})
+        else:
+            ajustes[linha.funcao] = {"equipamento": linha.equipamento.pk, "quantidade": linha.quantidade}
+    return ajustes
 
 
 def _alertas_do_sistema(proposta, m, config, premissas, fase):
@@ -362,12 +534,40 @@ def _alertas_do_sistema(proposta, m, config, premissas, fase):
     elif m.sobrecarga < sobrecarga_min:
         m.alerta("aviso", f"Inversor grande para o sistema: os módulos somam só {_num(m.sobrecarga)} vezes a "
                           "potência dele. Há modelo menor?")
-    if m.inversor.fase and m.inversor.fase != fase:
+    if m.inversor.fase and m.inversor.fase != fase and not m.micro:
         m.alerta("erro", f"Ligação {proposta.get_ligacao_display().lower()} com inversor {m.inversor.get_fase_display().lower()}.")
+    if m.micro and fase == "tri":
+        m.alerta("aviso", "Microinversores são 220 V: numa ligação trifásica, divida os micros entre as fases.")
+    if not m.micro and m.inversor.mppts and m.strings > m.inversor.mppts * m.qtd_inversores:
+        m.alerta("aviso", f"{m.strings} strings para {m.inversor.mppts * m.qtd_inversores} MPPT: confira se o "
+                          "inversor aceita duas strings por MPPT.")
+    if sum(m.fileiras) != m.qtd_modulos:
+        m.alerta("erro", f"As fileiras ({m.fileiras_texto}) somam {sum(m.fileiras)} módulos e o sistema tem "
+                         f"{m.qtd_modulos}. Corrija as fileiras.")
+    elif m.fileiras_sugeridas and not m.kit_da_cotacao:
+        m.alerta("aviso", f"Fileiras sugeridas pelo sistema ({m.fileiras_texto}). Confira no telhado.")
     limite = float(config.limite_microgeracao_kwp)
     if m.kwp > limite:
         m.alerta("aviso", f"Sistema de {_num(m.kwp)} kWp: acima de {_num(limite, 0)} kWp deixa de ser microgeração "
                           "(Grupo A). Confira com o gestor.", interno=False)
+
+
+def _custo_pelo_catalogo(m, config):
+    """Soma dos itens do catálogo mais o frete (D34). Item sem preço impede o cálculo."""
+    sem_preco = [linha.descricao for linha in m.kit if linha.preco is None]
+    if sem_preco:
+        m.mensagem = f"Sem preço no catálogo: {', '.join(sem_preco)}. Atualize o catálogo ou informe o custo do kit."
+        m.alerta("erro", m.mensagem)
+        return
+    m.produtos_kit = sum(linha.subtotal for linha in m.kit)
+    m.frete_kit = m.produtos_kit * float(config.frete_kit)
+    m.custo_kit = calculo.custo_do_kit([(linha.quantidade, linha.preco) for linha in m.kit], float(config.frete_kit))
+    datas = [linha.equipamento.preco_em for linha in m.kit if linha.equipamento.preco_em]
+    if datas:
+        dias = (timezone.localdate() - min(datas)).days
+        if dias > config.dias_catalogo_velho:
+            m.alerta("aviso", f"Preços do catálogo de {min(datas):%d/%m/%Y} ({dias} dias). "
+                              "Reimporte o catálogo da " + config.distribuidor_kit + ".")
 
 
 def _etapa_preco(proposta, m, config):
@@ -376,18 +576,12 @@ def _etapa_preco(proposta, m, config):
         m.custo_kit = float(proposta.custo_kit)
     elif proposta.cotacao_id:
         m.custo_kit = float(proposta.cotacao.total)
-    elif m.cotacao_ref:
-        m.custo_kit = m.kwp * 1000 * float(m.cotacao_ref.rs_por_wp)
-        m.custo_kit_estimado = True
-        m.alerta("aviso", f"Custo do kit estimado pela cotação {m.cotacao_ref.distribuidor} de "
-                          f"{m.cotacao_ref.data:%d/%m/%Y}. Cote o kit e informe o valor real.")
     else:
-        m.mensagem = f"Sem cotação de referência da {m.modulo.distribuidor}. Informe o custo do kit."
+        _custo_pelo_catalogo(m, config)
     if proposta.cotacao_id:
         _conferir_cotacao(proposta.cotacao, m, float(config.tolerancia_kwp_cotacao))
-    referencia_preco = proposta.cotacao or m.cotacao_ref
-    if referencia_preco and referencia_preco.idade_dias > config.dias_preco_velho:
-        m.alerta("aviso", f"Preço do kit com {referencia_preco.idade_dias} dias. Peça uma cotação nova.")
+        if proposta.cotacao.idade_dias > config.dias_preco_velho:
+            m.alerta("aviso", f"Cotação do kit com {proposta.cotacao.idade_dias} dias. Peça uma cotação nova.")
 
     solo = proposta.tipo_estrutura == "solo"
     m.mo_sugerida = calculo.mao_de_obra_sugerida(
@@ -471,23 +665,21 @@ def gravar_resultado(proposta, m):
     proposta.save()
 
     proposta.itens_kit.all().delete()
-    if not (m.modulo and m.inversor):
-        return
-    itens = [
-        (ItemKit.Tipo.MODULO, m.modulo, m.modulo.descricao, m.qtd_modulos, m.modulo.potencia_w),
-        (ItemKit.Tipo.INVERSOR, m.inversor, m.inversor.descricao, m.qtd_inversores, m.inversor.potencia_w),
-    ]
-    if m.estrutura:
-        itens.append((ItemKit.Tipo.ESTRUTURA, None, f"Estrutura para {m.estrutura.lower()}", 1, None))
-    if m.cabo_preto:
-        itens.append((ItemKit.Tipo.CABEAMENTO, None, "Cabo solar 4 mm preto (m)", m.cabo_preto, None))
-    if m.cabo_vermelho:
-        itens.append((ItemKit.Tipo.CABEAMENTO, None, "Cabo solar 4 mm vermelho (m)", m.cabo_vermelho, None))
-    for ordem, (tipo, equipamento, descricao, quantidade, potencia) in enumerate(itens):
+    for ordem, linha in enumerate(m.kit):
+        equipamento = linha.equipamento
         ItemKit.objects.create(
-            proposta=proposta, tipo=tipo, equipamento=equipamento, descricao=descricao,
-            modelo=equipamento.codigo if equipamento else "", quantidade=quantidade, potencia_w=potencia, ordem=ordem,
+            proposta=proposta, tipo=_TIPO_DO_ITEM.get(linha.funcao, ItemKit.Tipo.ESTRUTURA if equipamento
+                                                      and equipamento.tipo == "estrutura" else ItemKit.Tipo.OUTRO),
+            equipamento=equipamento, descricao=linha.descricao, modelo=equipamento.codigo if equipamento else "",
+            quantidade=linha.quantidade, unidade=linha.unidade,
+            potencia_w=equipamento.potencia_w if equipamento else None, funcao=linha.funcao,
+            preco_unitario=equipamento.preco_referencia if equipamento else None, ordem=ordem,
         )
+
+
+_TIPO_DO_ITEM = {"modulo": ItemKit.Tipo.MODULO, "inversor": ItemKit.Tipo.INVERSOR,
+                 "cabo_preto": ItemKit.Tipo.CABEAMENTO, "cabo_vermelho": ItemKit.Tipo.CABEAMENTO,
+                 "conector": ItemKit.Tipo.CABEAMENTO}
 
 
 def _equipamento(equipamento):
@@ -522,6 +714,9 @@ def registro_da_emissao(proposta, m, premissas):
         "perfil_simultaneidade": proposta.perfil_simultaneidade,
         "orientacao": proposta.orientacao,
         "tipo_estrutura": proposta.tipo_estrutura,
+        "tipo_inversor": proposta.tipo_inversor,
+        "fileiras": proposta.fileiras,
+        "ajustes_kit": proposta.ajustes_kit,
         "tarifa": {"id": tarifa.pk, "tipo": tarifa.tipo, "vigencia_inicio": tarifa.vigencia_inicio.isoformat(),
                    "tusd": _decimal(tarifa.tusd), "te": _decimal(tarifa.te),
                    "aliquota_tributos": _decimal(tarifa.aliquota_tributos), "fiob_kwh": _decimal(tarifa.fiob_kwh)},
@@ -546,14 +741,20 @@ def registro_da_emissao(proposta, m, premissas):
         "inversor": _equipamento(m.inversor),
         "qtd_inversores": m.qtd_inversores,
         "inversor_sugerido": m.inversor_sugerido,
-        "cabo_preto_m": m.cabo_preto,
-        "cabo_vermelho_m": m.cabo_vermelho,
+        "micro": m.micro,
+        "strings": m.strings,
+        "fileiras": m.fileiras,
+        "kit": [{"funcao": linha.funcao, "codigo": linha.equipamento.codigo if linha.equipamento else "",
+                 "descricao": linha.descricao, "quantidade": linha.quantidade, "unidade": linha.unidade,
+                 "preco": linha.preco, "sugerida": linha.sugerida} for linha in m.kit],
+        "kit_da_cotacao": m.kit_da_cotacao,
         "kwp": m.kwp,
         "kw_ca": m.kw_ca,
         "sobrecarga": m.sobrecarga,
         "geracao_media_kwh": m.geracao_media,
         "custo_kit": m.custo_kit,
-        "custo_kit_estimado": m.custo_kit_estimado,
+        "produtos_kit": m.produtos_kit,
+        "frete_kit": m.frete_kit,
         "mao_de_obra": m.mao_de_obra,
         "mo_sugerida": m.mo_sugerida,
         "desconto": m.desconto,
@@ -565,4 +766,4 @@ def registro_da_emissao(proposta, m, premissas):
         "prazo": m.prazo,
         "alertas": m.alertas,
     }
-    return {"versao_registro": 1, "entradas": entradas, "saidas": saidas}
+    return {"versao_registro": 2, "entradas": entradas, "saidas": saidas}

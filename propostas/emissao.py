@@ -10,7 +10,7 @@ from django.core.files.base import ContentFile
 from django.utils import timezone
 
 from .models import Proposta
-from .montagem import gravar_resultado, impedimentos_de_emissao, montar, registro_da_emissao
+from .montagem import ajustes_do_kit_completo, gravar_resultado, impedimentos_de_emissao, montar, registro_da_emissao
 
 
 class ErroEmissao(Exception):
@@ -34,7 +34,9 @@ def preparar_emissao(proposta, usuario=None):
         raise ErroEmissao(" ".join(motivos))
     proposta.modulo, proposta.qtd_modulos = m.modulo, m.qtd_modulos
     proposta.inversor, proposta.qtd_inversores = m.inversor, m.qtd_inversores
-    proposta.cabo_preto_m, proposta.cabo_vermelho_m = m.cabo_preto, m.cabo_vermelho
+    proposta.fileiras = m.fileiras_texto
+    if not m.kit_da_cotacao:
+        proposta.ajustes_kit = ajustes_do_kit_completo(m)  # o kit não muda se o catálogo mudar (D34)
     proposta.custo_kit = _reais(m.custo_kit)
     proposta.mao_de_obra = _reais(m.mao_de_obra)
     proposta.desconto, proposta.desconto_pct = _reais(m.desconto), None

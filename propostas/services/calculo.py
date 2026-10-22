@@ -231,24 +231,134 @@ def quantidade_modulos(kwp: float, potencia_w: float) -> int:
     return max(math.ceil(round(kwp * 1000 / potencia_w, 6)), 1)
 
 
-def sugerir_inversor(kwp: float, inversores: list[dict], fase: str,
-                     sobrecarga_max: float = 1.5) -> tuple[dict | None, int]:
-    """(inversor, quantidade) para o kWp, só entre os da fase da ligação (D19).
+def escolher_modulo(modulos: list[dict]) -> dict | None:
+    """O módulo de menor R$/Wp (D34). `modulos`: dicts com "w" e "preco". Empate: o de maior potência.
 
-    `inversores`: dicts com "kw" (potência CA) e "fase" ("mono" ou "tri").
+    Sem nenhum com preço: o de maior potência.
+    """
+    com_preco = [m for m in modulos if m.get("preco") and m.get("w")]
+    if com_preco:
+        return min(com_preco, key=lambda m: (round(m["preco"] / m["w"], 6), -m["w"]))
+    com_potencia = [m for m in modulos if m.get("w")]
+    return max(com_potencia, key=lambda m: m["w"]) if com_potencia else None
+
+
+def sugerir_inversor(kwp: float, inversores: list[dict], fase: str,
+                     sobrecarga_max: float = 1.5, sobrecarga_min: float = 0.0) -> tuple[dict | None, int]:
+    """(inversor string, quantidade) para o kWp, só entre os da fase da ligação (D19, D34).
+
+    `inversores`: dicts com "kw" (potência CA), "fase" ("mono" ou "tri") e, se houver, "preco".
     `fase` é a ligação do cliente: "mono" e "bi" usam inversor 220 V ("mono"); "tri", 380 V.
-    Escolhe o menor com kWp / kW ≤ sobrecarga_max. Se nenhum couber sozinho, usa o
-    maior em quantas unidades forem precisas. Sem inversor da fase: (None, 0).
+    Escolhe o mais barato com sobrecarga (kWp / kW) entre a mínima e a máxima. Sem preço nessa
+    faixa, o menor com sobrecarga ≤ máxima. Se nenhum couber sozinho, o maior em quantas
+    unidades forem precisas. Sem inversor da fase: (None, 0).
     """
     fase = "mono" if fase == "bi" else fase
     da_fase = sorted((i for i in inversores if i["fase"] == fase), key=lambda i: i["kw"])
     if not da_fase:
         return None, 0
+    na_faixa = [i for i in da_fase if sobrecarga_min <= kwp / i["kw"] <= sobrecarga_max and i.get("preco")]
+    if na_faixa:
+        return min(na_faixa, key=lambda i: (i["preco"], i["kw"])), 1
     for inversor in da_fase:
         if kwp / inversor["kw"] <= sobrecarga_max:
             return inversor, 1
     maior = da_fase[-1]
     return maior, math.ceil(kwp / (maior["kw"] * sobrecarga_max))
+
+
+def quantidade_micros(qtd_modulos: int, modulos_por_micro: int) -> int:
+    """Microinversores para ligar todos os módulos (arredonda para cima)."""
+    return math.ceil(qtd_modulos / max(modulos_por_micro, 1))
+
+
+def sugerir_micro(qtd_modulos: int, potencia_modulo_w: float, micros: list[dict],
+                  sobrecarga_max: float = 1.5) -> tuple[dict | None, int]:
+    """(microinversor, quantidade) de menor custo total (D34).
+
+    `micros`: dicts com "w" (potência CA), "modulos" (módulos por micro) e, se houver, "preco".
+    Só entram os que aguentam os módulos ligados nele: modulos × W do módulo / W do micro ≤ sobrecarga_max.
+    Sem preço, o de mais módulos por micro.
+    """
+    cabem = [mi for mi in micros if mi.get("w") and mi.get("modulos")
+             and mi["modulos"] * potencia_modulo_w / mi["w"] <= sobrecarga_max]
+    if not cabem:
+        return None, 0
+    com_preco = [mi for mi in cabem if mi.get("preco")]
+    if com_preco:
+        escolhido = min(com_preco, key=lambda mi: (quantidade_micros(qtd_modulos, mi["modulos"]) * mi["preco"], -mi["w"]))
+    else:
+        escolhido = max(cabem, key=lambda mi: (mi["modulos"], mi["w"]))
+    return escolhido, quantidade_micros(qtd_modulos, escolhido["modulos"])
+
+
+def strings_do_inversor(qtd_modulos: int, mppts: int, minimo: int, maximo: int) -> int:
+    """Strings do sistema com inversor string (D34): 1 por MPPT, de `minimo` a `maximo` módulos cada.
+
+    Usa todos os MPPT (`mppts` = MPPT de todos os inversores) se cada string tiver pelo menos o mínimo;
+    passa do número de MPPT só quando os módulos não cabem no máximo por string.
+    """
+    precisa = math.ceil(qtd_modulos / maximo)
+    cabe = min(mppts, qtd_modulos // minimo) if minimo else mppts
+    return max(precisa, cabe, 1)
+
+
+def dividir_em_fileiras(qtd_modulos: int, partes: int) -> list[int]:
+    """Divide os módulos em `partes` fileiras quase iguais, as maiores primeiro: 11 em 2 → [6, 5]."""
+    partes = max(min(partes, qtd_modulos), 1)
+    base, sobra = divmod(qtd_modulos, partes)
+    return [base + 1] * sobra + [base] * (partes - sobra)
+
+
+def _embalagens(pecas: int, por_embalagem: int) -> int:
+    return math.ceil(pecas / max(por_embalagem, 1))
+
+
+# Estruturas com trilho longo apoiado no telhado; telha metálica usa mini trilho; solo leva só os grampos.
+ESTRUTURAS_COM_TRILHO = ("ceramica", "fibrocimento", "laje")
+
+
+def quantidades_estrutura(fileiras: list[int], estrutura: str, pecas_por_embalagem: dict) -> dict:
+    """Embalagens de cada item da estrutura (D34), por papel no kit: {"trilho": 10, "grampo_final": 2, ...}.
+
+    `fileiras`: módulos em cada fileira. `pecas_por_embalagem`: peças vendidas juntas, por papel.
+    Por fileira de N módulos: 4 grampos finais, 2 grampos intermediários por emenda entre módulos
+    (2 × (N − 1)), 1 aterramento. Com trilho: 1 trilho por módulo e 2 × (N + 1) apoios de fixação.
+    Telha metálica: 2 × (N + 1) mini trilhos, sem trilho longo.
+    """
+    def emb(papel, pecas):
+        return _embalagens(pecas, pecas_por_embalagem.get(papel, 1))
+
+    apoios = sum(2 * (n + 1) for n in fileiras)
+    quantidades = {
+        "grampo_final": emb("grampo_final", 4 * len(fileiras)),
+        "grampo_intermediario": emb("grampo_intermediario", sum(2 * (n - 1) for n in fileiras)),
+        "aterramento": len(fileiras),
+    }
+    if estrutura in ESTRUTURAS_COM_TRILHO:
+        quantidades["trilho"] = sum(fileiras)
+        quantidades["fixacao"] = emb("fixacao", apoios)
+    elif estrutura == "metalica":
+        quantidades["mini_trilho"] = emb("mini_trilho", apoios)
+    return {papel: qtd for papel, qtd in quantidades.items() if qtd > 0}
+
+
+def quantidades_eletricas(strings: int, metros_por_string: float, pares_por_string: int,
+                          pares_por_embalagem: int) -> dict:
+    """Cabo solar (m de cada cor) e conectores (embalagens) para as strings (D34).
+
+    Com microinversor, cada micro conta como uma string para os conectores e não leva cabo solar.
+    """
+    quantidades = {"conector": _embalagens(strings * pares_por_string, pares_por_embalagem)}
+    metros = math.ceil(strings * metros_por_string)
+    if metros:
+        quantidades |= {"cabo_vermelho": metros, "cabo_preto": metros}
+    return {papel: qtd for papel, qtd in quantidades.items() if qtd > 0}
+
+
+def custo_do_kit(itens: list[tuple[int, float]], frete: float) -> float:
+    """Soma de quantidade × preço dos itens, mais o frete (fração sobre os produtos, D34)."""
+    return sum(qtd * preco for qtd, preco in itens) * (1 + frete)
 
 
 def mao_de_obra_sugerida(kwp: float, solo: bool, por_kwp: float, por_kwp_solo: float, minima: float) -> float:

@@ -22,6 +22,7 @@ TIPO_POR_CATEGORIA = {
 # Palavra na descrição → tipo de estrutura (a primeira que aparecer).
 ESTRUTURA_POR_PALAVRA = [
     ("solo", "solo"),
+    ("haste solar", "fibrocimento"),
     ("laje", "laje"),
     ("fibrocimento", "fibrocimento"),
     ("metalica", "metalica"),
@@ -71,6 +72,58 @@ def tipo_estrutura(descricao):
     return ""
 
 
+# Papel do item na montagem do kit (D34). Primeira regra que casar com a descrição sem acento.
+# Variantes de telha zipada, telha shingle e mini trilho alto ficam sem papel: o vendedor escolhe à mão.
+FUNCAO_POR_DESCRICAO = [
+    (r"zipada|shingle|mini trilho alto", ""),
+    (r"^perfil fixacao .* x 2\.3\dm", "trilho"),
+    (r"^mini trilho telha metalica", "mini_trilho"),
+    (r"^grampo final", "grampo_final"),
+    (r"^grampo intermediario", "grampo_intermediario"),
+    (r"^garra aterramento", "aterramento"),
+    (r"^suporte gancho|^suporte pe em l fibrocimento|^suporte ajustavel p/ laje|^haste solar", "fixacao"),
+    (r"^juncao para perfil", "juncao"),
+    (r"^suporte para fixacao de microinversor", "suporte_micro"),
+    (r"^cabo solar .*preto", "cabo_preto"),
+    (r"^cabo solar .*vermelho", "cabo_vermelho"),
+    (r"^conector solar fotovoltaico macho e femea", "conector"),
+]
+
+
+def funcao_no_kit(descricao):
+    """"grampo_final", "trilho"... ou "" quando o item não entra sozinho no kit."""
+    texto = _sem_acento(descricao)
+    for padrao, funcao in FUNCAO_POR_DESCRICAO:
+        if re.search(padrao, texto):
+            return funcao
+    return ""
+
+
+def pecas_por_embalagem(descricao):
+    """Peças (ou pares, no conector) vendidas juntas: "4 Pecas" → 4, "C/2 Pares" → 2. Sem indicação: 1."""
+    achado = re.search(r"(\d+)\s*(pecas|peca|pares|par)\b", _sem_acento(descricao))
+    return int(achado.group(1)) if achado else 1
+
+
+def mppts(descricao):
+    """Quantidade de MPPT do inversor pela descrição ("2mppt", "4mmpt"), ou None."""
+    achado = re.search(r"(\d+)\s*mm?pp?t", _sem_acento(descricao))
+    return int(achado.group(1)) if achado else None
+
+
+def modulos_por_micro(potencia_w):
+    """Microinversores de 1,5 kW ou mais ligam 4 módulos; os menores (Enphase), 1. O gestor corrige na tela."""
+    if not potencia_w:
+        return None
+    return 4 if potencia_w >= 1500 else 1
+
+
+def espessura_mm(descricao):
+    """Espessura da moldura atendida pelo grampo final: "Grampo Final 35mm" → 35."""
+    achado = re.search(r"grampo final (\d+)\s*mm", _sem_acento(descricao))
+    return int(achado.group(1)) if achado else None
+
+
 def fabricante(marca, descricao):
     marca = (marca or "").lower().replace("logo_", "").replace("logo ", "").replace("sem fundo", "").strip()
     if marca in MARCAS:
@@ -93,17 +146,23 @@ def ler_catalogo_belenus(texto):
         fase, tensao = fase_e_tensao(descricao) if tipo in ("inversor", "microinversor") else ("", None)
         potencia = (linha.get("potencia_w") or "").strip()
         preco = (linha.get("preco") or "").strip()
+        potencia_w = int(float(potencia)) if re.fullmatch(r"\d+(\.\d+)?", potencia) and tipo in (
+            "modulo", "inversor", "microinversor") else None
         itens.append({
             "tipo": tipo,
             "codigo": codigo,
             "descricao": descricao,
             "fabricante": fabricante(linha.get("marca"), descricao),
-            "potencia_w": int(float(potencia)) if re.fullmatch(r"\d+(\.\d+)?", potencia) and tipo in (
-                "modulo", "inversor", "microinversor") else None,
+            "potencia_w": potencia_w,
             "fase": fase,
             "tensao": tensao,
             "tipo_estrutura": tipo_estrutura(descricao) if tipo == "estrutura" else "",
             "preco_referencia": Decimal(preco) if re.fullmatch(r"\d+(\.\d+)?", preco) else None,
+            "funcao": funcao_no_kit(descricao) if tipo in ("estrutura", "cabo", "conector") else "",
+            "pecas_por_embalagem": pecas_por_embalagem(descricao) if tipo in ("estrutura", "conector") else 1,
+            "mppts": mppts(descricao) if tipo == "inversor" else None,
+            "modulos_por_micro": modulos_por_micro(potencia_w) if tipo == "microinversor" else None,
+            "espessura_mm": espessura_mm(descricao) if tipo == "estrutura" else None,
             "foto": (linha.get("foto") or "").strip(),
         })
     return itens

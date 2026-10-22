@@ -167,6 +167,9 @@ def _post_premissas(**mudancas):
         "conta_alta": "5.000,00", "consumo_alto": "3000", "tolerancia_tarifa_fatura": "30",
         "tolerancia_kwp_cotacao": "5", "limite_microgeracao_kwp": "75",
         "mo_por_kwp": "550,00", "mo_por_kwp_solo": "700", "mo_minima": "4.500,00", "dias_preco_velho": "15",
+        "distribuidor_kit": "Belenus", "frete_kit": "7", "dias_catalogo_velho": "30", "metros_cabo_por_string": "15",
+        "pares_conector_por_string": "2", "modulos_por_string_min": "4", "modulos_por_string_max": "12",
+        "espessura_modulo_padrao": "35",
         "perdas": "14", "perda_clipping": "1", "simultaneidade": "35", "reajuste_anual": "8",
         "degradacao_ano1": "2", "degradacao_anual": "0,55",
         "orientacao_norte": "100", "orientacao_nordeste_noroeste": "97", "orientacao_leste_oeste": "90",
@@ -186,6 +189,7 @@ def test_premissas_salvas_em_fracao(db):
     assert config.premissas_padrao["razao_cc_ca_max"] == 1.5
     assert config.fatores_orientacao["leste_oeste"] == pytest.approx(0.9)
     assert config.mo_por_kwp == Decimal("550.00")
+    assert config.frete_kit == Decimal("0.07")
     assert config.mo_minima == Decimal("4500.00")
     assert config.perfis_simultaneidade == [{"nome": "Residencial", "simultaneidade": 0.35}]
     assert config.tolerancia_kwp_cotacao == Decimal("0.05") and config.prazo_homologacao_dias == 60

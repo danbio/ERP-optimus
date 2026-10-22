@@ -57,6 +57,21 @@
     </div>
 
     <div class="card">
+      <h3>Kit montado pelo catálogo</h3>
+      <p class="ajuda">Regras do kit sugerido quando a proposta não tem cotação. Proteções (string box, DPS, disjuntores) não entram no kit: estão na mão de obra.</p>
+      <div class="grade-campos grade-campos--3">
+        {% include "core/_campo.html" with campo=form.distribuidor_kit %}
+        {% include "core/_campo.html" with campo=form.frete_kit %}
+        {% include "core/_campo.html" with campo=form.dias_catalogo_velho %}
+        {% include "core/_campo.html" with campo=form.metros_cabo_por_string %}
+        {% include "core/_campo.html" with campo=form.pares_conector_por_string %}
+        {% include "core/_campo.html" with campo=form.modulos_por_string_min %}
+        {% include "core/_campo.html" with campo=form.modulos_por_string_max %}
+        {% include "core/_campo.html" with campo=form.espessura_modulo_padrao %}
+      </div>
+    </div>
+
+    <div class="card">
       <h3>Travas da proposta</h3>
       <p class="ajuda">Acima destes valores o vendedor precisa confirmar com o cliente, ou a proposta recebe um aviso.</p>
       <div class="grade-campos grade-campos--3">

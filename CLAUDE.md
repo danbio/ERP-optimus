@@ -109,7 +109,7 @@ O usuário típico é um **vendedor iniciante**, e o cliente muitas vezes **não
 - **Consumo:** por valor da conta (descontando iluminação pública e bandeira), por kWh ou por fatura. Tipo de tarifa do Grupo B escolhido pelo vendedor; valores vêm do banco (ANEEL).
 - **Dimensionamento:** sistema sugere kWp, módulo de menor R$/Wp, quantidade (editável) e inversor da fase da ligação com sobrecarga ≤ 1,5.
 - **Preço:** kit (faturamento direto do distribuidor, com frete, sem margem) + mão de obra − desconto. Mão de obra sugerida `max(kWp × R$ 500, R$ 4.500)`, solo R$ 700/kWp. Desconto só na mão de obra. Sem imposto na proposta.
-- **Kit:** catálogo de referência + memória de cotações (R$/Wp do kit por distribuidor; aviso acima de 15 dias). Nenhum distribuidor tem API.
+- **Kit:** montado pelo catálogo Belenus com preço por item + 7% de frete (D34); o vendedor troca itens e quantidades. Cotação vinculada substitui o catálogo (D35). Nenhum distribuidor tem API.
 - **Financiamento:** taxas por banco e prazo (12 a 72×) mantidas pelo gestor; mostrar a parcela do melhor banco em cada prazo, como aproximada.
 - **Quem altera o quê:** premissas técnicas, perfis de simultaneidade, mão de obra, tarifas, Fio B e taxas são do gestor (Configurações). O vendedor escolhe perfil, folga, orientação, estrutura, quantidades, custo do kit, mão de obra e desconto.
 - **Modo cliente:** esconde custo do kit, mão de obra, desconto, R$/Wp e alertas internos.

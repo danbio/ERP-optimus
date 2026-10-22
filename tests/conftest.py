@@ -1,12 +1,28 @@
 """Configuração comum dos testes."""
 
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
 from django.test import Client
+from django.utils import timezone
 
 from core.models import ConfigEmpresa, Municipio
-from propostas.models import Bandeira, TarifaVigente, TaxaFinanciamento
+from propostas.models import Bandeira, Equipamento, TarifaVigente, TaxaFinanciamento
+from propostas.services.catalogo_belenus import DISTRIBUIDOR, ler_catalogo_belenus
+
+CATALOGO_BELENUS = Path(__file__).parent / "dados" / "belenus-catalogo-2026-10-21.csv"
+
+
+def importar_catalogo(data=None):
+    """O catálogo Belenus real de 21/10/2026, com os preços datados de hoje (ou de `data`)."""
+    data = data or timezone.localdate()
+    for item in ler_catalogo_belenus(CATALOGO_BELENUS.read_text(encoding="utf-8-sig")):
+        item.pop("foto")
+        Equipamento.objects.update_or_create(
+            distribuidor=DISTRIBUIDOR, codigo=item["codigo"],
+            defaults=item | {"preco_em": data if item["preco_referencia"] else None},
+        )
 
 
 @pytest.fixture(autouse=True)
@@ -32,7 +48,8 @@ def entrar_como_gestor(request, monkeypatch):
 
 @pytest.fixture
 def base(db):
-    """Tarifas com tributos e Fio B preenchidos pelo gestor e duas taxas de financiamento."""
+    """Tarifas com tributos e Fio B preenchidos pelo gestor, duas taxas de financiamento e o catálogo Belenus."""
+    importar_catalogo()
     TarifaVigente.objects.update(aliquota_tributos=Decimal("0.25"), fiob_kwh=Decimal("0.30"))
     TaxaFinanciamento.objects.create(banco="BV", prazo_meses=60, taxa_mensal=Decimal("0.0159"), vigente_desde="2026-10-21")
     TaxaFinanciamento.objects.create(banco="BV", prazo_meses=12, taxa_mensal=Decimal("0.0139"), vigente_desde="2026-10-21")

@@ -27,7 +27,7 @@ def _passo2(navegador, proposta, base, **mudancas):
 
 def _passo3(navegador, proposta, **mudancas):
     dados = {"orientacao": "norte", "tipo_estrutura": "ceramica", "modulo": "", "qtd_modulos": "", "inversor": "",
-             "qtd_inversores": "", "cabo_preto_m": "", "cabo_vermelho_m": "", "cotacao": "", "custo_kit": "",
+             "qtd_inversores": "", "tipo_inversor": "string", "fileiras": "", "cotacao": "", "custo_kit": "",
              "mao_de_obra": "", "desconto_texto": ""}
     return navegador.post(reverse("propostas:passo", args=[proposta.pk, 3]), dados | mudancas)
 
@@ -193,7 +193,7 @@ def test_quantidade_e_custo_editados_pelo_vendedor(base):
     m = montar(proposta)
     assert m.qtd_modulos == 15 and m.qtd_modulos_sugerida != 15
     assert proposta.investimento == Decimal("19700.00")
-    assert not m.custo_kit_estimado
+    assert m.produtos_kit is None  # o custo digitado substitui a soma do catálogo
 
 
 def test_sem_tributos_avisa_onde_preencher(base):
