@@ -24,10 +24,12 @@
         {% include "core/_campo.html" with campo=form.preco_em %}
       </div>
       <h3>Montagem do kit</h3>
-      <p class="ajuda">Lidos da descrição na importação. Corrija aqui se o sistema leu errado: a correção fica na próxima importação.</p>
+      <p class="ajuda">Módulo: cadastre as medidas do datasheet (a espessura escolhe o grampo). Os demais campos são lidos da descrição na importação. Corrija aqui se o sistema leu errado: a correção fica na próxima importação.</p>
       <div class="grade-campos grade-campos--3">
         {% include "core/_campo.html" with campo=form.funcao %}
         {% include "core/_campo.html" with campo=form.pecas_por_embalagem %}
+        {% include "core/_campo.html" with campo=form.comprimento_mm %}
+        {% include "core/_campo.html" with campo=form.largura_mm %}
         {% include "core/_campo.html" with campo=form.espessura_mm %}
         {% include "core/_campo.html" with campo=form.mppts %}
         {% include "core/_campo.html" with campo=form.modulos_por_micro %}

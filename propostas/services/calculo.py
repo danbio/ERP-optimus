@@ -314,32 +314,45 @@ def _embalagens(pecas: int, por_embalagem: int) -> int:
     return math.ceil(pecas / max(por_embalagem, 1))
 
 
-# Estruturas com trilho longo apoiado no telhado; telha metálica usa mini trilho; solo leva só os grampos.
+# Estruturas com trilho apoiado no telhado; telha metálica usa mini trilho; solo leva só os grampos.
 ESTRUTURAS_COM_TRILHO = ("ceramica", "fibrocimento", "laje")
 
 
-def quantidades_estrutura(fileiras: list[int], estrutura: str, pecas_por_embalagem: dict) -> dict:
-    """Embalagens de cada item da estrutura (D34), por papel no kit: {"trilho": 10, "grampo_final": 2, ...}.
+def emendas_na_fileira(modulos: int) -> int:
+    """Junções de trilho numa fileira (D34): 3–4 módulos = 1, 5–6 = 2, 7–8 = 3, e assim por diante."""
+    return (modulos - 1) // 2 if modulos >= 3 else 0
 
-    `fileiras`: módulos em cada fileira. `pecas_por_embalagem`: peças vendidas juntas, por papel.
-    Por fileira de N módulos: 4 grampos finais, 2 grampos intermediários por emenda entre módulos
-    (2 × (N − 1)), 1 aterramento. Com trilho: 1 trilho por módulo e 2 × (N + 1) apoios de fixação.
-    Telha metálica: 2 × (N + 1) mini trilhos, sem trilho longo.
+
+def quantidades_estrutura(fileiras: list[int], estrutura: str, pecas_por_embalagem: dict) -> dict:
+    """Quantidades de cada item da estrutura (D34), por papel no kit: {"trilho": 10, "grampo_final": 2, ...}.
+
+    Regras completas e exemplos em docs/dimensionamento-estruturas.md.
+    `fileiras`: módulos em cada fileira. `pecas_por_embalagem`: peças vendidas juntas, por papel
+    (usado nos grampos, que são contados em peças). Por fileira de N módulos:
+    - grampo final: 4 peças; grampo intermediário: 2 por emenda entre módulos, 2 × (N − 1) peças;
+    - aterramento: 1;
+    - cerâmica, fibrocimento e laje: N trilhos, N fixações (gancho, pé em L ou suporte de laje),
+      as junções de `emendas_na_fileira` e, no fibrocimento, N hastes;
+    - telha metálica: N + 1 mini trilhos, sem trilho;
+    - solo: só grampos e aterramento.
     """
     def emb(papel, pecas):
         return _embalagens(pecas, pecas_por_embalagem.get(papel, 1))
 
-    apoios = sum(2 * (n + 1) for n in fileiras)
+    modulos = sum(fileiras)
     quantidades = {
         "grampo_final": emb("grampo_final", 4 * len(fileiras)),
         "grampo_intermediario": emb("grampo_intermediario", sum(2 * (n - 1) for n in fileiras)),
         "aterramento": len(fileiras),
     }
     if estrutura in ESTRUTURAS_COM_TRILHO:
-        quantidades["trilho"] = sum(fileiras)
-        quantidades["fixacao"] = emb("fixacao", apoios)
+        quantidades["trilho"] = modulos
+        quantidades["juncao"] = sum(emendas_na_fileira(n) for n in fileiras)
+        quantidades["fixacao"] = modulos
+        if estrutura == "fibrocimento":
+            quantidades["haste"] = modulos
     elif estrutura == "metalica":
-        quantidades["mini_trilho"] = emb("mini_trilho", apoios)
+        quantidades["mini_trilho"] = sum(n + 1 for n in fileiras)
     return {papel: qtd for papel, qtd in quantidades.items() if qtd > 0}
 
 
@@ -347,7 +360,7 @@ def quantidades_eletricas(strings: int, metros_por_string: float, pares_por_stri
                           pares_por_embalagem: int) -> dict:
     """Cabo solar (m de cada cor) e conectores (embalagens) para as strings (D34).
 
-    Com microinversor, cada micro conta como uma string para os conectores e não leva cabo solar.
+    Com microinversor, `strings` é o número de micros, `pares_por_string` os pares por micro e não há cabo solar.
     """
     quantidades = {"conector": _embalagens(strings * pares_por_string, pares_por_embalagem)}
     metros = math.ceil(strings * metros_por_string)

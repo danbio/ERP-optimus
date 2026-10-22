@@ -232,14 +232,9 @@ Revisão em três visões (vendedor iniciante, gestor, dev sênior), com 30 acha
 - **Distribuidor:** o kit sai sempre de um só, a Belenus (`ConfigEmpresa.distribuidor_kit`). Intelbras não entra no dimensionamento por enquanto; quando o catálogo Intelbras tiver preços, o vendedor poderá escolher.
 - **Ordem:** o vendedor aprova ou escolhe primeiro o **módulo e a quantidade**, porque eles definem o resto do kit. O sugerido é o de menor R$/Wp entre todos os módulos ativos com preço (empate: o de maior potência).
 - **Inversor:** sem marca preferida. Uma chave **String × Microinversor** escolhe o tipo. O sugerido é o mais barato da fase da ligação com sobrecarga entre a mínima e a máxima de Configurações; se nenhum couber nessa faixa, o menor que aguenta o sistema (D19). Microinversor: quantidade = módulos ÷ módulos por micro, arredondado para cima.
-- **Estrutura** (por fileira de N módulos; o vendedor informa as fileiras, ex.: `6+5`; em branco o sistema divide igual entre as strings):
-  - trilho: 1 trilho por módulo da proposta;
-  - grampo final: 4 por fileira (1 pacote de 4);
-  - grampo intermediário: o usuário escreveu "módulos − 2"; até a confirmação o sistema usa 2 por emenda entre módulos, 2 × (N − 1) peças (N − 1 pacotes de 2);
-  - aterramento: 1 por fileira.
-  - As quantidades viram embalagens do catálogo pelo campo `pecas_por_embalagem` (lido da descrição: "4 Pecas", "C/2 Pares").
+- **Estrutura:** regras completas e exemplo em `docs/dimensionamento-estruturas.md`. O vendedor informa as fileiras (ex.: `6+5`); em branco, o sistema divide igual entre as strings.
 - **Cabos:** 15 m de cabo solar vermelho e 15 m de preto por string do inversor (`metros_cabo_por_string`).
-- **Conectores:** 2 pares por string do inversor ou por microinversor (`pares_conector_por_string`).
+- **Conectores:** 2 pares por string do inversor (`pares_conector_por_string`) e 4 pares por microinversor (`pares_conector_por_micro`), mais 1 suporte de fixação por micro.
 - **Proteções** (string box, DPS, disjuntores): a Optimus compra à parte e o custo está na mão de obra. Não entram no kit.
 - **Frete:** 7% sobre a soma dos itens do kit, sem a mão de obra (`frete_kit`).
 - **Preço do catálogo:** a reimportação da Belenus continua manual; o preço fica velho com 30 dias (`dias_catalogo_velho`). O prazo de 15 dias da cotação (D28) continua.
@@ -247,7 +242,7 @@ Revisão em três visões (vendedor iniciante, gestor, dev sênior), com 30 acha
 - **Cotação vinculada substitui o catálogo** (D35): kit = itens da cotação, custo = total da cotação.
 - Quando a leitura por IA existir (rodada 5), o dimensionamento vem da cotação lida e os dados da fatura alimentam o consumo; estas regras valem para a proposta montada pelo sistema.
 
-**Propostas à espera do usuário** (perguntas de 22/10, 19:45; o sistema já usa a proposta e muda se a resposta for outra): trilho de 2,36 m (a Belenus não tem 2,40 m); sem junção de perfil; grampo final pela espessura do módulo (35 mm sem cadastro); fixação (gancho, pé em L, suporte de laje) e mini trilho na telha metálica: 2 × (N + 1) peças por fileira; solo só com os grampos; strings: 1 por MPPT, de 4 a 12 módulos (Configurações); microinversor sem cabo solar, com 1 suporte de fixação.
+**Respostas às 9 propostas (22/10/2026, 20:00):** trilho de 2,70 m, 1 por módulo; grampo intermediário N − 1 pacotes de 2 por fileira; junção de trilho por emendas na fileira (3–4 módulos = 1, 5–6 = 2, 7–8 = 3...); grampo final pela espessura cadastrada no módulo (comprimento, largura e espessura passam a ser cadastrados), 30 mm sem cadastro; fixação igual à quantidade de trilhos: gancho na cerâmica, pé em L + haste solar 10 × 250 mm inox no fibrocimento, suporte na laje; telha metálica com mini trilho de 550 mm (2 peças), N + 1 por fileira; solo só com grampos; strings 1 por MPPT, de 4 a 12 módulos; microinversor sem cabo solar, 4 pares de conector e 1 suporte por micro. O usuário pediu um documento só para o dimensionamento de estruturas: `docs/dimensionamento-estruturas.md`.
 
 ## D35 · 2026-10-22 · Leitura por IA de fatura e de cotação
 - **Fatura:** a IA lê o PDF e preenche os campos do passo 2 (UC, endereço, mês, kWh, dias, valor, CPF/CNPJ). O vendedor confere antes de salvar. Era a fatia v2.8.

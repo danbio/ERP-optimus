@@ -75,10 +75,11 @@ class ConfigEmpresa(models.Model):
     dias_catalogo_velho = models.PositiveIntegerField("dias para o preço do catálogo ficar velho", default=30)
     metros_cabo_por_string = models.PositiveSmallIntegerField("cabo solar por string, de cada cor (m)", default=15)
     pares_conector_por_string = models.PositiveSmallIntegerField("pares de conector por string", default=2)
+    pares_conector_por_micro = models.PositiveSmallIntegerField("pares de conector por microinversor", default=4)
     modulos_por_string_min = models.PositiveSmallIntegerField("mínimo de módulos por string", default=4)
     modulos_por_string_max = models.PositiveSmallIntegerField("máximo de módulos por string", default=12)
     espessura_modulo_padrao = models.PositiveSmallIntegerField(
-        "espessura da moldura do módulo sem cadastro (mm)", default=35,
+        "espessura da moldura do módulo sem cadastro (mm)", default=30,
     )
 
     class Meta:

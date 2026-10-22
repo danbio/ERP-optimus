@@ -76,12 +76,13 @@ def tipo_estrutura(descricao):
 # Variantes de telha zipada, telha shingle e mini trilho alto ficam sem papel: o vendedor escolhe à mão.
 FUNCAO_POR_DESCRICAO = [
     (r"zipada|shingle|mini trilho alto", ""),
-    (r"^perfil fixacao .* x 2\.3\dm", "trilho"),
-    (r"^mini trilho telha metalica", "mini_trilho"),
+    (r"^perfil fixacao .* x 2\.70m", "trilho"),
+    (r"^mini trilho telha metalica 550mm", "mini_trilho"),
     (r"^grampo final", "grampo_final"),
     (r"^grampo intermediario", "grampo_intermediario"),
     (r"^garra aterramento", "aterramento"),
-    (r"^suporte gancho|^suporte pe em l fibrocimento|^suporte ajustavel p/ laje|^haste solar", "fixacao"),
+    (r"^suporte gancho|^suporte pe em l fibrocimento|^suporte ajustavel p/ laje", "fixacao"),
+    (r"^haste solar 10mm x 250mm .*inox", "haste"),
     (r"^juncao para perfil", "juncao"),
     (r"^suporte para fixacao de microinversor", "suporte_micro"),
     (r"^cabo solar .*preto", "cabo_preto"),
