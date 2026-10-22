@@ -76,7 +76,7 @@ Usa o Gemini (D37), com a chave `GEMINI_API_KEY` no `.env`.
 
 - [x] Fatura: PDF → campos do passo 2, com conferência do vendedor.
 - [x] Cotação: PDF → `Cotacao` + `ItemCotado`; a proposta com cotação lida usa só a cotação, ignorando o catálogo.
-- [ ] Testes com as faturas e cotações reais de outubro/2026.
+- [ ] Testes com as faturas e cotações reais de outubro/2026. (Teste real com fatura fictícia feito em 22/10 no PC-Escritorio: todos os campos certos.)
 
 ## Rodada 6 · Ferramentas do gestor e do vendedor
 

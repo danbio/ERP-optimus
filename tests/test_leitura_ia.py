@@ -121,6 +121,37 @@ def test_ler_pdf_traduz_os_erros(settings, monkeypatch, codigo, trecho):
         ia.ler_pdf(PDF, "x", {})
 
 
+
+def test_ler_pdf_tenta_de_novo_uma_vez_quando_sobrecarregado(settings, monkeypatch):
+    settings.GEMINI_API_KEY = "chave-de-teste"
+    monkeypatch.setattr(ia.time, "sleep", lambda segundos: None)
+    respostas = [503, None]
+
+    def urlopen_falso(pedido, timeout):
+        codigo = respostas.pop(0)
+        if codigo:
+            raise urllib.error.HTTPError(pedido.full_url, codigo, "sobrecarga", {}, None)
+        corpo = {"candidates": [{"content": {"parts": [{"text": json.dumps({"numero_uc": "123"})}]}}]}
+        return RespostaFalsa(json.dumps(corpo).encode())
+
+    monkeypatch.setattr(ia.urllib.request, "urlopen", urlopen_falso)
+    assert ia.ler_pdf(PDF, "leia", {}) == {"numero_uc": "123"}
+
+
+def test_ler_pdf_desiste_depois_de_duas_sobrecargas(settings, monkeypatch):
+    settings.GEMINI_API_KEY = "chave-de-teste"
+    monkeypatch.setattr(ia.time, "sleep", lambda segundos: None)
+    chamadas = []
+
+    def urlopen_falso(pedido, timeout):
+        chamadas.append(1)
+        raise urllib.error.HTTPError(pedido.full_url, 503, "sobrecarga", {}, None)
+
+    monkeypatch.setattr(ia.urllib.request, "urlopen", urlopen_falso)
+    with pytest.raises(ia.ErroLeitura, match="sobrecarregado"):
+        ia.ler_pdf(PDF, "x", {})
+    assert len(chamadas) == 2
+
 # ---------- Telas ----------
 
 def test_fatura_lida_preenche_o_passo2_sem_gravar(base, monkeypatch):
