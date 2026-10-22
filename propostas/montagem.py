@@ -456,6 +456,7 @@ def gravar_resultado(proposta, m):
     config = ConfigEmpresa.obter()
     proposta.premissas = premissas_da_proposta(proposta, config)
     proposta.investimento = Decimal(f"{m.investimento:.2f}") if m.investimento is not None else None
+    proposta.kwp = Decimal(f"{m.kwp:.3f}") if m.kwp else None
     proposta.resultados = {}
     if m.resultado:
         proposta.resultados = {

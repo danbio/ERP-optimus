@@ -3,6 +3,7 @@
 import re
 
 from django.contrib import messages
+from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
@@ -18,8 +19,11 @@ from ..services.pdf import ErroAnexo
 from .documento import gerar_pdf
 
 
+POR_PAGINA = 50
+
+
 def lista(request):
-    propostas = Proposta.objects.select_related("cliente").prefetch_related("itens_kit")
+    propostas = Proposta.objects.select_related("cliente")
     situacao = request.GET.get("status", "")
     if situacao:
         propostas = propostas.filter(status="emitida" if situacao == "vencida" else situacao)
@@ -30,17 +34,23 @@ def lista(request):
         if len(digitos) >= 4:
             filtro |= Q(cliente__telefone__contains=digitos)
         propostas = propostas.filter(filtro)
-    propostas = propostas[:200]
+    mes = request.GET.get("mes", "")  # "2026-10": propostas emitidas no mês (A28)
+    if re.fullmatch(r"\d{4}-\d{2}", mes):
+        ano, numero_mes = (int(parte) for parte in mes.split("-"))
+        propostas = propostas.filter(emissao__year=ano, emissao__month=numero_mes)
     if situacao in ("emitida", "vencida"):  # "vencida" não é gravada: separa na hora (D31)
         propostas = [p for p in propostas if p.situacao == situacao]
+    pagina = Paginator(propostas, POR_PAGINA).get_page(request.GET.get("pagina"))
+    filtros = request.GET.copy()
+    filtros.pop("pagina", None)
     return render(request, "propostas/lista.html", {
-        "propostas": propostas,
+        "pagina": pagina,
         "status_choices": Proposta.Status.choices[:2] + [("vencida", "Vencida")] + Proposta.Status.choices[2:],
         "busca": busca,
+        "mes": mes,
+        "filtros": filtros.urlencode(),
     })
 
-
-# ---------- Emissão e versões (fatia v2.7, D31)
 
 def proposta_detalhe(request, pk):
     proposta = get_object_or_404(Proposta.objects.select_related("cliente"), pk=pk)

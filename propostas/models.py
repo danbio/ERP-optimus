@@ -104,6 +104,7 @@ class Proposta(models.Model):
     motivo_aceite_desfeito = models.TextField("motivo do aceite desfeito", blank=True)
     validade_dias = models.PositiveIntegerField(default=15)
     investimento = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    kwp = models.DecimalField("potência (kWp)", max_digits=8, decimal_places=3, null=True, blank=True)  # A28
 
     # ---- Proposta v2: entrada em 4 passos (D17–D29). Tudo opcional para salvar o rascunho a cada passo.
     nivel = models.CharField("nível", max_length=10, choices=Nivel.choices, default=Nivel.ESTIMATIVA)
@@ -216,22 +217,6 @@ class Proposta(models.Model):
         )
         proxima_seq = int(ultimo.rsplit("-", 1)[-1]) + 1 if ultimo else 1
         return f"{prefixo}{proxima_seq:04d}"
-
-    @property
-    def kwp(self):
-        total = sum(
-            item.quantidade * (item.potencia_w or 0)
-            for item in self.itens_kit.filter(tipo=ItemKit.Tipo.MODULO)
-        )
-        return total / 1000
-
-    @property
-    def kw_ca(self):
-        total = sum(
-            item.quantidade * (item.potencia_w or 0)
-            for item in self.itens_kit.filter(tipo=ItemKit.Tipo.INVERSOR)
-        )
-        return total / 1000
 
 
 class ItemKit(models.Model):
