@@ -12,7 +12,7 @@ from django.test import Client
 from django.urls import reverse
 from pypdf import PdfReader, PdfWriter
 
-from propostas import views
+from propostas.views import documento
 from propostas.models import Proposta
 from propostas.services import graficos
 from propostas.services.pdf import ler_cores, mesclar_anexo
@@ -64,7 +64,7 @@ def test_pdf_com_fatura_anexada(base, monkeypatch, settings, tmp_path):
         html_recebido["html"] = html
         return _pdf_em_branco(9)  # 7 páginas fixas + 2 molduras do anexo
 
-    monkeypatch.setattr(views, "html_para_pdf", falso_html_para_pdf)
+    monkeypatch.setattr(documento, "html_para_pdf", falso_html_para_pdf)
     navegador = Client()
     _passo1(navegador, base)
     proposta = Proposta.objects.get()

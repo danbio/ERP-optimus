@@ -8,7 +8,7 @@ from django.test import Client as Navegador
 from django.urls import reverse
 
 from core.models import ConfigEmpresa
-from propostas import views
+from propostas.views import documento
 from propostas.models import Cotacao, Equipamento, Proposta
 from propostas.services import calculo
 from propostas.montagem import impedimentos_de_emissao, montar
@@ -19,7 +19,7 @@ from .test_proposta_v2 import _ate_passo2, _passo1, _passo2, _passo3
 @pytest.fixture(autouse=True)
 def sem_chromium(monkeypatch, settings, tmp_path):
     settings.MEDIA_ROOT = tmp_path
-    monkeypatch.setattr(views, "html_para_pdf", lambda html: b"%PDF-1.4 falso")
+    monkeypatch.setattr(documento, "html_para_pdf", lambda html: b"%PDF-1.4 falso")
 
 
 def _rascunho(base, passo3=None, **passo2):

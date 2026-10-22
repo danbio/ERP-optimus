@@ -82,6 +82,9 @@ def calcular(e: EntradaCalculo) -> ResultadoCalculo:
     cobrar_disponibilidade = premissas["cobrar_disponibilidade"]
     horizonte_anos = premissas["horizonte_anos"]
     razao_cc_ca_max = premissas["razao_cc_ca_max"]
+    # Limites do aviso de cobertura (A25). Propostas emitidas antes da rodada 3 não têm as chaves no snapshot.
+    cobertura_min = premissas.get("cobertura_min", 0.80)
+    cobertura_max = premissas.get("cobertura_max", 1.30)
 
     dias_mes = [_dias_do_mes(ano_conexao, mes) for mes in range(1, 13)]
 
@@ -119,7 +122,8 @@ def calcular(e: EntradaCalculo) -> ResultadoCalculo:
     economia_mensal_ano1 = fluxo[0]["economia"] / 12
     custo_mensal_atual = consumo_anual * e.tarifa / 12
     custo_mensal_com_sistema = custo_mensal_atual - economia_mensal_ano1
-    payback_meses = e.investimento / economia_mensal_ano1
+    # Sem economia não há retorno: 0 indica "não se paga" (a emissão é bloqueada, A02).
+    payback_meses = e.investimento / economia_mensal_ano1 if economia_mensal_ano1 > 0 else 0.0
     rs_por_wp = e.investimento / (e.kwp * 1000)
 
     alertas = []
@@ -132,10 +136,11 @@ def calcular(e: EntradaCalculo) -> ResultadoCalculo:
         alertas.append("Classe B1 residencial em cliente comercial (CNPJ).")
     if not e.fiob_informado:
         alertas.append("Fio B estimado pela fatura (TUSD Fio B não informada).")
-    if cobertura > 1.30:
-        alertas.append(f"Cobertura de {cobertura * 100:.1f}% acima de 130% (possível superdimensionamento).")
-    elif cobertura < 0.80:
-        alertas.append(f"Cobertura de {cobertura * 100:.1f}% abaixo de 80%.")
+    if cobertura > cobertura_max:
+        alertas.append(f"Cobertura de {cobertura * 100:.1f}% acima de {cobertura_max * 100:.0f}% "
+                       "(possível superdimensionamento).")
+    elif cobertura < cobertura_min:
+        alertas.append(f"Cobertura de {cobertura * 100:.1f}% abaixo de {cobertura_min * 100:.0f}%.")
 
     return ResultadoCalculo(
         geracao_mensal=geracao_mensal,
@@ -204,18 +209,21 @@ def geracao_necessaria(consumo_kwh: float, folga: float) -> float:
     return max(consumo_kwh * (1 + folga), 0.0)
 
 
-def kwp_necessario(consumo_kwh: float, folga: float, irradiacao: list[float],
-                   perdas: float, clipping: float, fator_orientacao: float) -> float:
-    """Potência (kWp) que gera, em média, a geração necessária.
+def geracao_por_kwp_mes(irradiacao: list[float], perdas: float, clipping: float, fator_orientacao: float) -> float:
+    """kWh/mês que 1 kWp gera, em média no ano (A25).
 
-    Usa os 12 meses da irradiação com os dias de cada mês, a mesma conta de `calcular()`,
-    para o sistema sugerido gerar o que a proposta mostra.
+    Usa os 12 meses da irradiação com os dias de cada mês, a mesma conta de `calcular()`.
     """
-    gera_por_kwp_ano = sum(
+    return sum(
         irr * dias * (1 - perdas) * (1 - clipping) * fator_orientacao
         for irr, dias in zip(irradiacao, DIAS_MES_ANO_COMUM)
-    )
-    return geracao_necessaria(consumo_kwh, folga) * 12 / gera_por_kwp_ano
+    ) / 12
+
+
+def kwp_necessario(consumo_kwh: float, folga: float, irradiacao: list[float],
+                   perdas: float, clipping: float, fator_orientacao: float) -> float:
+    """Potência (kWp) que gera, em média, a geração necessária (o sistema sugerido gera o que a proposta mostra)."""
+    return geracao_necessaria(consumo_kwh, folga) / geracao_por_kwp_mes(irradiacao, perdas, clipping, fator_orientacao)
 
 
 def quantidade_modulos(kwp: float, potencia_w: float) -> int:

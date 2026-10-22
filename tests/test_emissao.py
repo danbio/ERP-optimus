@@ -6,7 +6,7 @@ import pytest
 from django.urls import reverse
 from django.utils import timezone
 
-from propostas import views
+from propostas.views import documento
 from propostas.models import Proposta
 
 from .test_proposta_v2 import _ate_passo2, _passo2, _passo3
@@ -17,7 +17,7 @@ PDF_FALSO = b"%PDF-1.4 falso"
 @pytest.fixture(autouse=True)
 def sem_chromium(monkeypatch, settings, tmp_path):
     settings.MEDIA_ROOT = tmp_path
-    monkeypatch.setattr(views, "html_para_pdf", lambda html: PDF_FALSO)
+    monkeypatch.setattr(documento, "html_para_pdf", lambda html: PDF_FALSO)
 
 
 def _rascunho_completo(base, **passo2):
@@ -75,7 +75,7 @@ def test_pdf_que_falha_deixa_como_rascunho(base, monkeypatch):
     def falha(html):
         raise ErroPDF("Chromium não encontrado")
 
-    monkeypatch.setattr(views, "html_para_pdf", falha)
+    monkeypatch.setattr(documento, "html_para_pdf", falha)
     navegador, proposta = _rascunho_completo(base)
     _emitir(navegador, proposta)
     assert proposta.status == "rascunho" and proposta.emissao is None and proposta.custo_kit is None

@@ -163,6 +163,7 @@ def test_telas_abrem(db, rota):
 def _post_premissas(**mudancas):
     dados = {
         "prazo_homologacao_dias": "60", "horizonte_anos": "25", "razao_cc_ca_max": "1,5",
+        "sobrecarga_min": "0,8", "cobertura_min": "80", "cobertura_max": "130",
         "conta_alta": "5.000,00", "consumo_alto": "3000", "tolerancia_tarifa_fatura": "30",
         "tolerancia_kwp_cotacao": "5", "limite_microgeracao_kwp": "75",
         "mo_por_kwp": "550,00", "mo_por_kwp_solo": "700", "mo_minima": "4.500,00", "dias_preco_velho": "15",
@@ -188,6 +189,8 @@ def test_premissas_salvas_em_fracao(db):
     assert config.mo_minima == Decimal("4500.00")
     assert config.perfis_simultaneidade == [{"nome": "Residencial", "simultaneidade": 0.35}]
     assert config.tolerancia_kwp_cotacao == Decimal("0.05") and config.prazo_homologacao_dias == 60
+    assert config.premissas_padrao["cobertura_max"] == pytest.approx(1.30)
+    assert config.premissas_padrao["sobrecarga_min"] == 0.8
 
 
 @pytest.mark.parametrize("campo, valor", [

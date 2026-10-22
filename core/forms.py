@@ -112,6 +112,12 @@ class PremissasForm(forms.Form):
         label="Sobrecarga máxima do inversor (CC/CA)", min_value=1, max_value=2, decimal_places=2,
         widget=forms.TextInput(attrs={"inputmode": "decimal"}), localize=True,
     )
+    sobrecarga_min = forms.DecimalField(
+        label="Avisar inversor grande abaixo de (CC/CA)", min_value=Decimal("0.3"), max_value=1, decimal_places=2,
+        widget=forms.TextInput(attrs={"inputmode": "decimal"}), localize=True,
+    )
+    cobertura_min = CampoPercentual(label="Avisar cobertura abaixo de (%)")
+    cobertura_max = CampoPercentual(label="Avisar cobertura acima de (%)", maximo=300)
 
     mo_por_kwp = CampoReais(label="Mão de obra por kWp (R$)")
     mo_por_kwp_solo = CampoReais(label="Mão de obra por kWp em solo (R$)")
@@ -144,7 +150,9 @@ class PremissasForm(forms.Form):
     def da_config(cls, config):
         premissas = config.premissas_padrao
         inicial = {chave: premissas.get(chave) for chave, _ in PREMISSAS_PERCENTUAIS}
-        inicial |= {chave: premissas.get(chave) for chave in ("horizonte_anos", "razao_cc_ca_max")}
+        inicial |= {chave: premissas.get(chave) for chave in (
+            "horizonte_anos", "razao_cc_ca_max", "sobrecarga_min", "cobertura_min", "cobertura_max",
+        )}
         inicial |= {f"orientacao_{chave}": config.fatores_orientacao.get(chave) for chave, _ in ORIENTACOES}
         inicial |= {campo: getattr(config, campo) for campo in cls.CAMPOS_DA_CONFIG}
         return cls(initial=inicial)
@@ -156,6 +164,9 @@ class PremissasForm(forms.Form):
             premissas[chave] = dados[chave]
         premissas["horizonte_anos"] = dados["horizonte_anos"]
         premissas["razao_cc_ca_max"] = float(dados["razao_cc_ca_max"])
+        premissas["sobrecarga_min"] = float(dados["sobrecarga_min"])
+        premissas["cobertura_min"] = dados["cobertura_min"]
+        premissas["cobertura_max"] = dados["cobertura_max"]
         premissas["cobrar_disponibilidade"] = False  # a disponibilidade não entra na economia (D33)
         config.premissas_padrao = premissas
         config.fatores_orientacao = {chave: dados[f"orientacao_{chave}"] for chave, _ in ORIENTACOES}
