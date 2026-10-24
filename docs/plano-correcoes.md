@@ -126,9 +126,9 @@ Achados `Hxx` e premissas `P1`/`P2` do teste feito pelo usuário no navegador. R
 
 ## Rodada 12 · Painel e ferramentas do gestor e do vendedor
 
-- [ ] **A20** Vendedor responsável e "próximo contato", com lista "ligar hoje". Vem antes do painel.
-- [ ] **H16/A19** Dashboard na página inicial, com protótipo antes; gestor vê todos, vendedor vê os dele (`eh_gestor`); orçamento Intelbras ganha campo de vendedor se entrar no "por vendedor" **(perguntas: indicadores da primeira versão; painel do vendedor × do gestor)**.
-- [ ] **A18** Barra fixa no celular com kWp, investimento e parcela; menu recolhido.
+- [x] **A20** (D46) Vendedor responsável e "próximo contato", com lista "ligar hoje". Vem antes do painel.
+- [x] **H16/A19** (D46) Dashboard na página inicial, com protótipo antes; gestor vê todos, vendedor vê os dele (`eh_gestor`); orçamento Intelbras ganha campo de vendedor se entrar no "por vendedor" **(perguntas: indicadores da primeira versão; painel do vendedor × do gestor)**.
+- [x] **A18** (D46) Barra fixa no celular com kWp, investimento e parcela; menu recolhido.
 
 ## Rodada 13 · Goiás
 

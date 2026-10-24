@@ -14,6 +14,7 @@ urlpatterns = [
     path("<int:pk>/perdida/", versoes.proposta_perdida, name="perdida"),
     path("<int:pk>/desfazer-aceite/", versoes.proposta_desfazer_aceite, name="desfazer_aceite"),
     path("<int:pk>/descartar/", versoes.proposta_descartar, name="descartar"),
+    path("<int:pk>/acompanhamento/", versoes.proposta_acompanhamento, name="acompanhamento"),
     # Os 4 passos (views/passos.py)
     path("nova/", passos.proposta_nova, name="nova"),
     path("<int:pk>/", passos.proposta_abrir, name="editar"),

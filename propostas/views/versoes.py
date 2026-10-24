@@ -7,10 +7,14 @@ from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
+from core.forms import AcompanhamentoForm
 from core.pdf import ErroPDF
+from core.permissoes import eh_gestor
+from core.views import gravar_acompanhamento
 
 from .. import emissao
 from ..forms import AceiteForm, DesfazerAceiteForm, PerdaForm
@@ -61,7 +65,14 @@ def proposta_detalhe(request, pk):
         "aceite_form": AceiteForm(initial={"data_aceite": timezone.localdate()}),
         "perda_form": PerdaForm(),
         "desfazer_form": DesfazerAceiteForm(),
+        "acompanhamento_form": AcompanhamentoForm(objeto=proposta, gestor=eh_gestor(request.user)),
     })
+
+
+@require_POST
+def proposta_acompanhamento(request, pk):
+    proposta = get_object_or_404(Proposta, pk=pk)
+    return gravar_acompanhamento(request, proposta, reverse("propostas:detalhe", args=[pk]))
 
 
 @require_POST

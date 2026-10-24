@@ -107,6 +107,7 @@ def revisar(proposta):
     nova.pdf = ""
     nova.registro = {}
     nova.emitida_por = nova.aceita_por = nova.perdida_por = nova.aceite_desfeito_por = None
+    nova.perdida_em = None
     nova.save()
     for item in itens:
         item.pk = None
@@ -151,4 +152,5 @@ def marcar_perdida(proposta, motivo, observacao="", usuario=None):
     proposta.motivo_perda = motivo
     proposta.obs_perda = observacao
     proposta.perdida_por = usuario
-    proposta.save(update_fields=["status", "motivo_perda", "obs_perda", "perdida_por"])
+    proposta.perdida_em = timezone.localdate()
+    proposta.save(update_fields=["status", "motivo_perda", "obs_perda", "perdida_por", "perdida_em"])

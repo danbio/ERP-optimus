@@ -16,8 +16,9 @@ from django.views.decorators.http import require_POST
 
 from core.models import ConfigEmpresa
 from core.pdf import ErroPDF, html_para_pdf
-from core.permissoes import so_gestor
-from core.views import ABAS
+from core.forms import AcompanhamentoForm
+from core.permissoes import eh_gestor, so_gestor
+from core.views import ABAS, gravar_acompanhamento
 
 from .forms import ImportarTabelaForm, OrcamentoDadosForm, OrcamentoNovoForm, ParcelamentoForm
 from .importacao import aplicar_importacao
@@ -128,6 +129,7 @@ def novo(request):
             orcamento.garantia = parametros.garantia_padrao
             orcamento.observacoes = parametros.observacoes_padrao
             orcamento.tabela_referencia = _referencia_tabela_atual()
+            orcamento.vendedor = request.user if request.user.is_authenticated else None  # D46
             orcamento.save()
             return redirect("orcamentos:editor", pk=orcamento.pk)
     else:
@@ -155,7 +157,14 @@ def editor(request, pk):
         "resumo": resumo,
         "versoes": Orcamento.objects.filter(numero=orcamento.numero).order_by("versao"),
         "erro_pdf": request.GET.get("erro_pdf", ""),
+        "acompanhamento_form": AcompanhamentoForm(objeto=orcamento, gestor=eh_gestor(request.user)),
     })
+
+
+@require_POST
+def acompanhamento(request, pk):
+    orcamento = get_object_or_404(Orcamento, pk=pk)
+    return gravar_acompanhamento(request, orcamento, reverse("orcamentos:editor", args=[pk]))
 
 
 def buscar_produtos(request, pk):

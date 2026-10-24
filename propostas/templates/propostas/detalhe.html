@@ -38,6 +38,11 @@
     {% if proposta.status == "rascunho" %}{% include "propostas/_descartar.html" %}{% endif %}
   </div>
 
+  {% if proposta.status == "rascunho" or proposta.status == "emitida" %}
+    {% url 'propostas:acompanhamento' proposta.pk as acao %}
+    {% include "core/_acompanhamento.html" with objeto=proposta acao=acao %}
+  {% endif %}
+
   {% if rascunho_aberto and rascunho_aberto.pk != proposta.pk %}
     <p class="alerta alerta--aviso">A versão {{ rascunho_aberto.versao }} desta proposta está em rascunho.
       <a href="{% url 'propostas:editar' rascunho_aberto.pk %}">Continuar a v{{ rascunho_aberto.versao }}</a></p>

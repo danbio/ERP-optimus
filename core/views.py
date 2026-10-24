@@ -1,17 +1,22 @@
 from django.contrib import messages
 from django.shortcuts import redirect, render
+from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
 from propostas.models import Bandeira, TarifaVigente, TaxaFinanciamento
 
 from . import dados_oficiais
-from .forms import BandeirasFormSet, EmpresaForm, PerfisFormSet, PremissasForm, TarifaForm, TaxasForm
+from .forms import AcompanhamentoForm, BandeirasFormSet, EmpresaForm, PerfisFormSet, PremissasForm, TarifaForm, TaxasForm
 from .models import ConfigEmpresa, Municipio
-from .permissoes import so_gestor
+from .painel import montar_painel
+from .permissoes import eh_gestor, so_gestor
 
 
 def inicio(request):
-    return render(request, "core/inicio.html")
+    gestor = eh_gestor(request.user)
+    painel = montar_painel(request.user, gestor, timezone.localdate(), ConfigEmpresa.obter())
+    return render(request, "core/inicio.html", {"painel": painel, "gestor": gestor})
 
 
 # ---------- Configurações (fatia v2.2): só o gestor usa ----------
@@ -133,3 +138,17 @@ def config_municipios_atualizar(request):
     if erros:
         messages.error(request, "Sem resposta para: " + "; ".join(erros[:5]))
     return redirect("core:config_municipios")
+
+
+def gravar_acompanhamento(request, objeto, destino):
+    """POST do cartão "Acompanhamento" da proposta e do orçamento (A20, D46). Volta para a página de origem."""
+    form = AcompanhamentoForm(request.POST, gestor=eh_gestor(request.user))
+    if form.is_valid():
+        form.gravar(objeto)
+        messages.success(request, "Acompanhamento salvo.")
+    else:
+        messages.error(request, " ".join(e for erros in form.errors.values() for e in erros))
+    voltar = request.POST.get("voltar", "")
+    if url_has_allowed_host_and_scheme(voltar, allowed_hosts={request.get_host()}):
+        return redirect(voltar)
+    return redirect(destino)

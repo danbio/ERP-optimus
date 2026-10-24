@@ -89,4 +89,9 @@
   </details>
 {% endif %}
 
+{% if not modo_cliente and acompanhamento_form %}
+  {% url 'propostas:acompanhamento' proposta.pk as acao %}
+  {% include "core/_acompanhamento.html" with objeto=proposta acao=acao %}
+{% endif %}
+
 <div class="interno">{% include "propostas/_descartar.html" %}</div>

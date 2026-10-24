@@ -32,6 +32,10 @@
     }
   }
 
+  .sidebar__menu {
+    display: none;
+  }
+
   .sidebar__sair {
     display: flex;
     flex-wrap: wrap;
@@ -426,6 +430,24 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: var(--esp-4);
+    margin-bottom: var(--esp-4);
+  }
+
+  /* ---------- Painel da página inicial (D46) ---------- */
+  .painel {
+    margin-bottom: var(--esp-4);
+  }
+
+  .painel__linha {
+    margin: 0 0 var(--esp-2);
+  }
+
+  .painel__motivos {
+    margin-top: var(--esp-3);
+  }
+
+  .resumo__barra {
+    display: none;
   }
 
   .card.atalho {
@@ -1071,22 +1093,67 @@
       display: flex;
       flex-wrap: wrap;
       align-items: center;
+      justify-content: space-between;
       gap: var(--esp-1);
       padding: var(--esp-2) var(--esp-3);
 
       & .sidebar__logo {
         max-width: 90px;
-        margin: 0 var(--esp-2) 0 0;
+        margin: 0;
+      }
+
+      & .sidebar__menu {
+        display: block;
+        background: transparent;
+        color: var(--branco);
+        border: 1px solid var(--soft);
+        border-radius: var(--raio);
+        padding: var(--esp-1) var(--esp-3);
+        font: inherit;
+      }
+
+      & .sidebar__links {
+        display: none;
+        flex-basis: 100%;
+        padding-top: var(--esp-2);
+      }
+
+      &.sidebar--aberta .sidebar__links {
+        display: block;
       }
 
       & .sidebar__sair {
-        margin: 0 0 0 auto;
+        margin: var(--esp-3) 0 var(--esp-2);
       }
+    }
 
-      & a {
-        white-space: nowrap;
-        margin: 0;
+    /* Barra fixa dos passos da proposta (A18): o resumo inteiro fica no fim da página. */
+    .resumo__barra {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 10;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: var(--esp-2);
+      padding: var(--esp-2) var(--esp-3);
+      background: var(--navy);
+      color: var(--branco);
+      border-top: 3px solid var(--gold);
+      font-weight: 700;
+      font-size: var(--texto-sm);
+
+      & small {
+        display: block;
+        font-weight: 400;
+        font-size: var(--texto-xs);
+        color: var(--soft);
       }
+    }
+
+    .assistente {
+      padding-bottom: var(--esp-6);
     }
 
     .conteudo {

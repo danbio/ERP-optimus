@@ -76,6 +76,9 @@ class ConfigEmpresa(models.Model):
     )
     # Ano de conexão do rascunho = hoje + prazo de homologação (A17, D36).
     prazo_homologacao_dias = models.PositiveSmallIntegerField("prazo até a conexão (dias)", default=60)
+    # Painel da página inicial (D46)
+    dias_aviso_vencimento = models.PositiveSmallIntegerField("avisar proposta vencendo em (dias)", default=3)
+    dias_sem_retorno = models.PositiveSmallIntegerField("proposta parada após (dias sem contato)", default=7)
 
     # Kit montado pelo catálogo (D34)
     distribuidor_kit = models.CharField("distribuidor do kit", max_length=60, default="Belenus")

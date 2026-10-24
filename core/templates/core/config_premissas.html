@@ -58,6 +58,15 @@
     </div>
 
     <div class="card">
+      <h3>Painel da página inicial</h3>
+      <p class="ajuda">Quando uma proposta emitida aparece como "vencendo" e como "parada" (sem próximo contato marcado).</p>
+      <div class="grade-campos">
+        {% include "core/_campo.html" with campo=form.dias_aviso_vencimento %}
+        {% include "core/_campo.html" with campo=form.dias_sem_retorno %}
+      </div>
+    </div>
+
+    <div class="card">
       <h3>Kit montado pelo catálogo</h3>
       <p class="ajuda">Regras do kit sugerido quando a proposta não tem cotação. Proteções (string box, DPS, disjuntores) não entram no kit: estão na mão de obra.</p>
       <div class="grade-campos grade-campos--3">
