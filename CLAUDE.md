@@ -2,7 +2,7 @@
 
 ERP interno da **Optimus Energia Solar** (Gurupi-TO). Uso interno, 2–5 usuários, rede local.
 Fase atual: **Proposta Solar v2**, redesenho da entrada de dados (ver `docs/spec-proposta-v2.md`, D17–D25). A `docs/spec-fase1.md` continua valendo para o motor de cálculo e o PDF.
-**Agora:** correções da revisão de 22/10/2026 e do teste humano de 24/10/2026 (`docs/relatorio-teste-humano-2026-10-24.md`), em rodadas, seguindo `docs/plano-correcoes.md` (D33–D41).
+**Agora:** correções da revisão de 22/10/2026 e do teste humano de 24/10/2026 (`docs/relatorio-teste-humano-2026-10-24.md`), em rodadas, seguindo `docs/plano-correcoes.md` (D33–D42).
 Módulo paralelo: **Orçamentos da revenda Intelbras** (ver `docs/spec-orcamentos.md`, D12–D15).
 
 ## Princípio número 1
@@ -113,7 +113,7 @@ O usuário típico é um **vendedor iniciante**, e o cliente muitas vezes **não
 - **Financiamento:** taxas por banco e prazo (12 a 72×) mantidas pelo gestor; mostrar a parcela do melhor banco em cada prazo, como aproximada.
 - **Quem altera o quê:** premissas técnicas, perfis de simultaneidade, mão de obra, tarifas, Fio B e taxas são do gestor (Configurações). O vendedor escolhe perfil, folga, orientação, estrutura, quantidades, custo do kit, mão de obra e desconto.
 - **Modo cliente:** esconde custo do kit, mão de obra, desconto, R$/Wp e alertas internos, sem enviar ao navegador (`{% if not modo_cliente %}`, A29).
-- **Dados oficiais** (IBGE, PVGIS, ANEEL) são baixados para o banco com fonte e data; a proposta nunca consulta API na hora.
+- **Dados oficiais** (IBGE, PVGIS, ANEEL) são baixados para o banco com fonte e data; a proposta nunca consulta API na hora. Exceção: no cadastro do cliente, o navegador busca CEP (ViaCEP) e CNPJ (BrasilAPI) (D42).
 - **Listas:** busca e filtros atualizam a lista na hora, sem botão (D40: `hx-get` + `hx-select="#resultado"` no próprio formulário).
 - **Validação (D41):** toda entrada com limite e limpeza (`higienizar` no `__init__` do formulário); CPF/CNPJ por dígito verificador, telefone com DDD, valores em reais em campo de texto com máscara e conversão no servidor. Rótulos com acento, na língua do vendedor.
 

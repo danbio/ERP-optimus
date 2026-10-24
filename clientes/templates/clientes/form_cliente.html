@@ -1,9 +1,11 @@
 {% extends "core/base.html" %}
+{% load static %}
 
 {% block titulo %}{{ titulo }}{% endblock %}
 {% block titulo_pagina %}{{ titulo }}{% endblock %}
 
 {% block conteudo %}
+  {{ municipios_ibge|json_script:"municipios-ibge" }}
   <div class="card card--estreito">
     <form method="post" novalidate>
       {% csrf_token %}
@@ -14,7 +16,18 @@
         {% include "core/_campo.html" with campo=form.municipio %}
         {% include "core/_campo.html" with campo=form.cpf_cnpj %}
       </div>
-      <p class="ajuda">Para uma estimativa bastam nome, telefone e município. CPF/CNPJ é pedido na proposta com fatura.</p>
+      <p class="ajuda">Para uma estimativa bastam nome, telefone e município. CPF/CNPJ é pedido para emitir a proposta com fatura. Com CNPJ, o sistema busca razão social, telefone e endereço.</p>
+      <p class="ajuda" id="busca-aviso" aria-live="polite"></p>
+      <details class="mais-campos"{% if form.cep.errors or form.logradouro.errors or form.numero.errors %} open{% endif %}>
+        <summary>Endereço (opcional; o CEP preenche o resto)</summary>
+        <div class="grade-campos">
+          {% include "core/_campo.html" with campo=form.cep %}
+          {% include "core/_campo.html" with campo=form.logradouro %}
+          {% include "core/_campo.html" with campo=form.numero %}
+          {% include "core/_campo.html" with campo=form.complemento %}
+          {% include "core/_campo.html" with campo=form.bairro %}
+        </div>
+      </details>
       <details class="mais-campos"{% if form.razao_social.errors or form.email.errors %} open{% endif %}>
         <summary>Mais dados (razão social, e-mail, observações)</summary>
         {% include "core/_campo.html" with campo=form.razao_social %}
@@ -28,3 +41,5 @@
     </form>
   </div>
 {% endblock %}
+
+{% block extra_js %}<script src="{% static 'js/cliente.js' %}" defer></script>{% endblock %}

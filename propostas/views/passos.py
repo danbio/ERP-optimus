@@ -225,8 +225,17 @@ def _gravar_passo2(request, form, proposta):
         dono = Cliente.objects.filter(cpf_cnpj=dados["cpf_cnpj"]).exclude(pk=cliente.pk).first()
         if dono:
             return proposta, [("cpf_cnpj", f"Este CPF/CNPJ já é de {dono.nome}.")]
+        if cliente.cpf_cnpj and cliente.cpf_cnpj != dados["cpf_cnpj"]:
+            # A fatura pode estar no nome de outra pessoa (cônjuge, empresa): não troca o documento do cliente (D42).
+            return proposta, [("cpf_cnpj", f"{cliente.nome} já tem o CPF/CNPJ {cliente.cpf_cnpj_formatado}. "
+                                           "Se a fatura é de outro titular, cadastre-o como cliente; "
+                                           "se o cadastro está errado, corrija na ficha do cliente.")]
         cliente.cpf_cnpj = dados["cpf_cnpj"]
         cliente.save(update_fields=["cpf_cnpj"])
+    if not cliente.logradouro and dados["endereco"]:
+        # Cliente sem endereço recebe o da fatura; com endereço, o dele fica (D42, H15).
+        cliente.logradouro = dados["endereco"][:200]
+        cliente.save(update_fields=["logradouro"])
     uc = UnidadeConsumidora.objects.filter(cliente=cliente, numero_uc=dados["numero_uc"]).first() or UnidadeConsumidora(
         cliente=cliente, numero_uc=dados["numero_uc"])
     uc.endereco = dados["endereco"]

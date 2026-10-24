@@ -13,6 +13,12 @@ class Cliente(models.Model):
     municipio = models.ForeignKey(
         Municipio, on_delete=models.PROTECT, null=True, blank=True, verbose_name="município"
     )
+    # Endereço do cliente (H12, D42): todos opcionais. O da instalação fica na UC.
+    cep = models.CharField("CEP", max_length=9, blank=True)
+    logradouro = models.CharField("rua", max_length=200, blank=True)
+    numero = models.CharField("número", max_length=20, blank=True)
+    complemento = models.CharField(max_length=100, blank=True)
+    bairro = models.CharField(max_length=100, blank=True)
     observacoes = models.TextField("observações", blank=True)
     criado_em = models.DateTimeField("cadastrado em", auto_now_add=True)
 
@@ -31,6 +37,15 @@ class Cliente(models.Model):
     @property
     def telefone_formatado(self):
         return formatar_telefone(self.telefone)
+
+    @property
+    def endereco_completo(self):
+        """"Rua 7, 120, casa 2, Centro, CEP 77400-000" com o que estiver preenchido."""
+        partes = [self.logradouro, self.numero, self.complemento, self.bairro]
+        texto = ", ".join(p for p in partes if p)
+        if self.cep:
+            texto = f"{texto}, CEP {self.cep}" if texto else f"CEP {self.cep}"
+        return texto
 
 
 class UnidadeConsumidora(models.Model):

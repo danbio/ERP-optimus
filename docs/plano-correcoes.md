@@ -103,11 +103,11 @@ Achados `Hxx` e premissas `P1`/`P2` do teste feito pelo usuário no navegador. R
 - [x] **A29** Modo cliente volta para a página em que estava e não envia ao navegador o que esconde (antes de mostrar a tela a cliente no celular).
 - [ ] **(com você)** Antes de usar fatura de cliente real: ativar o nível pago da chave Gemini ou rever o provedor (D37, LGPD). Configuração, não código.
 
-## Rodada 8 · Cliente com endereço e leitura da fatura
+## Rodada 8 · Cliente com endereço e leitura da fatura (PR #23, D42)
 
-- [ ] **H12a** Endereço no `Cliente` (CEP, rua, número, complemento, bairro), todos opcionais, reaproveitando o `municipio` que o cliente já tem. CEP consultado no ViaCEP pelo navegador (JS puro), casando o código IBGE com `Municipio`; sem internet, preenche à mão (registrar a exceção à regra de não consultar API na hora).
-- [ ] **H12b** Preenchimento por CNPJ (BrasilAPI, gratuito). Por CPF não há fonte gratuita e legal: descartar e registrar o motivo **(pergunta: confirmar o descarte)**.
-- [ ] **H15** UC e fatura já são gravadas no passo 2. Falta: endereço da fatura no cliente e conferência do titular **(perguntas: confirmação, como achar o cliente, conflito, qual endereço; revisa D37)**. Corrigir: o CPF do titular não pode ir para o cliente quando o titular é outra pessoa.
+- [x] **H12a** Endereço no `Cliente` (CEP, rua, número, complemento, bairro), todos opcionais, reaproveitando o `municipio` que o cliente já tem. CEP consultado no ViaCEP pelo navegador (JS puro), casando o código IBGE com `Municipio`; sem internet, preenche à mão (registrar a exceção à regra de não consultar API na hora).
+- [x] **H12b** Preenchimento por CNPJ (BrasilAPI, gratuito). Por CPF não há fonte gratuita e legal: descartar e registrar o motivo **(pergunta: confirmar o descarte)**.
+- [x] **H15** UC e fatura já são gravadas no passo 2. Falta: endereço da fatura no cliente e conferência do titular **(perguntas: confirmação, como achar o cliente, conflito, qual endereço; revisa D37)**. Corrigir: o CPF do titular não pode ir para o cliente quando o titular é outra pessoa.
 
 ## Rodada 9 · Financiamento da proposta solar
 
