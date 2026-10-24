@@ -14,6 +14,7 @@ from .permissoes import eh_gestor, so_gestor
 
 
 def inicio(request):
+    """Página inicial: atalhos e painel (D46)."""
     gestor = eh_gestor(request.user)
     painel = montar_painel(request.user, gestor, timezone.localdate(), ConfigEmpresa.obter())
     return render(request, "core/inicio.html", {"painel": painel, "gestor": gestor})
@@ -37,6 +38,7 @@ def _render_config(request, template, contexto):
 
 @so_gestor
 def config_empresa(request):
+    """Configurações → Empresa e textos (só o gestor)."""
     config = ConfigEmpresa.obter()
     form = EmpresaForm(request.POST or None, request.FILES or None, instance=config)
     if request.method == "POST" and form.is_valid():
@@ -48,6 +50,7 @@ def config_empresa(request):
 
 @so_gestor
 def config_premissas(request):
+    """Configurações → Premissas, perfis e mão de obra (só o gestor, D19)."""
     config = ConfigEmpresa.obter()
     if request.method == "POST":
         form = PremissasForm(request.POST)
@@ -69,6 +72,7 @@ def config_premissas(request):
 
 @so_gestor
 def config_tarifas(request):
+    """Configurações → Tarifas e bandeiras: tributos e Fio B por tarifa vigente (só o gestor, D21)."""
     tarifas = TarifaVigente.vigentes()
     ultima_atualizacao = max((t.atualizado_em for t in tarifas), default=None)
     if request.method == "POST":
@@ -91,6 +95,7 @@ def config_tarifas(request):
 
 @so_gestor
 def config_financiamento(request):
+    """Configurações → Financiamento: taxas por banco e prazo, TAC e IOF (só o gestor, D22, D43)."""
     config = ConfigEmpresa.obter()
     form = TaxasForm(request.POST or None, taxas=TaxaFinanciamento.objects.all(), config=config)
     if request.method == "POST" and form.is_valid():
@@ -102,6 +107,7 @@ def config_financiamento(request):
 
 @so_gestor
 def config_municipios(request):
+    """Configurações → Municípios: iluminação pública e irradiação dos estados atendidos (D27, D32, D47)."""
     municipios = Municipio.atendidos().select_related("distribuidora")
     return _render_config(request, "core/config_municipios.html", {
         "municipios": municipios,
@@ -118,6 +124,7 @@ IRRADIACAO_POR_VEZ = 20
 @require_POST
 @so_gestor
 def config_tarifas_atualizar(request):
+    """Baixa tarifas e bandeiras da ANEEL; sem internet, avisa e mantém o que havia."""
     try:
         messages.success(request, dados_oficiais.atualizar_tarifas())
         messages.success(request, dados_oficiais.atualizar_bandeiras())
@@ -129,6 +136,7 @@ def config_tarifas_atualizar(request):
 @require_POST
 @so_gestor
 def config_municipios_atualizar(request):
+    """Busca na NASA POWER a irradiação de um lote de municípios pendentes."""
     pendentes = dados_oficiais.municipios_para_atualizar(ConfigEmpresa.obter().ufs())
     lote = list(pendentes[:IRRADIACAO_POR_VEZ])
     atualizados, erros = dados_oficiais.atualizar_irradiacao(lote)

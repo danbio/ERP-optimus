@@ -75,6 +75,7 @@ class ParcelamentoForm(forms.Form):
             self.linhas.append((f"parcelas_{i}", f"acrescimo_{i}"))
 
     def linhas_renderizadas(self):
+        """(campo das parcelas, campo do acréscimo) de cada linha, para o template."""
         return [(self[p], self[a]) for p, a in self.linhas]
 
     def clean(self):
@@ -92,6 +93,7 @@ class ParcelamentoForm(forms.Form):
         return dados
 
     def opcoes(self):
+        """Prazos preenchidos, em ordem: [{"parcelas", "acrescimo" em fração ou None}]."""
         dados = self.cleaned_data
         lista = [{"parcelas": dados[p], "acrescimo": dados.get(a)} for p, a in self.linhas if dados.get(p)]
         return sorted(lista, key=lambda o: o["parcelas"])

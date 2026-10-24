@@ -7,7 +7,7 @@
   .sidebar {
     width: var(--largura-sidebar);
     background: var(--navy);
-    color: #fff;
+    color: var(--branco);
     padding: var(--esp-5) var(--esp-4);
     flex-shrink: 0;
 
@@ -27,7 +27,7 @@
 
     & a:hover, & a.ativo {
       background: var(--ink);
-      color: #fff;
+      color: var(--branco);
       text-decoration: none;
     }
   }

@@ -10,10 +10,12 @@ AVISO_ESTIMATIVA_PADRAO = (
 
 # Valores iniciais aprovados no protótipo (21/10/2026); o gestor ajusta em Configurações.
 def fatores_orientacao_padrao():
+    """Fatores de orientação iniciais (fração da geração do norte), aprovados no protótipo; o gestor ajusta."""
     return {"norte": 1.0, "nordeste_noroeste": 0.97, "leste_oeste": 0.90, "sul": 0.80}
 
 
 def perfis_simultaneidade_padrao():
+    """Perfis de uso iniciais com a simultaneidade (fração consumida na hora); o gestor ajusta."""
     return [
         {"nome": "Mais à noite (residencial)", "simultaneidade": 0.35},
         {"nome": "Dia e noite (rural)", "simultaneidade": 0.50},
@@ -109,9 +111,11 @@ class ConfigEmpresa(models.Model):
 
     @classmethod
     def obter(cls):
+        """O registro único de configuração (ou None antes da carga inicial)."""
         return cls.objects.first()
 
     def ufs(self):
+        """Lista das siglas dos estados atendidos, em maiúsculas (D47)."""
         return [uf.strip().upper() for uf in self.ufs_atendidas.split(",") if uf.strip()]
 
 
@@ -173,6 +177,7 @@ class Municipio(models.Model):
 
     @property
     def media_irradiacao(self):
+        """Média anual da irradiação, em kWh/m²·dia, ou None sem dado."""
         return sum(self.irradiacao) / 12 if self.irradiacao else None
 
 

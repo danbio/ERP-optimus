@@ -23,6 +23,7 @@ class ErroLeitura(Exception):
 
 
 def configurada():
+    """True se há chave da API de IA no .env (D37)."""
     return bool(settings.GEMINI_API_KEY)
 
 

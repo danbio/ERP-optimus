@@ -9,6 +9,7 @@ NOMES_ANTIGOS = {
 
 
 def chave_nome(nome):
+    """Nome sem acento, em minúsculas e com espaços simples, para comparar nomes de município."""
     sem_acento = unicodedata.normalize("NFKD", nome or "").encode("ascii", "ignore").decode()
     chave = " ".join(sem_acento.lower().split())
     return NOMES_ANTIGOS.get(chave, chave)

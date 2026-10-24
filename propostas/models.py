@@ -209,6 +209,7 @@ class Proposta(models.Model):
 
     @property
     def validade_ate(self):
+        """Data final da validade, ou None antes da emissão."""
         return self.emissao + timezone.timedelta(days=self.validade_dias) if self.emissao else None
 
     @property
@@ -218,14 +219,17 @@ class Proposta(models.Model):
 
     @property
     def situacao(self):
+        """A situação gravada, ou "vencida" quando a emitida passou da validade (D31)."""
         return "vencida" if self.vencida else self.status
 
     @property
     def situacao_display(self):
+        """Rótulo da situação para a tela."""
         return "Vencida" if self.vencida else self.get_status_display()
 
     @classmethod
     def proximo_numero(cls, ano=None):
+        """Próximo número do ano no formato OPT-2026-0001 (dado só na primeira emissão, A13)."""
         ano = ano or timezone.localdate().year
         prefixo = f"OPT-{ano}-"
         ultimo = (
@@ -290,7 +294,7 @@ class TarifaVigente(models.Model):
     )
     fiob_kwh = models.DecimalField(
         "TUSD Fio B (R$/kWh)", max_digits=10, decimal_places=6, null=True, blank=True,
-        help_text="A ANEEL não publica separado: o gestor digita após cada reajuste.",
+        help_text="Da resolução da ANEEL de cada reajuste (D32): o gestor digita e confere.",
     )
     fiob_conferido_em = models.DateField("Fio B conferido em", null=True, blank=True)
     fonte = models.CharField(max_length=255, blank=True)
@@ -316,6 +320,7 @@ class TarifaVigente(models.Model):
 
     @property
     def fiob_desatualizado(self):
+        """True se o Fio B falta ou foi conferido antes da vigência desta tarifa (D21)."""
         return self.fiob_kwh is None or self.fiob_conferido_em is None or self.fiob_conferido_em < self.vigencia_inicio
 
     @classmethod
@@ -488,6 +493,7 @@ class Equipamento(models.Model):
 
     @property
     def rs_por_wp(self):
+        """Preço de referência por watt (R$/Wp), ou None sem preço ou potência."""
         if self.preco_referencia and self.potencia_w:
             return self.preco_referencia / self.potencia_w
         return None
@@ -538,10 +544,12 @@ class Cotacao(models.Model):
 
     @property
     def rs_por_wp(self):
+        """Total da cotação com frete por watt (R$/Wp)."""
         return self.total / (self.kwp * 1000)
 
     @property
     def idade_dias(self):
+        """Dias desde a data da cotação."""
         return (date.today() - self.data).days
 
     @classmethod

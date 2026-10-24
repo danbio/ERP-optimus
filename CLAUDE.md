@@ -2,7 +2,7 @@
 
 ERP interno da **Optimus Energia Solar** (Gurupi-TO). Uso interno, 2–5 usuários, rede local.
 Fase atual: **Proposta Solar v2**, redesenho da entrada de dados (ver `docs/spec-proposta-v2.md`, D17–D25). A `docs/spec-fase1.md` continua valendo para o motor de cálculo e o PDF.
-**Agora:** correções da revisão de 22/10/2026 e do teste humano de 24/10/2026 (`docs/relatorio-teste-humano-2026-10-24.md`), em rodadas, seguindo `docs/plano-correcoes.md` (D33–D47).
+**Agora:** as 14 rodadas de correção de `docs/plano-correcoes.md` (revisão de 22/10/2026 e teste humano de 24/10/2026, D33–D47) estão no main. Próximo: novo teste do usuário; o que sair dele vira rodada nova no plano.
 Módulo paralelo: **Orçamentos da revenda Intelbras** (ver `docs/spec-orcamentos.md`, D12–D15).
 
 ## Princípio número 1
@@ -58,6 +58,7 @@ meu_erp/
 │   └── templates/orcamentos/pdf/
 ├── core/pdf.py          # html_para_pdf() — Playwright, usado por todos os PDFs
 ├── core/validacoes.py   # CPF/CNPJ, telefone, valores BR — FUNÇÕES PURAS
+├── core/painel.py       # números da página inicial (D46)
 ├── core/dados/          # municipios_to.csv (carga IBGE, D26)
 ├── static/css/          # ver regras de CSS
 ├── static/fonts/        # Poppins local
@@ -110,7 +111,9 @@ O usuário típico é um **vendedor iniciante**, e o cliente muitas vezes **não
 - **Dimensionamento:** sistema sugere kWp, módulo de menor R$/Wp, quantidade (editável) e inversor da fase da ligação com sobrecarga ≤ 1,5.
 - **Preço:** kit (faturamento direto do distribuidor, com frete, sem margem) + mão de obra − desconto. Mão de obra sugerida `max(kWp × R$ 500, R$ 4.500)`, solo R$ 700/kWp. Desconto só na mão de obra. Sem imposto na proposta.
 - **Kit:** montado pelo catálogo Belenus com preço por item + 7% de frete (D34, regras em `docs/dimensionamento-estruturas.md`); o vendedor troca itens e quantidades. Cotação vinculada substitui o catálogo (D35). Nenhum distribuidor tem API.
-- **Financiamento:** taxas por banco e prazo (12 a 72×) mantidas pelo gestor; mostrar a parcela do melhor banco em cada prazo, como aproximada.
+- **Financiamento:** taxas nominais ao mês por banco e prazo (12 a 72×), TAC por banco e IOF mantidos pelo gestor; mostrar a parcela do melhor banco em cada prazo, já com TAC e IOF, como aproximada (D43).
+- **Acompanhamento:** proposta e orçamento têm vendedor responsável e próximo contato; o painel da página inicial mostra "ligar hoje" e os números do mês, e o vendedor vê só os dele (D46).
+- **Distribuidoras:** município → distribuidora; a tarifa da proposta tem de ser da distribuidora do município; estados atendidos em Configurações (D47). Nada de nome de distribuidora fixo no código.
 - **Quem altera o quê:** premissas técnicas, perfis de simultaneidade, mão de obra, tarifas, Fio B e taxas são do gestor (Configurações). O vendedor escolhe perfil, folga, orientação, estrutura, quantidades, custo do kit, mão de obra e desconto.
 - **Modo cliente:** esconde custo do kit, mão de obra, desconto, R$/Wp e alertas internos, sem enviar ao navegador (`{% if not modo_cliente %}`, A29).
 - **Dados oficiais** (IBGE, PVGIS, ANEEL) são baixados para o banco com fonte e data; a proposta nunca consulta API na hora. Exceção: no cadastro do cliente, o navegador busca CEP (ViaCEP) e CNPJ (BrasilAPI) (D42).

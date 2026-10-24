@@ -46,6 +46,7 @@ class ParametrosOrcamento(models.Model):
 
     @classmethod
     def obter(cls):
+        """O registro único de parâmetros, criado na primeira vez."""
         return cls.objects.get_or_create(pk=1)[0]
 
 
@@ -114,6 +115,7 @@ class Produto(models.Model):
 
     @property
     def nome(self):
+        """Nome curto do produto (o resumo da tabela, ou a descrição)."""
         return self.resumo or self.descricao
 
 
@@ -191,16 +193,19 @@ class Orcamento(models.Model):
 
     @property
     def editavel(self):
+        """Só o rascunho pode ser alterado."""
         return self.status == self.Status.RASCUNHO
 
     @property
     def validade_ate(self):
+        """Data final da validade, ou None antes da emissão."""
         if not self.emissao:
             return None
         return self.emissao + timezone.timedelta(days=self.validade_dias)
 
     @classmethod
     def proximo_numero(cls, ano=None):
+        """Próximo número do ano no formato ORC-2026-0001."""
         ano = ano or timezone.localdate().year
         prefixo = f"ORC-{ano}-"
         ultimo = (
@@ -247,4 +252,5 @@ class ItemOrcamento(models.Model):
 
     @property
     def total(self):
+        """Quantidade × preço unitário, em R$ com centavos."""
         return (self.quantidade * self.preco_unitario).quantize(Decimal("0.01"))

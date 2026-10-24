@@ -31,6 +31,7 @@ def _variacao_pct(antes: Decimal, depois: Decimal):
 
 @transaction.atomic
 def aplicar_importacao(leitura: LeituraTabela, tabela: TabelaPreco) -> dict:
+    """Grava a leitura da tabela Intelbras: cria, atualiza e desativa produtos. Devolve o resumo para a tela (D13, H17)."""
     existentes = {p.codigo: p for p in Produto.objects.all()}
     novos, alterados, variacoes = [], [], []
 

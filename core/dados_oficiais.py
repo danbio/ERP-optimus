@@ -35,6 +35,7 @@ NOMES_BANDEIRA = {"Amarela": "Amarela", "Vermelha P1": "Vermelha patamar 1", "Ve
 
 
 def baixar_json(url, timeout=90):
+    """Baixa uma URL e devolve o JSON lido; aceita resposta em gzip. `timeout` em segundos."""
     requisicao = urllib.request.Request(url, headers={"User-Agent": "meu_erp (Optimus Energia Solar)"})
     with urllib.request.urlopen(requisicao, timeout=timeout) as resposta:
         conteudo = resposta.read()
@@ -151,6 +152,7 @@ def ler_bandeiras_aneel(registros):
 
 
 def atualizar_bandeiras():
+    """Baixa da ANEEL o adicional de cada bandeira (R$/kWh) e grava; a verde fica zero (D21, D27)."""
     from propostas.models import Bandeira
 
     consulta = {"resource_id": ANEEL_BANDEIRAS, "limit": 100}
@@ -187,6 +189,7 @@ CODIGOS_UF = {
 
 
 def importar_municipios(uf):
+    """Baixa os municípios de uma UF com coordenadas e grava; ligam-se à distribuidora se o estado tiver uma só (D26, D47)."""
     from .models import Distribuidora, Municipio
 
     uf = uf.upper()

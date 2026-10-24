@@ -34,6 +34,7 @@ def ler_cores(caminho_tokens: Path) -> dict[str, str]:
 
 
 def contar_paginas(pdf: bytes) -> int:
+    """Número de páginas do PDF; arquivo inválido: ErroAnexo."""
     try:
         return len(PdfReader(io.BytesIO(pdf)).pages)
     except Exception as erro:

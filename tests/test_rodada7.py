@@ -4,7 +4,6 @@ from decimal import Decimal
 
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import Client as Navegador
 from django.urls import reverse
 
 from core.forms import BandeiraForm, EmpresaForm, PerfisFormSet, TAMANHO_TEXTO

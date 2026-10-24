@@ -82,13 +82,16 @@ class Montagem:
 
     @property
     def fileiras_texto(self):
+        """Módulos por fileira no formato "6+5"."""
         return "+".join(str(n) for n in self.fileiras)
 
     def alerta(self, tipo, texto, interno=True):
+        """Acrescenta um alerta (`tipo` aviso ou erro); `interno` some no modo cliente."""
         self.alertas.append({"tipo": tipo, "texto": texto, "interno": interno})
 
     @property
     def payback_texto(self):
+        """Retorno do investimento por extenso ("4 anos e 3 meses"), ou vazio se não se paga."""
         if not self.resultado or self.resultado.payback_meses <= 0:
             return ""
         anos, meses = divmod(round(self.resultado.payback_meses), 12)
@@ -113,16 +116,19 @@ class LinhaKit:
 
     @property
     def preco(self):
+        """Preço de referência unitário do equipamento (R$), ou None sem preço."""
         if self.equipamento and self.equipamento.preco_referencia is not None:
             return float(self.equipamento.preco_referencia)
         return None
 
     @property
     def subtotal(self):
+        """Quantidade × preço (R$), ou None sem preço."""
         return self.quantidade * self.preco if self.preco is not None else None
 
     @property
     def rotulo(self):
+        """Nome do papel do item no kit, para a tela."""
         return Equipamento.Funcao(self.funcao).label if self.funcao in Equipamento.Funcao.values else ""
 
 

@@ -136,11 +136,11 @@ Achados `Hxx` e premissas `P1`/`P2` do teste feito pelo usuário no navegador. R
 
 ## Rodada 14 · Higienização e documentação
 
-- [ ] Varredura de código morto, nomes e imports.
-- [ ] Cores literais (`#fff`) fora de `tokens.css` trocadas por token; texto de ajuda do Fio B atualizado (a ANEEL publica, D32).
-- [ ] Docstring em português em toda função pública: o que faz, entradas com unidade (kWh, R$, fração), saída e a decisão `Dxx` de origem. Comentário só onde a regra não é óbvia.
-- [ ] README atualizado: instalar, rodar, atualizar dados oficiais, fazer backup.
-- [ ] CLAUDE.md e specs conferidos contra o código final.
+- [x] Varredura de código morto, nomes e imports (ruff F: 3 imports sem uso removidos; nenhuma função sem uso fora das migrações).
+- [x] Cores literais (`#fff`) fora de `tokens.css` trocadas por token; texto de ajuda do Fio B atualizado (a ANEEL publica, D32).
+- [x] Docstring em português em toda função pública (exceto os ganchos do Django: `clean_*`, `save`, `handle`...): o que faz, entradas com unidade (kWh, R$, fração), saída e a decisão `Dxx` de origem. Comentário só onde a regra não é óbvia.
+- [x] README atualizado: instalar, rodar, atualizar dados oficiais, fazer backup.
+- [x] CLAUDE.md e specs conferidos contra o código final (o que mudou desde as specs está em D33–D47).
 
 ---
 
