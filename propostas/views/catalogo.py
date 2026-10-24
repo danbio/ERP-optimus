@@ -49,6 +49,15 @@ def solar_equipamentos(request):
     })
 
 
+def solar_equipamento_ver(request, pk):
+    """Página do produto, aberta a todos (H08, D45): foto, datasheet e a ficha com os campos do tipo."""
+    equipamento = get_object_or_404(Equipamento, pk=pk)
+    return render(request, "propostas/catalogo/equipamento_ver.html", {
+        "abas": ABAS_CATALOGO, "equipamento": equipamento,
+        "datasheet_pdf": equipamento.datasheet.name.lower().endswith(".pdf") if equipamento.datasheet else False,
+    })
+
+
 @so_gestor
 def solar_equipamento(request, pk=None):
     equipamento = get_object_or_404(Equipamento, pk=pk) if pk else None
@@ -56,7 +65,7 @@ def solar_equipamento(request, pk=None):
     if request.method == "POST" and form.is_valid():
         equipamento = form.save()
         messages.success(request, f"{equipamento.descricao} salvo.")
-        return redirect(f"{reverse('propostas:solar_equipamentos')}?tipo={equipamento.tipo}")
+        return redirect("propostas:solar_equipamento_ver", pk=equipamento.pk)
     return render(request, "propostas/catalogo/equipamento.html", {
         "abas": ABAS_CATALOGO, "form": form, "equipamento": equipamento,
     })

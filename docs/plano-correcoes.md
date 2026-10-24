@@ -121,8 +121,8 @@ Achados `Hxx` e premissas `P1`/`P2` do teste feito pelo usuário no navegador. R
 
 ## Rodada 11 · Detalhe do produto solar
 
-- [ ] **H08** Protótipo HTML para aprovação: foto e datasheet em destaque, ficha só com os campos do tipo.
-- [ ] **H08** Página de ver o produto, aberta também ao vendedor (hoje a única página é a edição, só do gestor) + edição do gestor com os campos do tipo; espaço reservado sem foto ou datasheet.
+- [x] **H08** ~~Protótipo HTML para aprovação~~ dispensado (D45): foto e datasheet em destaque, ficha só com os campos do tipo.
+- [x] **H08** (D45) Página de ver o produto, aberta também ao vendedor (hoje a única página é a edição, só do gestor) + edição do gestor com os campos do tipo; espaço reservado sem foto ou datasheet.
 
 ## Rodada 12 · Painel e ferramentas do gestor e do vendedor
 

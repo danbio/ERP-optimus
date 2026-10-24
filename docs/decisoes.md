@@ -308,6 +308,14 @@ Recomendações do parecer aceitas pelo usuário em 24/10 ("usar as recomendaç�
 - **Parcelamento (H10):** o gestor cadastra em Configurações → Parcelamento os prazos (padrão 3×, 6×, 12× e 21×, editáveis) e o acréscimo total de cada prazo sobre o valor (0% = sem juros). Prazo sem acréscimo informado não aparece no PDF; o sistema não inventa taxa. O PDF mostra "N× de R$ X" e, com acréscimo, o total parcelado. O vendedor pode esconder o parcelamento num orçamento ("Mostrar o parcelamento no PDF"). Não distingue cartão de boleto: a forma de pagamento continua no texto livre.
 - **Código:** `orcamentos/services/calculo.parcelamento` (função pura); prazos e acréscimos em `ParametrosOrcamento.parcelamento`; uma migração para as três mudanças.
 
+## D45 · 2026-10-24 · Página do produto solar e campos por tipo (H08)
+O usuário pediu para executar todas as rodadas sem parar; o protótipo de aprovação foi dispensado e a página segue a proposta do relatório.
+- **Ver o produto:** `/propostas/catalogo/<id>/` abre para todos (vendedor também): foto grande, datasheet em destaque (botão e o PDF aberto na página) e a ficha só com os campos do tipo. Sem foto ou sem datasheet, um espaço reservado diz o que falta. A lista do catálogo leva a essa página.
+- **Editar:** `/propostas/catalogo/<id>/editar/`, só o gestor. Mostra só os campos do tipo escolhido; trocar o tipo na tela troca os campos na hora (JS puro, `static/js/equipamento.js`).
+- **Campos por tipo** (`Equipamento.CAMPOS_POR_TIPO`): módulo = potência, medidas, espessura da moldura, área; inversor = potência, fase, tensão, MPPT; microinversor = potência, fase, módulos por micro; estrutura = tipo de telhado, papel no kit, peças por embalagem, espessura (grampo final); cabo, conector e outro = papel no kit, peças por embalagem. Todos: fabricante, modelo, código, distribuidor, descrição, preço, data do preço, foto, datasheet, ativo.
+- Campo de outro tipo que já tem valor (vindo da importação) não é apagado: só fica fora da tela.
+- Para o PDF abrir dentro da página, os arquivos de `/media/` podem ser exibidos em quadro pelo próprio ERP (`X-Frame-Options: SAMEORIGIN` só nessa rota); as páginas continuam proibindo quadro.
+
 ## Pendências de validação
 - [x] Regra de custo de disponibilidade para GD após a Lei 14.300 (item 3 de D08): fora do motor (D33).
 - [x] Valor da TUSD Fio B vigente na Energisa TO por subgrupo (B1/B2/B3): 0,441478 R$/kWh (D32).

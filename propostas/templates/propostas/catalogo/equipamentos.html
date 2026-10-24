@@ -12,7 +12,7 @@
         {% for d in distribuidores %}<option{% if d == distribuidor %} selected{% endif %}>{{ d }}</option>{% endfor %}
       </select>
       <input type="search" name="busca" class="busca busca--linha" placeholder="Descrição, código ou marca" value="{{ busca }}">
-      <a href="{% url 'propostas:solar_equipamento_novo' %}" class="btn">+ equipamento</a>
+      {% if eh_gestor %}<a href="{% url 'propostas:solar_equipamento_novo' %}" class="btn">+ equipamento</a>{% endif %}
     </form>
     <div id="resultado">
     <p class="ajuda">{{ equipamentos|length }} itens. Preço de referência é o do site do distribuidor, sem frete: o custo do kit vem da cotação.</p>
@@ -26,7 +26,7 @@
           {% for e in equipamentos %}
             <tr{% if not e.ativo %} class="linha--inativa"{% endif %}>
               <td>{% if e.foto %}<img src="{{ e.foto.url }}" alt="" class="miniatura" loading="lazy">{% endif %}</td>
-              <td><a href="{% url 'propostas:solar_equipamento' e.pk %}">{{ e.descricao }}</a><br><span class="ajuda">{{ e.codigo }}{% if e.fabricante %} · {{ e.fabricante }}{% endif %}{% if not e.ativo %} · inativo{% endif %}</span></td>
+              <td><a href="{% url 'propostas:solar_equipamento_ver' e.pk %}">{{ e.descricao }}</a><br><span class="ajuda">{{ e.codigo }}{% if e.fabricante %} · {{ e.fabricante }}{% endif %}{% if not e.ativo %} · inativo{% endif %}</span></td>
               <td>{{ e.distribuidor }}</td>
               <td class="num">{% if e.potencia_w %}{{ e.potencia_w }} W{% else %}—{% endif %}</td>
               <td>{% if e.fase %}{{ e.get_fase_display }}{% elif e.tipo_estrutura %}{{ e.get_tipo_estrutura_display }}{% else %}—{% endif %}</td>

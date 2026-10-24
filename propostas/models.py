@@ -439,6 +439,17 @@ class Equipamento(models.Model):
     datasheet = models.FileField(upload_to="catalogo/datasheets/", blank=True)
     ativo = models.BooleanField(default=True)
 
+    # Campos próprios de cada tipo, além dos comuns (H08, D45): a ficha e a edição mostram só estes.
+    CAMPOS_POR_TIPO = {
+        Tipo.MODULO: ["potencia_w", "comprimento_mm", "largura_mm", "espessura_mm", "area_m2"],
+        Tipo.INVERSOR: ["potencia_w", "fase", "tensao", "mppts"],
+        Tipo.MICROINVERSOR: ["potencia_w", "fase", "modulos_por_micro"],
+        Tipo.ESTRUTURA: ["tipo_estrutura", "funcao", "pecas_por_embalagem", "espessura_mm"],
+        Tipo.CABO: ["funcao", "pecas_por_embalagem"],
+        Tipo.CONECTOR: ["funcao", "pecas_por_embalagem"],
+        Tipo.OUTRO: ["funcao", "pecas_por_embalagem"],
+    }
+
     class Meta:
         verbose_name = "Equipamento"
         verbose_name_plural = "Equipamentos"
@@ -449,6 +460,24 @@ class Equipamento(models.Model):
 
     def __str__(self):
         return f"{self.descricao} ({self.distribuidor})"
+
+    @classmethod
+    def tipos_do_campo(cls, campo):
+        """Tipos que usam o campo, para a edição mostrar e esconder na hora."""
+        return [tipo for tipo, campos in cls.CAMPOS_POR_TIPO.items() if campo in campos]
+
+    def ficha(self):
+        """(rótulo, valor exibido) dos campos do tipo que estão preenchidos."""
+        linhas = []
+        for nome in self.CAMPOS_POR_TIPO.get(self.tipo, []):
+            campo = self._meta.get_field(nome)
+            valor = getattr(self, nome)
+            if valor in (None, ""):
+                continue
+            if campo.choices:
+                valor = getattr(self, f"get_{nome}_display")()
+            linhas.append((campo.verbose_name, valor))
+        return linhas
 
     @property
     def rs_por_wp(self):
@@ -481,6 +510,24 @@ class Cotacao(models.Model):
 
     def __str__(self):
         return f"{self.distribuidor} {self.numero} ({self.data:%d/%m/%Y})"
+
+    @classmethod
+    def tipos_do_campo(cls, campo):
+        """Tipos que usam o campo, para a edição mostrar e esconder na hora."""
+        return [tipo for tipo, campos in cls.CAMPOS_POR_TIPO.items() if campo in campos]
+
+    def ficha(self):
+        """(rótulo, valor exibido) dos campos do tipo que estão preenchidos."""
+        linhas = []
+        for nome in self.CAMPOS_POR_TIPO.get(self.tipo, []):
+            campo = self._meta.get_field(nome)
+            valor = getattr(self, nome)
+            if valor in (None, ""):
+                continue
+            if campo.choices:
+                valor = getattr(self, f"get_{nome}_display")()
+            linhas.append((campo.verbose_name, valor))
+        return linhas
 
     @property
     def rs_por_wp(self):

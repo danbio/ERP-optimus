@@ -1,0 +1,44 @@
+{% extends "propostas/catalogo/_base.html" %}
+
+{% block catalogo %}
+  <div class="produto">
+    <div class="card produto__midia">
+      {% if equipamento.foto %}
+        <img src="{{ equipamento.foto.url }}" alt="{{ equipamento.descricao }}" class="produto__foto">
+      {% else %}
+        <div class="produto__vazio">Sem foto cadastrada{% if eh_gestor %}: inclua em Editar{% endif %}.</div>
+      {% endif %}
+    </div>
+
+    <div class="card produto__ficha">
+      <p class="ajuda">{{ equipamento.get_tipo_display }} · {{ equipamento.distribuidor }}{% if not equipamento.ativo %} · inativo{% endif %}</p>
+      <h3>{{ equipamento.descricao }}</h3>
+      <dl class="dados">
+        {% if equipamento.fabricante %}<dt>Fabricante</dt><dd>{{ equipamento.fabricante }}</dd>{% endif %}
+        {% if equipamento.modelo %}<dt>Modelo</dt><dd>{{ equipamento.modelo }}</dd>{% endif %}
+        <dt>Código no distribuidor</dt><dd>{{ equipamento.codigo }}</dd>
+        {% for rotulo, valor in equipamento.ficha %}<dt>{{ rotulo|capfirst }}</dt><dd>{{ valor }}</dd>{% endfor %}
+        {% if equipamento.preco_referencia %}
+          <dt>Preço de referência</dt>
+          <dd>R$ {{ equipamento.preco_referencia|floatformat:"2g" }}{% if equipamento.preco_em %} em {{ equipamento.preco_em|date:"d/m/Y" }}{% endif %}{% if equipamento.tipo == "modulo" and equipamento.rs_por_wp %} · R$ {{ equipamento.rs_por_wp|floatformat:3 }}/Wp{% endif %}</dd>
+        {% endif %}
+      </dl>
+      <div class="barra-acoes barra-acoes--plana">
+        {% if equipamento.datasheet %}<a href="{{ equipamento.datasheet.url }}" target="_blank" rel="noopener" class="btn">Abrir o datasheet</a>{% endif %}
+        {% if eh_gestor %}<a href="{% url 'propostas:solar_equipamento' equipamento.pk %}" class="btn btn--secundario">Editar</a>{% endif %}
+        <a href="{% url 'propostas:solar_equipamentos' %}?tipo={{ equipamento.tipo }}" class="btn btn--secundario">Voltar ao catálogo</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Datasheet</h3>
+    {% if datasheet_pdf %}
+      <iframe src="{{ equipamento.datasheet.url }}" title="Datasheet de {{ equipamento.descricao }}" class="produto__datasheet"></iframe>
+    {% elif equipamento.datasheet %}
+      <p class="ajuda">O datasheet não é PDF: use o botão "Abrir o datasheet".</p>
+    {% else %}
+      <div class="produto__vazio">Sem datasheet cadastrado{% if eh_gestor %}: inclua em Editar{% endif %}.</div>
+    {% endif %}
+  </div>
+{% endblock %}

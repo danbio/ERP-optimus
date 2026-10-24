@@ -27,7 +27,8 @@ urlpatterns = [
     # Catálogo solar e cotações (views/catalogo.py)
     path("catalogo/", catalogo.solar_equipamentos, name="solar_equipamentos"),
     path("catalogo/novo/", catalogo.solar_equipamento, name="solar_equipamento_novo"),
-    path("catalogo/<int:pk>/", catalogo.solar_equipamento, name="solar_equipamento"),
+    path("catalogo/<int:pk>/", catalogo.solar_equipamento_ver, name="solar_equipamento_ver"),
+    path("catalogo/<int:pk>/editar/", catalogo.solar_equipamento, name="solar_equipamento"),
     path("cotacoes/", catalogo.solar_cotacoes, name="solar_cotacoes"),
     path("cotacoes/nova/", catalogo.solar_cotacao, name="solar_cotacao_nova"),
     path("cotacoes/ler/", catalogo.ler_cotacao, name="ler_cotacao"),

@@ -24,9 +24,11 @@ from django.contrib.auth.decorators import login_not_required
 from django.contrib.staticfiles import finders
 from django.http import Http404
 from django.urls import include, path, re_path
+from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.views.static import serve
 
 
+@xframe_options_sameorigin  # o datasheet abre dentro da página do produto (D45)
 def arquivo_de_midia(request, caminho):
     """Faturas e PDFs: só para quem entrou no sistema (o middleware de login cuida disso, D36)."""
     return serve(request, caminho, document_root=settings.MEDIA_ROOT)
