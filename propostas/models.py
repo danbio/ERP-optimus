@@ -345,6 +345,9 @@ class TaxaFinanciamento(models.Model):
     banco = models.CharField(max_length=60)
     prazo_meses = models.PositiveSmallIntegerField("prazo (meses)")
     taxa_mensal = models.DecimalField("taxa ao mês (fração)", max_digits=7, decimal_places=5)
+    # TAC do banco (D43): igual em todos os prazos do banco; valor fixo, percentual do valor, ou os dois.
+    tac_reais = models.DecimalField("TAC (R$)", max_digits=10, decimal_places=2, default=0)
+    tac_percentual = models.DecimalField("TAC (fração do valor)", max_digits=6, decimal_places=5, default=0)
     vigente_desde = models.DateField()
 
     class Meta:

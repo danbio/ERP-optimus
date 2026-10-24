@@ -111,8 +111,8 @@ Achados `Hxx` e premissas `P1`/`P2` do teste feito pelo usuário no navegador. R
 
 ## Rodada 9 · Financiamento da proposta solar
 
-- [ ] **H04a** Taxa com "% ao mês" em cada campo e o equivalente anual ao lado.
-- [ ] **H04b/c** TAC e IOF no valor financiado, no `calculo.py`, com teste; melhor banco escolhido depois de somar TAC e IOF; `registro` da emissão guarda os dois **(perguntas: a taxa cadastrada é nominal ou CET; TAC fixa ou %, por banco; IOF padrão PF/PJ; separado ou embutido no PDF)**.
+- [x] **H04a** Taxa com "% ao mês" em cada campo e o equivalente anual ao lado.
+- [x] **H04b/c** (D43) TAC e IOF no valor financiado, no `calculo.py`, com teste; melhor banco escolhido depois de somar TAC e IOF; `registro` da emissão guarda os dois **(perguntas: a taxa cadastrada é nominal ou CET; TAC fixa ou %, por banco; IOF padrão PF/PJ; separado ou embutido no PDF)**.
 
 ## Rodada 10 · Orçamento Intelbras
 

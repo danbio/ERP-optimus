@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.db import models
 
 AVISO_ESTIMATIVA_PADRAO = (
@@ -38,6 +40,12 @@ class ConfigEmpresa(models.Model):
         blank=True, help_text="Uma etapa por linha, no formato 'Título | descrição'."
     )
     validade_padrao_dias = models.PositiveIntegerField(default=15)
+    # IOF do financiamento (D43, Decreto 6.306/2007): frações. O gestor confere se a Receita mudar.
+    iof_adicional = models.DecimalField("IOF adicional (fração)", max_digits=7, decimal_places=6, default=Decimal("0.0038"))
+    iof_diario_pf = models.DecimalField("IOF diário pessoa física (fração)", max_digits=8, decimal_places=7,
+                                        default=Decimal("0.000082"))
+    iof_diario_pj = models.DecimalField("IOF diário pessoa jurídica (fração)", max_digits=8, decimal_places=7,
+                                        default=Decimal("0.000041"))
     premissas_padrao = models.JSONField(default=dict)
 
     # Proposta v2 (D18, D19, D20, D23)
