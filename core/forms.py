@@ -119,13 +119,14 @@ class EmpresaForm(forms.ModelForm):
         model = ConfigEmpresa
         fields = [
             "razao_social", "nome_fantasia", "cnpj", "endereco", "telefone", "email", "logo",
-            "projetos_entregues", "anos_atuacao", "validade_padrao_dias",
+            "projetos_entregues", "anos_atuacao", "validade_padrao_dias", "ufs_atendidas",
             "texto_sobre", "beneficios_padrao", "escopo_padrao", "etapas_padrao", "aviso_estimativa",
         ]
         labels = {
             "razao_social": "Razão social", "nome_fantasia": "Nome fantasia", "cnpj": "CNPJ",
             "endereco": "Endereço", "projetos_entregues": "Projetos entregues", "anos_atuacao": "Anos de atuação",
-            "validade_padrao_dias": "Validade da proposta (dias)", "texto_sobre": 'Texto "Sobre a Optimus"',
+            "validade_padrao_dias": "Validade da proposta (dias)", "ufs_atendidas": "Estados atendidos",
+            "texto_sobre": 'Texto "Sobre a Optimus"',
             "beneficios_padrao": "Benefícios (um por linha)", "escopo_padrao": "Escopo incluso (um por linha)",
             "etapas_padrao": "Etapas (Título | descrição, uma por linha)",
             "aviso_estimativa": "Aviso da proposta sem fatura (estimativa)",
@@ -139,6 +140,25 @@ class EmpresaForm(forms.ModelForm):
         higienizar(self, arquivos={"logo": ARQUIVO_IMAGEM})
         self.fields["cnpj"].widget.attrs.update({"data-mascara": "cpf_cnpj", "inputmode": "numeric"})
         self.fields["telefone"].widget.attrs.update({"data-mascara": "telefone", "inputmode": "tel"})
+        self.fields["ufs_atendidas"].required = False
+
+    def clean_ufs_atendidas(self):
+        """Siglas conhecidas e com distribuidora cadastrada (D47). Vazio mantém o que estava."""
+        from .dados_oficiais import CODIGOS_UF
+        from .models import Distribuidora
+
+        texto = self.cleaned_data["ufs_atendidas"].upper().replace(";", ",").replace(" ", ",")
+        ufs = list(dict.fromkeys(uf for uf in texto.split(",") if uf))
+        if not ufs:
+            return self.instance.ufs_atendidas or self.fields["ufs_atendidas"].initial
+        desconhecidas = [uf for uf in ufs if uf not in CODIGOS_UF]
+        if desconhecidas:
+            raise forms.ValidationError(f"Sigla de estado desconhecida: {', '.join(desconhecidas)}.")
+        sem_distribuidora = [uf for uf in ufs if not Distribuidora.objects.filter(uf=uf).exists()]
+        if sem_distribuidora:
+            raise forms.ValidationError(f"{', '.join(sem_distribuidora)} ainda não tem distribuidora cadastrada: "
+                                        "inclua no admin (/admin/), em Distribuidoras, antes.")
+        return ", ".join(ufs)
 
     def clean_cnpj(self):
         try:

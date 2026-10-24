@@ -3,27 +3,28 @@
 {% block config %}
   <div class="card">
     <div class="barra-acoes barra-acoes--plana">
-      <h3>Tarifas da Energisa TO (Grupo B)</h3>
+      <h3>Tarifas do Grupo B{% if distribuidoras|length == 1 %} · {{ distribuidoras.0 }}{% endif %}</h3>
       <span class="barra-acoes__espaco"></span>
       <form method="post" action="{% url 'core:config_tarifas_atualizar' %}">
         {% csrf_token %}
         <button type="submit" class="btn btn--secundario">Atualizar da ANEEL</button>
       </form>
     </div>
-    <p class="ajuda">TUSD e TE vêm da ANEEL{% if ultima_atualizacao %} (última consulta em {{ ultima_atualizacao|date:"d/m/Y" }}){% endif %}. Tributos e Fio B a ANEEL não publica: digite a partir de uma conta recente e confira a cada reajuste.</p>
+    <p class="ajuda">TUSD e TE vêm da ANEEL{% if ultima_atualizacao %} (última consulta em {{ ultima_atualizacao|date:"d/m/Y" }}){% endif %}. Tributos e Fio B são do gestor: digite os tributos a partir de uma conta recente e o Fio B da resolução da ANEEL (D32), e confira a cada reajuste.</p>
 
     <form method="post" novalidate>
       {% csrf_token %}
       <div class="itens-rolagem">
         <table class="tabela tabela--tarifas">
           <thead>
-            <tr><th>Tipo</th><th>Vigência</th><th class="num">TUSD + TE</th><th>Tributos (%)</th><th class="num">Tarifa na conta</th><th>Fio B (R$/kWh)</th><th>Conferido</th></tr>
+            <tr><th>Tipo</th>{% if distribuidoras|length > 1 %}<th>Distribuidora</th>{% endif %}<th>Vigência</th><th class="num">TUSD + TE</th><th>Tributos (%)</th><th class="num">Tarifa na conta</th><th>Fio B (R$/kWh)</th><th>Conferido</th></tr>
           </thead>
           <tbody>
             {% for f in forms_tarifa %}
               {% with t=f.instance %}
               <tr>
                 <td>{{ t.get_tipo_display }}</td>
+                {% if distribuidoras|length > 1 %}<td>{{ t.distribuidora }}</td>{% endif %}
                 <td>{{ t.vigencia_inicio|date:"d/m/Y" }}</td>
                 <td class="num">{{ t.tusd|floatformat:"5g" }} + {{ t.te|floatformat:"5g" }}</td>
                 <td>{{ f.aliquota_tributos }}{% for e in f.aliquota_tributos.errors %}<p class="campo__erro">{{ e }}</p>{% endfor %}</td>
@@ -35,7 +36,7 @@
               </tr>
               {% endwith %}
             {% empty %}
-              <tr><td colspan="7">Nenhuma tarifa. Clique em "Atualizar da ANEEL".</td></tr>
+              <tr><td colspan="8">Nenhuma tarifa. Clique em "Atualizar da ANEEL".</td></tr>
             {% endfor %}
           </tbody>
         </table>

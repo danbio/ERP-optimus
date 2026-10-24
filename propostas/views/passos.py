@@ -245,6 +245,10 @@ def _gravar_passo2(request, form, proposta):
         cliente=cliente, numero_uc=dados["numero_uc"])
     uc.endereco = dados["endereco"]
     uc.municipio = proposta.municipio or cliente.municipio
+    if uc.municipio and uc.municipio.distribuidora:
+        uc.concessionaria = uc.municipio.distribuidora.nome  # D47
+    elif not uc.concessionaria:
+        uc.concessionaria = proposta.tipo_tarifa.distribuidora
     uc.classe = proposta.tipo_tarifa.tipo[:2]
     uc.ligacao = proposta.ligacao
     uc.save()

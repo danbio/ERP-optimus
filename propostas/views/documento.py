@@ -127,7 +127,7 @@ def _contexto_documento(proposta, para_pdf, n_paginas_anexo):
         "potencia_modulo": m.modulo.potencia_w,
         "media_diaria": fatura.kwh / fatura.dias_ciclo if fatura else m.consumo / 30,
         "tarifa_kwh": m.tarifa_kwh,
-        "base_tarifa": f"tarifa {tarifa.get_tipo_display()} vigente da Energisa TO, ANEEL",
+        "base_tarifa": f"tarifa {tarifa.get_tipo_display()} vigente da {tarifa.distribuidora}, ANEEL",
         "fiob_kwh": float(tarifa.fiob_kwh),
         "ligacao": LIGACAO_POR_EXTENSO.get(proposta.ligacao, ""),
         "disponibilidade_kwh": m.disponibilidade,

@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import ConfigEmpresa, FaixaIluminacao, Municipio
+from .models import ConfigEmpresa, Distribuidora, FaixaIluminacao, Municipio
 
 
 @admin.register(ConfigEmpresa)
@@ -23,6 +23,11 @@ class FaixaIluminacaoInline(admin.TabularInline):
 @admin.register(Municipio)
 class MunicipioAdmin(admin.ModelAdmin):
     inlines = [FaixaIluminacaoInline]
-    list_display = ["nome", "uf", "codigo_ibge", "fonte_irradiacao", "atualizado_em"]
-    list_filter = ["uf"]
+    list_display = ["nome", "uf", "distribuidora", "codigo_ibge", "fonte_irradiacao", "atualizado_em"]
+    list_filter = ["uf", "distribuidora"]
     search_fields = ["nome", "codigo_ibge"]
+
+
+@admin.register(Distribuidora)
+class DistribuidoraAdmin(admin.ModelAdmin):
+    list_display = ["nome", "sigla_aneel", "uf"]

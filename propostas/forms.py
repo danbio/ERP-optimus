@@ -166,7 +166,7 @@ class Passo1Form(forms.Form):
         label="Telefone / WhatsApp", widget=forms.TextInput(attrs={"data-mascara": "telefone", "inputmode": "tel"}),
     )
     municipio = MunicipioSelect(
-        queryset=Municipio.objects.filter(uf="TO"), label="Município da instalação", empty_label="Escolha o município",
+        queryset=Municipio.objects.none(), label="Município da instalação", empty_label="Escolha o município",
     )
     cpf_cnpj = forms.CharField(
         label="CPF ou CNPJ (opcional agora)", required=False,
@@ -189,8 +189,13 @@ class Passo1Form(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["tipo_tarifa"].queryset = TarifaVigente.objects.filter(pk__in=[t.pk for t in TarifaVigente.vigentes()])
-        self.fields["tipo_tarifa"].label_from_instance = lambda t: t.get_tipo_display()
+        self.fields["municipio"].queryset = Municipio.atendidos()
+        vigentes = TarifaVigente.vigentes()
+        self.fields["tipo_tarifa"].queryset = TarifaVigente.objects.filter(pk__in=[t.pk for t in vigentes])
+        if len({t.distribuidora for t in vigentes}) > 1:  # D47: com mais de uma, o vendedor vê de quem é
+            self.fields["tipo_tarifa"].label_from_instance = lambda t: f"{t.get_tipo_display()} · {t.distribuidora}"
+        else:
+            self.fields["tipo_tarifa"].label_from_instance = lambda t: t.get_tipo_display()
         higienizar(self)
 
     def clean_nome(self):
@@ -201,6 +206,14 @@ class Passo1Form(forms.Form):
 
     def clean_cpf_cnpj(self):
         return _limpar(limpar_cpf_cnpj, self.cleaned_data["cpf_cnpj"])
+
+    def clean(self):
+        dados = super().clean()
+        municipio, tarifa = dados.get("municipio"), dados.get("tipo_tarifa")
+        if municipio and tarifa and municipio.distribuidora and tarifa.distribuidora != municipio.distribuidora.nome:
+            self.add_error("tipo_tarifa", f"Esta tarifa é da {tarifa.distribuidora}, mas {municipio.nome} é atendido "
+                                          f"pela {municipio.distribuidora}. Escolha uma tarifa da {municipio.distribuidora}.")
+        return dados
 
 
 class Passo2Form(forms.ModelForm):

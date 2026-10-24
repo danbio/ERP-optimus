@@ -85,6 +85,7 @@ def config_tarifas(request):
         bandeiras = BandeirasFormSet(queryset=Bandeira.objects.all(), prefix="bandeira")
     return _render_config(request, "core/config_tarifas.html", {
         "forms_tarifa": forms_tarifa, "bandeiras": bandeiras, "ultima_atualizacao": ultima_atualizacao,
+        "distribuidoras": sorted({t.distribuidora for t in tarifas}),
     })
 
 
@@ -101,11 +102,12 @@ def config_financiamento(request):
 
 @so_gestor
 def config_municipios(request):
-    municipios = Municipio.objects.filter(uf="TO")
+    municipios = Municipio.atendidos().select_related("distribuidora")
     return _render_config(request, "core/config_municipios.html", {
         "municipios": municipios,
+        "ufs": ConfigEmpresa.obter().ufs(),
         "com_iluminacao": Municipio.objects.filter(faixas_iluminacao__isnull=False).distinct(),
-        "pendentes": dados_oficiais.municipios_para_atualizar("TO").count(),
+        "pendentes": dados_oficiais.municipios_para_atualizar(ConfigEmpresa.obter().ufs()).count(),
     })
 
 
@@ -127,10 +129,10 @@ def config_tarifas_atualizar(request):
 @require_POST
 @so_gestor
 def config_municipios_atualizar(request):
-    pendentes = dados_oficiais.municipios_para_atualizar("TO")
+    pendentes = dados_oficiais.municipios_para_atualizar(ConfigEmpresa.obter().ufs())
     lote = list(pendentes[:IRRADIACAO_POR_VEZ])
     atualizados, erros = dados_oficiais.atualizar_irradiacao(lote)
-    faltam = dados_oficiais.municipios_para_atualizar("TO").count()
+    faltam = dados_oficiais.municipios_para_atualizar(ConfigEmpresa.obter().ufs()).count()
     texto = f"{atualizados} municípios atualizados pela NASA POWER."
     if faltam:
         texto += f" Faltam {faltam}: clique de novo."

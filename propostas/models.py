@@ -279,7 +279,7 @@ class TarifaVigente(models.Model):
         B2 = "B2", "B2 rural"
         B3 = "B3", "B3 comercial e demais"
 
-    distribuidora = models.CharField(max_length=60, default="Energisa TO")
+    distribuidora = models.CharField(max_length=60, help_text="Nome de uma distribuidora cadastrada (D47).")
     tipo = models.CharField(max_length=20, choices=Tipo.choices)
     vigencia_inicio = models.DateField("início da vigência")
     tusd = models.DecimalField("TUSD (R$/kWh, sem tributos)", max_digits=10, decimal_places=6)
