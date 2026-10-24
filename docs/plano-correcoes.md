@@ -82,24 +82,24 @@ Usa o Gemini (D37), com a chave `GEMINI_API_KEY` no `.env`.
 
 Achados `Hxx` e premissas `P1`/`P2` do teste feito pelo usuário no navegador. Relatório com causa, proposta e perguntas de cada um: `docs/relatorio-teste-humano-2026-10-24.md`; conferência no código e ajustes de ordem: `docs/parecer-teste-humano-2026-10-24.md`. Item com **(pergunta)** só começa depois da resposta do usuário, registrada em `docs/decisoes.md`.
 
-## Rodada 6 · Bloqueio e erros rápidos
+## Rodada 6 · Bloqueio e erros rápidos (PR #21)
 
-- [ ] **H13** CPF/CNPJ exigido só na emissão da proposta confirmada (D38, revisa D23): o passo 2 aceita a fatura sem CPF; o passo 4 avisa e bloqueia a emissão. Teste: proposta com fatura e sem CPF.
-- [ ] **H14** Já tratado na leitura (`leitura_ia.py`: CPF mascarado volta vazio, com teste). Falta: aviso "a fatura não traz o CPF completo, peça ao cliente" e instrução no esquema da IA para devolver vazio quando mascarado.
-- [ ] **H01** Admin sem CSS com `DEBUG=0`: a rota de estáticos procura com os finders do `staticfiles` (`finders.find`), sem dependência nova. Teste pedindo o CSS do admin com `DEBUG=0`.
-- [ ] **H03** Campo de logo próprio (miniatura + "Remover logo") e estilo único de checkbox. Causa: `.campo input { width: 100% }` estica a caixa "Limpar" do Django.
-- [ ] **H11** Tirar o aviso e o selo de múltiplos do orçamento Intelbras (D39, revisa D13/D14), com os dois testes que afirmam o aviso.
-- [ ] **H17** Resumo da importação Intelbras lista os códigos novos e os que saíram, com texto explicando novo, em encerramento e inativo.
-- [ ] Tarifa vigente escolhida por distribuidora (`TarifaVigente.vigentes()` e `dados_oficiais`), para a entrada de outra distribuidora (H05) não misturar tarifas.
+- [x] **H13** CPF/CNPJ exigido só na emissão da proposta confirmada (D38, revisa D23): o passo 2 aceita a fatura sem CPF; o passo 4 avisa e bloqueia a emissão. Teste: proposta com fatura e sem CPF.
+- [x] **H14** Já tratado na leitura (`leitura_ia.py`: CPF mascarado volta vazio, com teste). Falta: aviso "a fatura não traz o CPF completo, peça ao cliente" e instrução no esquema da IA para devolver vazio quando mascarado.
+- [x] **H01** Admin sem CSS com `DEBUG=0`: a rota de estáticos procura com os finders do `staticfiles` (`finders.find`), sem dependência nova. Teste pedindo o CSS do admin com `DEBUG=0`.
+- [x] **H03** Campo de logo próprio (miniatura + "Remover logo") e estilo único de checkbox. Causa: `.campo input { width: 100% }` estica a caixa "Limpar" do Django.
+- [x] **H11** Tirar o aviso e o selo de múltiplos do orçamento Intelbras (D39, revisa D13/D14), com os dois testes que afirmam o aviso.
+- [x] **H17** Resumo da importação Intelbras lista os códigos novos e os que saíram, com texto explicando novo, em encerramento e inativo.
+- [x] Tarifa vigente escolhida por distribuidora (`TarifaVigente.vigentes()` e `dados_oficiais`), para a entrada de outra distribuidora (H05) não misturar tarifas.
 
 ## Rodada 7 · Premissas da aplicação inteira e modo cliente
 
 - [ ] **P1** Registrar em `decisoes.md` e `CLAUDE.md`: toda entrada do usuário com validação e higienização (amplia D24).
-- [ ] **P2** Registrar em `decisoes.md` e `CLAUDE.md`: busca e filtros atualizam a lista na hora, sem botão.
+- [x] **P2** Registrar em `decisoes.md` e `CLAUDE.md`: busca e filtros atualizam a lista na hora, sem botão (D40).
 - [ ] **H02** `EmpresaForm`: CNPJ e telefone com as validações de `core/validacoes.py`, limite de tamanho nos textos, linhas vazias fora das listas "um por linha".
 - [ ] **A22** Travas nas Configurações (mínimo de um perfil, orientação 50–100%, validade 5–60 dias). Mesmo trabalho do H02.
 - [ ] **P1** Varredura de todos os formulários (tabela campo × regra), com teste de dados malformados em cada um.
-- [ ] **H06/H07/P2** Busca e filtros com HTMX em clientes, propostas, orçamentos, catálogo Intelbras e catálogo solar; endereço da página atualizado; filtro volta à página 1 e a paginação mantém os filtros.
+- [x] **H06/H07/P2** (PR #21, D40) Busca e filtros com HTMX em clientes, propostas, orçamentos, catálogo Intelbras e catálogo solar; endereço da página atualizado; filtro volta à página 1 e a paginação mantém os filtros.
 - [ ] **A29** Modo cliente volta para a página em que estava e não envia ao navegador o que esconde (antes de mostrar a tela a cliente no celular).
 - [ ] Antes de usar fatura de cliente real: ativar o nível pago da chave Gemini ou rever o provedor (D37, LGPD). Configuração, não código.
 
@@ -143,6 +143,12 @@ Achados `Hxx` e premissas `P1`/`P2` do teste feito pelo usuário no navegador. R
 - [ ] CLAUDE.md e specs conferidos contra o código final.
 
 ---
+
+## Resolvido na rodada 6
+
+- **H13:** o passo 2 com fatura aceita CPF/CNPJ vazio e não procura "dono" com CPF vazio; o passo 4 lista o CPF como motivo de bloqueio só na proposta confirmada (D38).
+- **H03:** `core/_campo.html` põe checkbox ao lado do texto em todo o sistema; `core/_campo_arquivo.html` serve para qualquer campo de arquivo com miniatura e "Remover".
+- **H11:** o campo `qtd_multipla` continua importado e na tabela do catálogo, só como informação (D39).
 
 ## Resolvido na rodada 1
 

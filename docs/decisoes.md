@@ -275,6 +275,11 @@ Revisão em três visões (vendedor iniciante, gestor, dev sênior), com 30 acha
 - **Motivo (H11):** a "Qtd. Múltipla" da tabela Intelbras vale para a compra do distribuidor na fábrica. O distribuidor vende unidade avulsa para a Optimus.
 - **Decisão:** sem aviso de múltiplos no orçamento e sem selo "múltiplo N" na busca. O campo continua importado e visível só na tabela do catálogo, como informação.
 
+## D40 · 2026-10-24 · Busca e filtros atualizam a lista na hora (P2)
+- **Motivo (H06, H07, teste humano de 24/10):** o usuário não quer botão "Filtrar" ou "Buscar" em nenhuma lista.
+- **Decisão:** nas listas com filtro (clientes, propostas, orçamentos, catálogo Intelbras e catálogo solar), a lista se atualiza 0,3 s depois da última tecla ou ao escolher um filtro, sem botão. Vale para toda lista nova.
+- **Como:** HTMX no próprio `<form method="get">`: `hx-get` para a mesma página, `hx-select` e `hx-target` no bloco `#resultado` (a view e o template continuam os mesmos, sem parcial nem view nova), `hx-push-url` para o endereço da página acompanhar o filtro (o "voltar" do navegador e o link copiado continuam valendo) e `hx-sync` para descartar a busca anterior. Mudar o filtro volta para a página 1. Enter continua enviando o formulário.
+
 ## Pendências de validação
 - [x] Regra de custo de disponibilidade para GD após a Lei 14.300 (item 3 de D08): fora do motor (D33).
 - [x] Valor da TUSD Fio B vigente na Energisa TO por subgrupo (B1/B2/B3): 0,441478 R$/kWh (D32).

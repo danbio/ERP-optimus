@@ -58,7 +58,6 @@ class Linha:
     custo_unitario: Decimal
     preco_unitario: Decimal
     pscf_unitario: Decimal | None = None
-    qtd_multipla: int = 1
     ativo_na_tabela: bool = True
     em_encerramento: bool = False
     substituto: str = ""
@@ -88,8 +87,6 @@ def alertas_da_linha(linha: Linha) -> list[str]:
         alertas.append("Preço abaixo do custo.")
     if linha.pscf_unitario and linha.preco_unitario > linha.pscf_unitario:
         alertas.append(f"Acima do PSCF ({_brl(linha.pscf_unitario)}).")
-    if linha.qtd_multipla > 1 and linha.quantidade % linha.qtd_multipla != 0:
-        alertas.append(f"Distribuidor vende em múltiplos de {linha.qtd_multipla} un.")
     if not linha.ativo_na_tabela:
         alertas.append("Fora da tabela atual: confirme a disponibilidade.")
     if linha.em_encerramento:

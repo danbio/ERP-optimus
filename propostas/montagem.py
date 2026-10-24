@@ -145,11 +145,17 @@ def _num(valor, casas=2):
     return f"{valor:.{casas}f}".replace(".", ",")
 
 
-def impedimentos_de_emissao(m):
-    """O que impede emitir a proposta (A02). Lista vazia = pode emitir."""
+def impedimentos_de_emissao(m, proposta=None):
+    """O que impede emitir a proposta (A02). Lista vazia = pode emitir.
+
+    Com `proposta`, confere também o CPF/CNPJ da proposta confirmada (D38).
+    """
     if not m.resultado:
         return [m.mensagem or "Complete os passos da proposta antes de emitir."]
     motivos = [a["texto"] for a in m.alertas if a["tipo"] == "erro"]
+    if proposta is not None and proposta.nivel == proposta.Nivel.CONFIRMADA and not proposta.cliente.cpf_cnpj:
+        motivos.append("Falta o CPF ou CNPJ do titular da fatura. A fatura não traz o número completo: "
+                       "peça ao cliente e preencha no passo 2.")
     if m.resultado.economia_mensal_ano1 <= 0:
         motivos.append("Com estes dados o sistema não gera economia. Confira o consumo e a quantidade de módulos.")
     if not m.mao_de_obra or m.mao_de_obra - m.desconto <= 0:

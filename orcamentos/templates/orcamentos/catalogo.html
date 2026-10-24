@@ -16,16 +16,16 @@
   </div>
 
   <div class="card">
-    <form method="get" class="topbar">
+    <form method="get" class="topbar" hx-get="{{ request.path }}" hx-trigger="input delay:300ms, submit" hx-target="#resultado" hx-select="#resultado" hx-swap="outerHTML" hx-push-url="true" hx-sync="this:replace">
       <input type="search" name="q" placeholder="Código ou descrição" value="{{ termo }}">
       <select name="segmento">
         <option value="">Todos os segmentos</option>
         {% for s in segmentos %}<option value="{{ s }}" {% if s == segmento %}selected{% endif %}>{{ s }}</option>{% endfor %}
       </select>
       <label class="campo--checkbox"><input type="checkbox" name="inativos" value="1" {% if request.GET.inativos %}checked{% endif %}> incluir fora da tabela</label>
-      <button type="submit" class="btn btn--secundario">Filtrar</button>
     </form>
 
+    <div id="resultado">
     <table class="tabela tabela--compacta">
       <thead>
         <tr>
@@ -55,5 +55,6 @@
       </tbody>
     </table>
     {% if produtos|length == 200 %}<p class="ajuda">Mostrando os 200 primeiros. Refine a busca.</p>{% endif %}
+    </div>
   </div>
 {% endblock %}

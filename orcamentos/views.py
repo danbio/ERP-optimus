@@ -42,7 +42,6 @@ def _linha_calculo(item):
         custo_unitario=item.custo_unitario,
         preco_unitario=item.preco_unitario,
         pscf_unitario=item.pscf_unitario,
-        qtd_multipla=item.qtd_multipla,
         ativo_na_tabela=item.ativo_na_tabela,
         em_encerramento=item.em_encerramento,
         substituto=item.substituto,
@@ -467,8 +466,14 @@ def importar_tabela(request):
                 resumo = aplicar_importacao(leitura, tabela)
     else:
         form = ImportarTabelaForm()
+    listas_resumo = []
+    if resumo:
+        listas_resumo = [
+            ("Produtos novos", resumo["lista_novos"], resumo["novos"]),
+            ("Saíram da tabela (ficaram inativos)", resumo["lista_sairam"], resumo["sairam"]),
+        ]
     return render(request, "orcamentos/importar.html", {
-        "form": form, "resumo": resumo, "erro": erro, "tabela": tabela,
+        "form": form, "resumo": resumo, "erro": erro, "tabela": tabela, "listas_resumo": listas_resumo,
         "uf_destino": parametros.uf_destino,
         "historico": TabelaPreco.objects.all()[:10],
     })

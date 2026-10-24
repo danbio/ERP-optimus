@@ -29,7 +29,7 @@ def preparar_emissao(proposta, usuario=None):
     if proposta.status != Proposta.Status.RASCUNHO:
         raise ErroEmissao("Só um rascunho pode ser emitido.")
     m = montar(proposta)
-    motivos = impedimentos_de_emissao(m)
+    motivos = impedimentos_de_emissao(m, proposta)
     if motivos:
         raise ErroEmissao(" ".join(motivos))
     proposta.modulo, proposta.qtd_modulos = m.modulo, m.qtd_modulos

@@ -15,7 +15,6 @@
           <td>
             {{ produto.nome }}
             {% if produto.em_encerramento %}<span class="badge badge--aviso">em encerramento</span>{% endif %}
-            {% if produto.qtd_multipla > 1 %}<span class="badge">múltiplo {{ produto.qtd_multipla }}</span>{% endif %}
           </td>
           <td>{{ produto.segmento }}</td>
           <td class="num">{% if produto.psd %}{{ produto.psd|floatformat:"2g" }}{% else %}—{% endif %}</td>

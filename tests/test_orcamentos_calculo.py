@@ -53,16 +53,16 @@ def test_alertas_de_item():
         Linha("intelbras", "Licença", D("1"), D("0"), D("65")),
         Linha("intelbras", "Câmera", D("1"), D("100"), D("90"), pscf_unitario=D("130")),
         Linha("intelbras", "Câmera cara", D("1"), D("100"), D("150"), pscf_unitario=D("130")),
-        Linha("intelbras", "Cabo", D("3"), D("10"), D("13"), qtd_multipla=5),
+        Linha("intelbras", "Cabo", D("3"), D("10"), D("13")),
         Linha("intelbras", "Antigo", D("1"), D("10"), D("13"), em_encerramento=True, substituto="4301419 - FS 1000"),
     ]
     r = resumir(linhas)
     assert "PSD zerado" in r.alertas_por_linha[0][0]
     assert r.alertas_por_linha[1] == ["Preço abaixo do custo."]
     assert "Acima do PSCF" in r.alertas_por_linha[2][0]
-    assert "múltiplos de 5" in r.alertas_por_linha[3][0]
+    assert r.alertas_por_linha[3] == []  # múltiplos não valem para a Optimus (D39)
     assert "4301419" in r.alertas_por_linha[4][0]
-    assert "5 item(ns) com alerta" in r.alertas[0]
+    assert "4 item(ns) com alerta" in r.alertas[0]
 
 
 def test_desconto_abaixo_do_custo_alerta():

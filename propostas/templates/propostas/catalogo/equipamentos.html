@@ -2,7 +2,7 @@
 
 {% block catalogo %}
   <div class="card">
-    <form method="get" class="barra-acoes barra-acoes--plana">
+    <form method="get" class="barra-acoes barra-acoes--plana" hx-get="{{ request.path }}" hx-trigger="input delay:300ms, submit" hx-target="#resultado" hx-select="#resultado" hx-swap="outerHTML" hx-push-url="true" hx-sync="this:replace">
       <select name="tipo" aria-label="Tipo">
         <option value="">Todos os tipos</option>
         {% for valor, rotulo in tipos %}<option value="{{ valor }}"{% if valor == tipo %} selected{% endif %}>{{ rotulo }}</option>{% endfor %}
@@ -12,9 +12,9 @@
         {% for d in distribuidores %}<option{% if d == distribuidor %} selected{% endif %}>{{ d }}</option>{% endfor %}
       </select>
       <input type="search" name="busca" class="busca busca--linha" placeholder="Descrição, código ou marca" value="{{ busca }}">
-      <button type="submit" class="btn btn--secundario">Filtrar</button>
       <a href="{% url 'propostas:solar_equipamento_novo' %}" class="btn">+ equipamento</a>
     </form>
+    <div id="resultado">
     <p class="ajuda">{{ equipamentos|length }} itens. Preço de referência é o do site do distribuidor, sem frete: o custo do kit vem da cotação.</p>
 
     <div class="itens-rolagem">
@@ -39,6 +39,7 @@
           {% endfor %}
         </tbody>
       </table>
+    </div>
     </div>
   </div>
 {% endblock %}

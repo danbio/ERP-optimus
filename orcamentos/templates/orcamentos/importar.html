@@ -18,6 +18,12 @@
       <a href="{% url 'orcamentos:catalogo' %}" class="btn btn--secundario">Voltar ao catálogo</a>
     </form>
     {% if erro %}<p class="badge badge--erro">{{ erro }}</p>{% endif %}
+    <h3>O que acontece com cada produto</h3>
+    <ul class="ajuda">
+      <li><strong>Novo:</strong> produto que não existia no catálogo. Entra já disponível para orçar.</li>
+      <li><strong>Em encerramento:</strong> está na aba "Encerramentos" da planilha. Continua à venda, com aviso e o substituto no orçamento.</li>
+      <li><strong>Saiu da tabela:</strong> não é apagado. Fica inativo, some da busca do orçamento e volta sozinho se reaparecer numa tabela futura. Orçamentos antigos mantêm a própria cópia, com o aviso "fora da tabela".</li>
+    </ul>
   </div>
 
   {% if resumo %}
@@ -30,6 +36,17 @@
         <div class="kpi"><div class="kpi__valor">{{ resumo.sairam }}</div><div class="kpi__rotulo">saíram da tabela</div></div>
         <div class="kpi"><div class="kpi__valor">{{ resumo.em_encerramento }}</div><div class="kpi__rotulo">em encerramento</div></div>
       </div>
+      {% for titulo, lista, total in listas_resumo %}
+        {% if lista %}
+          <h3>{{ titulo }}{% if total > lista|length %} (primeiros {{ lista|length }} de {{ total }}){% endif %}</h3>
+          <table class="tabela tabela--compacta">
+            <thead><tr><th>Código</th><th>Produto</th></tr></thead>
+            <tbody>
+              {% for p in lista %}<tr><td>{{ p.codigo }}</td><td>{{ p.produto }}</td></tr>{% endfor %}
+            </tbody>
+          </table>
+        {% endif %}
+      {% endfor %}
       {% if resumo.maiores_variacoes %}
         <h3>Maiores variações de custo (PSD)</h3>
         <table class="tabela tabela--compacta">
