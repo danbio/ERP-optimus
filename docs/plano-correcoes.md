@@ -78,17 +78,66 @@ Usa o Gemini (D37), com a chave `GEMINI_API_KEY` no `.env`.
 - [x] Cotação: PDF → `Cotacao` + `ItemCotado`; a proposta com cotação lida usa só a cotação, ignorando o catálogo.
 - [ ] Testes com as faturas e cotações reais de outubro/2026. (Teste real com fatura fictícia feito em 22/10 no PC-Escritorio: todos os campos certos.)
 
-## Rodada 6 · Ferramentas do gestor e do vendedor
+## Teste humano de 24/10/2026 (rodadas 6 a 13)
 
-- [ ] **A19** Painel: emitidas, aceitas e perdidas no mês, conversão, valor em aberto, motivos de perda, propostas vencendo em 3 dias, desconto médio, por vendedor.
-- [ ] **A20** Vendedor responsável e "próximo contato", com lista "ligar hoje".
-- [ ] **A22** Travas nas Configurações (mínimo de um perfil, orientação 50–100%, validade 5–60 dias).
+Achados `Hxx` e premissas `P1`/`P2` do teste feito pelo usuário no navegador. Relatório com causa, proposta e perguntas de cada um: `docs/relatorio-teste-humano-2026-10-24.md`; conferência no código e ajustes de ordem: `docs/parecer-teste-humano-2026-10-24.md`. Item com **(pergunta)** só começa depois da resposta do usuário, registrada em `docs/decisoes.md`.
+
+## Rodada 6 · Bloqueio e erros rápidos
+
+- [ ] **H13** CPF/CNPJ exigido só na emissão da proposta confirmada (D38, revisa D23): o passo 2 aceita a fatura sem CPF; o passo 4 avisa e bloqueia a emissão. Teste: proposta com fatura e sem CPF.
+- [ ] **H14** Já tratado na leitura (`leitura_ia.py`: CPF mascarado volta vazio, com teste). Falta: aviso "a fatura não traz o CPF completo, peça ao cliente" e instrução no esquema da IA para devolver vazio quando mascarado.
+- [ ] **H01** Admin sem CSS com `DEBUG=0`: a rota de estáticos procura com os finders do `staticfiles` (`finders.find`), sem dependência nova. Teste pedindo o CSS do admin com `DEBUG=0`.
+- [ ] **H03** Campo de logo próprio (miniatura + "Remover logo") e estilo único de checkbox. Causa: `.campo input { width: 100% }` estica a caixa "Limpar" do Django.
+- [ ] **H11** Tirar o aviso e o selo de múltiplos do orçamento Intelbras (D39, revisa D13/D14), com os dois testes que afirmam o aviso.
+- [ ] **H17** Resumo da importação Intelbras lista os códigos novos e os que saíram, com texto explicando novo, em encerramento e inativo.
+- [ ] Tarifa vigente escolhida por distribuidora (`TarifaVigente.vigentes()` e `dados_oficiais`), para a entrada de outra distribuidora (H05) não misturar tarifas.
+
+## Rodada 7 · Premissas da aplicação inteira e modo cliente
+
+- [ ] **P1** Registrar em `decisoes.md` e `CLAUDE.md`: toda entrada do usuário com validação e higienização (amplia D24).
+- [ ] **P2** Registrar em `decisoes.md` e `CLAUDE.md`: busca e filtros atualizam a lista na hora, sem botão.
+- [ ] **H02** `EmpresaForm`: CNPJ e telefone com as validações de `core/validacoes.py`, limite de tamanho nos textos, linhas vazias fora das listas "um por linha".
+- [ ] **A22** Travas nas Configurações (mínimo de um perfil, orientação 50–100%, validade 5–60 dias). Mesmo trabalho do H02.
+- [ ] **P1** Varredura de todos os formulários (tabela campo × regra), com teste de dados malformados em cada um.
+- [ ] **H06/H07/P2** Busca e filtros com HTMX em clientes, propostas, orçamentos, catálogo Intelbras e catálogo solar; endereço da página atualizado; filtro volta à página 1 e a paginação mantém os filtros.
+- [ ] **A29** Modo cliente volta para a página em que estava e não envia ao navegador o que esconde (antes de mostrar a tela a cliente no celular).
+- [ ] Antes de usar fatura de cliente real: ativar o nível pago da chave Gemini ou rever o provedor (D37, LGPD). Configuração, não código.
+
+## Rodada 8 · Cliente com endereço e leitura da fatura
+
+- [ ] **H12a** Endereço no `Cliente` (CEP, rua, número, complemento, bairro), todos opcionais, reaproveitando o `municipio` que o cliente já tem. CEP consultado no ViaCEP pelo navegador (JS puro), casando o código IBGE com `Municipio`; sem internet, preenche à mão (registrar a exceção à regra de não consultar API na hora).
+- [ ] **H12b** Preenchimento por CNPJ (BrasilAPI, gratuito). Por CPF não há fonte gratuita e legal: descartar e registrar o motivo **(pergunta: confirmar o descarte)**.
+- [ ] **H15** UC e fatura já são gravadas no passo 2. Falta: endereço da fatura no cliente e conferência do titular **(perguntas: confirmação, como achar o cliente, conflito, qual endereço; revisa D37)**. Corrigir: o CPF do titular não pode ir para o cliente quando o titular é outra pessoa.
+
+## Rodada 9 · Financiamento da proposta solar
+
+- [ ] **H04a** Taxa com "% ao mês" em cada campo e o equivalente anual ao lado.
+- [ ] **H04b/c** TAC e IOF no valor financiado, no `calculo.py`, com teste; melhor banco escolhido depois de somar TAC e IOF; `registro` da emissão guarda os dois **(perguntas: a taxa cadastrada é nominal ou CET; TAC fixa ou %, por banco; IOF padrão PF/PJ; separado ou embutido no PDF)**.
+
+## Rodada 10 · Orçamento Intelbras
+
+- [ ] **H09** Mostrar ou esconder o preço dos itens no PDF **(perguntas: orçamento inteiro ou por item; quantidade e subtotais)**.
+- [ ] **H10** Parcelamento 3×, 6×, 12×, 21× no PDF do orçamento **(perguntas: cartão ou boleto, juros por prazo, prazos fixos, vendedor pode esconder)**. Mesmo PDF e mesma migração do H09.
+
+## Rodada 11 · Detalhe do produto solar
+
+- [ ] **H08** Protótipo HTML para aprovação: foto e datasheet em destaque, ficha só com os campos do tipo.
+- [ ] **H08** Página de ver o produto, aberta também ao vendedor (hoje a única página é a edição, só do gestor) + edição do gestor com os campos do tipo; espaço reservado sem foto ou datasheet.
+
+## Rodada 12 · Painel e ferramentas do gestor e do vendedor
+
+- [ ] **A20** Vendedor responsável e "próximo contato", com lista "ligar hoje". Vem antes do painel.
+- [ ] **H16/A19** Dashboard na página inicial, com protótipo antes; gestor vê todos, vendedor vê os dele (`eh_gestor`); orçamento Intelbras ganha campo de vendedor se entrar no "por vendedor" **(perguntas: indicadores da primeira versão; painel do vendedor × do gestor)**.
 - [ ] **A18** Barra fixa no celular com kWp, investimento e parcela; menu recolhido.
-- [ ] **A29** Modo cliente volta para a página em que estava e não envia ao navegador o que esconde.
 
-## Rodada 7 · Higienização e documentação
+## Rodada 13 · Goiás
+
+- [ ] **H05** Municípios de Goiás com irradiação, distribuidora (Equatorial Goiás, sigla ANEEL própria), tarifas com tributos de GO, Fio B e iluminação pública por município; distribuidora da proposta vinda da UC/município; tirar o "Energisa TO" fixo do código e das telas. Bandeira é nacional, não muda **(perguntas: estado inteiro ou região; tipos de tarifa)**.
+
+## Rodada 14 · Higienização e documentação
 
 - [ ] Varredura de código morto, nomes e imports.
+- [ ] Cores literais (`#fff`) fora de `tokens.css` trocadas por token; texto de ajuda do Fio B atualizado (a ANEEL publica, D32).
 - [ ] Docstring em português em toda função pública: o que faz, entradas com unidade (kWh, R$, fração), saída e a decisão `Dxx` de origem. Comentário só onde a regra não é óbvia.
 - [ ] README atualizado: instalar, rodar, atualizar dados oficiais, fazer backup.
 - [ ] CLAUDE.md e specs conferidos contra o código final.

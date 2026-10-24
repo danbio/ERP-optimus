@@ -2,7 +2,7 @@
 
 ERP interno da **Optimus Energia Solar** (Gurupi-TO). Uso interno, 2–5 usuários, rede local.
 Fase atual: **Proposta Solar v2**, redesenho da entrada de dados (ver `docs/spec-proposta-v2.md`, D17–D25). A `docs/spec-fase1.md` continua valendo para o motor de cálculo e o PDF.
-**Agora:** correções da revisão de 22/10/2026, em rodadas, seguindo `docs/plano-correcoes.md` (D33–D35).
+**Agora:** correções da revisão de 22/10/2026 e do teste humano de 24/10/2026 (`docs/relatorio-teste-humano-2026-10-24.md`), em rodadas, seguindo `docs/plano-correcoes.md` (D33–D39).
 Módulo paralelo: **Orçamentos da revenda Intelbras** (ver `docs/spec-orcamentos.md`, D12–D15).
 
 ## Princípio número 1
@@ -105,7 +105,7 @@ O usuário típico é um **vendedor iniciante**, e o cliente muitas vezes **não
 
 - **Fluxo:** 4 passos numa tela (cliente → consumo → sistema e preço → proposta), rascunho salvo a cada passo. Protótipo aprovado: `docs/referencia/prototipo-proposta-v2.html`.
 - **Estimativa × confirmada:** sem fatura é estimativa, com aviso fixo no PDF. Com fatura vira nova versão confirmada, mesmo número.
-- **Dados mínimos da estimativa:** nome, telefone, município. CPF/CNPJ, UC e endereço só na confirmada.
+- **Dados mínimos da estimativa:** nome, telefone, município. UC e endereço só na confirmada; CPF/CNPJ só é exigido para emitir a confirmada (D38).
 - **Consumo:** por valor da conta (descontando iluminação pública e bandeira), por kWh ou por fatura. Tipo de tarifa do Grupo B escolhido pelo vendedor; valores vêm do banco (ANEEL).
 - **Dimensionamento:** sistema sugere kWp, módulo de menor R$/Wp, quantidade (editável) e inversor da fase da ligação com sobrecarga ≤ 1,5.
 - **Preço:** kit (faturamento direto do distribuidor, com frete, sem margem) + mão de obra − desconto. Mão de obra sugerida `max(kWp × R$ 500, R$ 4.500)`, solo R$ 700/kWp. Desconto só na mão de obra. Sem imposto na proposta.

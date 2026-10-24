@@ -266,6 +266,15 @@ Revisão em três visões (vendedor iniciante, gestor, dev sênior), com 30 acha
 - **Modelo e nova tentativa (teste real em 22/10/2026, no PC-Escritorio):** com uma fatura fictícia, `gemini-flash-lite-latest` leu todos os campos certos em 1,7 s; `gemini-flash-latest` deu 503 (sobrecarga) e chegou a 70 s; `gemini-2.5-flash` não está mais disponível para chaves novas (404). Por isso o padrão é o *lite*. Quando o Google responde 503, o sistema espera 3 s e tenta mais uma vez antes de mostrar o aviso ao vendedor.
 - **LGPD:** a chave atual está no nível gratuito, em que o Google pode usar o conteúdo enviado para melhorar seus produtos. No desenvolvimento, testar só com faturas próprias ou autorizadas; antes de usar com clientes, ativar o faturamento da chave (nível pago) ou rever o provedor.
 
+## D38 · 2026-10-24 · CPF/CNPJ exigido só na emissão da proposta confirmada (revisa D23)
+- **Motivo (H13, teste humano de 24/10):** a fatura da Energisa traz o CPF mascarado (`***.456.789-**`), então o vendedor com a fatura na mão não tem o número e o passo 2 travava.
+- **Decisão (usuário, 24/10, opção a):** o passo 2 aceita a fatura sem CPF/CNPJ. O passo 4 mostra que ele falta e **bloqueia a emissão da proposta confirmada** até ser preenchido no passo 1 ou 2. Pré-visualização continua liberada. Estimativa (sem fatura) segue sem exigir CPF.
+- CPF digitado com asterisco é recusado com a mensagem de que a fatura não traz o número completo. A leitura por IA deixa o campo vazio e avisa o vendedor para pedir ao cliente.
+
+## D39 · 2026-10-24 · Múltiplos da tabela Intelbras não valem para a Optimus (revisa D13/D14)
+- **Motivo (H11):** a "Qtd. Múltipla" da tabela Intelbras vale para a compra do distribuidor na fábrica. O distribuidor vende unidade avulsa para a Optimus.
+- **Decisão:** sem aviso de múltiplos no orçamento e sem selo "múltiplo N" na busca. O campo continua importado e visível só na tabela do catálogo, como informação.
+
 ## Pendências de validação
 - [x] Regra de custo de disponibilidade para GD após a Lei 14.300 (item 3 de D08): fora do motor (D33).
 - [x] Valor da TUSD Fio B vigente na Energisa TO por subgrupo (B1/B2/B3): 0,441478 R$/kWh (D32).
