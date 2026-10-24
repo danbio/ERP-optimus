@@ -1,0 +1,12 @@
+{# Cartão de acompanhamento (A20, D46): precisa de acompanhamento_form, objeto e acao (URL do POST). #}
+<div class="card acompanhamento">
+  <h3>Acompanhamento</h3>
+  <p class="ajuda">Vendedor responsável: {% if objeto.vendedor %}{{ objeto.vendedor.get_full_name|default:objeto.vendedor.username }}{% else %}ninguém{% endif %}.{% if objeto.proximo_contato %} Próximo contato em {{ objeto.proximo_contato|date:"d/m/Y" }}.{% endif %}</p>
+  <form method="post" action="{{ acao }}" class="grade-campos">
+    {% csrf_token %}
+    <input type="hidden" name="voltar" value="{{ request.get_full_path }}">
+    {% include "core/_campo.html" with campo=acompanhamento_form.proximo_contato %}
+    {% if acompanhamento_form.vendedor %}{% include "core/_campo.html" with campo=acompanhamento_form.vendedor %}{% endif %}
+    <div><button type="submit" class="btn btn--secundario">Salvar acompanhamento</button></div>
+  </form>
+</div>

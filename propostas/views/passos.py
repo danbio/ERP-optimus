@@ -9,7 +9,9 @@ from django.views.decorators.http import require_POST
 
 from clientes.models import Cliente, UnidadeConsumidora
 from core import ia
+from core.forms import AcompanhamentoForm
 from core.models import ConfigEmpresa
+from core.permissoes import eh_gestor
 from core.validacoes import formatar_reais, nomes_iguais
 
 from ..forms import Passo1Form, Passo2Form, Passo3Form
@@ -63,6 +65,8 @@ def _contexto_passos(request, proposta, n, form=None, m=None):
         contexto["kit_extras"] = form.extras()
     if n == 4 and contexto["m"]:
         contexto["impedimentos"] = impedimentos_de_emissao(contexto["m"], proposta)
+    if n == 4 and proposta:
+        contexto["acompanhamento_form"] = AcompanhamentoForm(objeto=proposta, gestor=eh_gestor(request.user))
     return contexto
 
 
@@ -197,6 +201,7 @@ def _gravar_passo1(request, form, proposta):
             validade_dias=config.validade_padrao_dias, beneficios=config.beneficios_padrao,
             escopo=config.escopo_padrao, texto_sobre=config.texto_sobre,
             perfil_simultaneidade=(config.perfis_simultaneidade[0]["nome"] if config.perfis_simultaneidade else ""),
+            vendedor=request.user if request.user.is_authenticated else None,  # D46
         )
     proposta.cliente = cliente
     proposta.municipio = dados["municipio"]

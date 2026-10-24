@@ -15,4 +15,10 @@
     <div><dt>Economia/mês (ano 1)</dt><dd>{% if m.resultado %}R$ {{ m.resultado.economia_mensal_ano1|floatformat:"2g" }}{% else %}—{% endif %}</dd></div>
     <div><dt>Parcela</dt><dd>{% if m.parcela %}{{ m.parcela.prazo }}× R$ {{ m.parcela.parcela|floatformat:"2g" }}{% else %}—{% endif %}</dd></div>
   </dl>
+  {# Celular (A18, D46): os três números ficam fixos embaixo da tela enquanto o vendedor rola. #}
+  <div class="resumo__barra">
+    <span><small>Sistema</small>{% if m.kwp %}{{ m.kwp|floatformat:2 }} kWp{% else %}—{% endif %}</span>
+    <span><small>Investimento</small>{% if m.investimento is not None %}R$ {{ m.investimento|floatformat:"0g" }}{% else %}—{% endif %}</span>
+    <span><small>Parcela</small>{% if m.parcela %}{{ m.parcela.prazo }}× R$ {{ m.parcela.parcela|floatformat:"0g" }}{% else %}—{% endif %}</span>
+  </div>
 </aside>

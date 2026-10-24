@@ -316,6 +316,18 @@ O usuário pediu para executar todas as rodadas sem parar; o protótipo de aprov
 - Campo de outro tipo que já tem valor (vindo da importação) não é apagado: só fica fora da tela.
 - Para o PDF abrir dentro da página, os arquivos de `/media/` podem ser exibidos em quadro pelo próprio ERP (`X-Frame-Options: SAMEORIGIN` só nessa rota); as páginas continuam proibindo quadro.
 
+## D46 · 2026-10-24 · Vendedor responsável, próximo contato e painel da página inicial (A18, A19, A20, H16)
+Recomendações do parecer aceitas pelo usuário em 24/10 ("usar as recomendações"); protótipo dispensado pela ordem de executar todas as rodadas.
+- **Vendedor responsável (A20):** proposta solar e orçamento Intelbras ganham `vendedor` (quem criou; o gestor pode trocar) e `proximo_contato` (data). Os dois passam para a nova versão. Nas propostas antigas, o vendedor vira quem emitiu. A proposta perdida ganha a data da perda (`perdida_em`), para contar no mês.
+- **"Ligar hoje":** propostas em rascunho ou emitidas e orçamentos em rascunho ou emitidos com próximo contato até hoje; os atrasados aparecem primeiro, marcados.
+- **Painel em `/` (H16, A19):** o vendedor vê só os dele; o gestor vê todos e a tabela por vendedor. Indicadores da primeira versão, sempre do mês corrente:
+  - propostas solares emitidas, aceitas e perdidas; conversão (aceitas ÷ emitidas); kWp e valor aceitos; motivos de perda;
+  - propostas vencendo nos próximos N dias e emitidas há N dias sem próximo contato marcado ("paradas");
+  - orçamentos Intelbras em aberto (quantidade e valor) e aceitos no mês;
+  - por vendedor (só gestor): emitidas, aceitas e valor aceito.
+  Propostas contam pelo número (versões da mesma proposta contam uma vez). Os dois prazos (aviso de vencimento, 3 dias; parada, 7 dias) ficam em Configurações → Premissas.
+- **Celular (A18):** o menu fica recolhido atrás de um botão "Menu"; nos passos da proposta, uma barra fixa embaixo mostra kWp, investimento e parcela, atualizada junto com o resumo.
+
 ## Pendências de validação
 - [x] Regra de custo de disponibilidade para GD após a Lei 14.300 (item 3 de D08): fora do motor (D33).
 - [x] Valor da TUSD Fio B vigente na Energisa TO por subgrupo (B1/B2/B3): 0,441478 R$/kWh (D32).

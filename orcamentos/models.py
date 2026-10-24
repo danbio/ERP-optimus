@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
@@ -170,6 +171,12 @@ class Orcamento(models.Model):
     total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     pdf = models.FileField(upload_to="orcamentos/", blank=True)
     criado_em = models.DateTimeField(auto_now_add=True)
+    # Acompanhamento (A20, D46)
+    vendedor = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+",
+        verbose_name="vendedor responsável",
+    )
+    proximo_contato = models.DateField("próximo contato", null=True, blank=True)
 
     class Meta:
         verbose_name = "Orçamento"

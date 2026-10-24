@@ -246,6 +246,12 @@ class PremissasForm(forms.Form):
     mo_minima = CampoReais(label="Mão de obra mínima (R$)")
     dias_preco_velho = forms.IntegerField(label="Cotação do kit fica velha após (dias)", min_value=1, max_value=365)
 
+    # Painel da página inicial (D46)
+    dias_aviso_vencimento = forms.IntegerField(
+        label="Avisar proposta vencendo em (dias)", min_value=1, max_value=30)
+    dias_sem_retorno = forms.IntegerField(
+        label="Proposta parada após (dias sem contato)", min_value=1, max_value=90)
+
     # Kit montado pelo catálogo (D34)
     distribuidor_kit = forms.CharField(label="Distribuidor do kit", max_length=60)
     frete_kit = CampoPercentual(label="Frete sobre os produtos do kit (%)", maximo=50)
@@ -279,6 +285,7 @@ class PremissasForm(forms.Form):
         "conta_alta", "consumo_alto", "tolerancia_tarifa_fatura", "tolerancia_kwp_cotacao", "limite_microgeracao_kwp",
         "distribuidor_kit", "frete_kit", "dias_catalogo_velho", "metros_cabo_por_string", "pares_conector_por_string", "pares_conector_por_micro",
         "modulos_por_string_min", "modulos_por_string_max", "espessura_modulo_padrao",
+        "dias_aviso_vencimento", "dias_sem_retorno",
     )
 
     def __init__(self, *args, **kwargs):
@@ -484,3 +491,40 @@ class TaxasForm(forms.Form):
                 banco=banco, prazo_meses=prazo,
                 defaults={"taxa_mensal": valor, "vigente_desde": date.today()} | tac,
             )
+
+
+class AcompanhamentoForm(forms.Form):
+    """Próximo contato e, para o gestor, o vendedor responsável (A20, D46). Serve à proposta e ao orçamento."""
+
+    proximo_contato = forms.DateField(
+        label="Próximo contato", required=False,
+        widget=forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
+        help_text="Vazio = sem contato marcado. Aparece em \"Ligar hoje\" na página inicial.",
+    )
+
+    def __init__(self, *args, objeto=None, gestor=False, **kwargs):
+        if objeto is not None:
+            kwargs.setdefault("initial", {"proximo_contato": objeto.proximo_contato, "vendedor": objeto.vendedor_id})
+        super().__init__(*args, **kwargs)
+        if gestor:
+            from django.contrib.auth import get_user_model
+            self.fields["vendedor"] = forms.ModelChoiceField(
+                label="Vendedor responsável", required=False, empty_label="Ninguém",
+                queryset=get_user_model().objects.filter(is_active=True).order_by("username"),
+            )
+
+    def clean_proximo_contato(self):
+        data = self.cleaned_data["proximo_contato"]
+        if data and data < date.today():
+            raise forms.ValidationError("O próximo contato não pode ser no passado.")
+        if data and (data - date.today()).days > 366:
+            raise forms.ValidationError("Marque o próximo contato dentro de um ano.")
+        return data
+
+    def gravar(self, objeto):
+        campos = ["proximo_contato"]
+        objeto.proximo_contato = self.cleaned_data["proximo_contato"]
+        if "vendedor" in self.fields:
+            objeto.vendedor = self.cleaned_data["vendedor"]
+            campos.append("vendedor")
+        objeto.save(update_fields=campos)

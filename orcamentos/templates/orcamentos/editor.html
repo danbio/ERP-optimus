@@ -4,6 +4,7 @@
 {% block titulo_pagina %}{{ orcamento.numero }} v{{ orcamento.versao }} · {{ orcamento.cliente.nome }}{% endblock %}
 
 {% block conteudo %}
+{% for mensagem in messages %}<p class="{% if mensagem.level_tag == 'error' %}alerta alerta--erro{% else %}aviso-salvo{% endif %}">{{ mensagem }}</p>{% endfor %}
 <div class="orcamento-editor" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
   <div class="orcamento-editor__principal">
 
@@ -102,6 +103,8 @@
     <div class="card">
       {% include "orcamentos/_totais.html" %}
     </div>
+    {% url 'orcamentos:acompanhamento' orcamento.pk as acao %}
+    {% include "core/_acompanhamento.html" with objeto=orcamento acao=acao %}
   </div>
 </div>
 {% endblock %}

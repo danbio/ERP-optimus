@@ -20,6 +20,7 @@ urlpatterns = [
     path("<int:pk>/pdf/", views.baixar_pdf, name="pdf"),
     path("<int:pk>/revisar/", views.revisar, name="revisar"),
     path("<int:pk>/status/", views.marcar_status, name="status"),
+    path("<int:pk>/acompanhamento/", views.acompanhamento, name="acompanhamento"),
     path("item/<int:item_pk>/atualizar/", views.atualizar_item, name="item_atualizar"),
     path("item/<int:item_pk>/remover/", views.remover_item, name="item_remover"),
     path("catalogo/", views.catalogo, name="catalogo"),

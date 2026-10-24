@@ -18,4 +18,86 @@
       <span>Revenda de produtos e serviços</span>
     </a>
   </div>
+
+  <section class="card painel">
+    <h3>Ligar hoje</h3>
+    {% if painel.ligar_hoje %}
+      <div class="itens-rolagem">
+        <table class="tabela">
+          <thead><tr><th>Contato</th><th>Cliente</th><th>Telefone</th><th>O quê</th></tr></thead>
+          <tbody>
+            {% for l in painel.ligar_hoje %}
+              <tr>
+                <td>{% if l.atrasado %}<span class="badge badge--erro">Atrasado · {{ l.data|date:"d/m" }}</span>{% else %}Hoje{% endif %}</td>
+                <td>{{ l.cliente.nome }}</td>
+                <td>{{ l.cliente.telefone_formatado|default:"—" }}</td>
+                <td><a href="{{ l.url }}">{{ l.tipo }} {{ l.titulo }}</a></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="ajuda">Nenhum contato marcado para hoje. Marque o próximo contato na proposta ou no orçamento.</p>
+    {% endif %}
+  </section>
+
+  <section class="card painel">
+    <h3>Propostas solares em {{ painel.inicio_mes|date:"F" }}{% if not gestor %} (as suas){% endif %}</h3>
+    <div class="kpi-grade">
+      <div class="kpi"><div class="kpi__valor">{{ painel.emitidas }}</div><div class="kpi__rotulo">emitidas</div></div>
+      <div class="kpi"><div class="kpi__valor">{{ painel.aceitas }}</div><div class="kpi__rotulo">aceitas</div></div>
+      <div class="kpi"><div class="kpi__valor">{{ painel.perdidas }}</div><div class="kpi__rotulo">perdidas</div></div>
+      <div class="kpi"><div class="kpi__valor">{% if painel.conversao is not None %}{{ painel.conversao|floatformat:0 }}%{% else %}—{% endif %}</div><div class="kpi__rotulo">conversão (aceitas ÷ emitidas)</div></div>
+      <div class="kpi"><div class="kpi__valor">{{ painel.kwp_aceito|floatformat:1 }}</div><div class="kpi__rotulo">kWp aceitos</div></div>
+      <div class="kpi kpi--escuro"><div class="kpi__valor">R$ {{ painel.valor_aceito|floatformat:"0g" }}</div><div class="kpi__rotulo">valor aceito</div></div>
+    </div>
+    {% if painel.motivos %}
+      <p class="ajuda painel__motivos">Motivos de perda: {% for rotulo, n in painel.motivos %}{{ rotulo }} ({{ n }}){% if not forloop.last %} · {% endif %}{% endfor %}</p>
+    {% endif %}
+  </section>
+
+  <div class="cartoes-acao">
+    <section class="card painel">
+      <h3>Vencendo nos próximos {{ painel.dias_aviso_vencimento }} dias</h3>
+      {% for p in painel.vencendo %}
+        <p class="painel__linha"><a href="{% url 'propostas:detalhe' p.pk %}">{{ p.identificacao }}</a> · {{ p.cliente.nome }} · até {{ p.validade_ate|date:"d/m" }}</p>
+      {% empty %}<p class="ajuda">Nenhuma.</p>{% endfor %}
+    </section>
+    <section class="card painel">
+      <h3>Paradas há {{ painel.dias_sem_retorno }} dias ou mais</h3>
+      <p class="ajuda">Emitidas, ainda válidas, sem próximo contato marcado.</p>
+      {% for p in painel.paradas %}
+        <p class="painel__linha"><a href="{% url 'propostas:detalhe' p.pk %}">{{ p.identificacao }}</a> · {{ p.cliente.nome }} · emitida em {{ p.emissao|date:"d/m" }}</p>
+      {% empty %}<p class="ajuda">Nenhuma.</p>{% endfor %}
+    </section>
+  </div>
+
+  <section class="card painel">
+    <h3>Orçamentos Intelbras</h3>
+    <div class="kpi-grade">
+      <div class="kpi"><div class="kpi__valor">{{ painel.orcamentos_abertos }}</div><div class="kpi__rotulo">em aberto</div></div>
+      <div class="kpi"><div class="kpi__valor">R$ {{ painel.orcamentos_abertos_valor|floatformat:"0g" }}</div><div class="kpi__rotulo">valor em aberto</div></div>
+      <div class="kpi"><div class="kpi__valor">{{ painel.orcamentos_aceitos }}</div><div class="kpi__rotulo">aceitos (emitidos no mês)</div></div>
+      <div class="kpi kpi--escuro"><div class="kpi__valor">R$ {{ painel.orcamentos_aceitos_valor|floatformat:"0g" }}</div><div class="kpi__rotulo">valor aceito</div></div>
+    </div>
+  </section>
+
+  {% if gestor %}
+    <section class="card painel">
+      <h3>Por vendedor em {{ painel.inicio_mes|date:"F" }}</h3>
+      {% if painel.por_vendedor %}
+        <div class="itens-rolagem">
+          <table class="tabela">
+            <thead><tr><th>Vendedor</th><th class="num">Emitidas</th><th class="num">Aceitas</th><th class="num">Valor aceito</th></tr></thead>
+            <tbody>
+              {% for nome, linha in painel.por_vendedor %}
+                <tr><td>{{ nome }}</td><td class="num">{{ linha.emitidas }}</td><td class="num">{{ linha.aceitas }}</td><td class="num">R$ {{ linha.valor|floatformat:"2g" }}</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}<p class="ajuda">Nenhuma proposta emitida neste mês.</p>{% endif %}
+    </section>
+  {% endif %}
 {% endblock %}

@@ -183,6 +183,13 @@ class Proposta(models.Model):
     aceite_desfeito_por = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+",
     )
+    perdida_em = models.DateField("perdida em", null=True, blank=True)
+    # Acompanhamento (A20, D46)
+    vendedor = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+",
+        verbose_name="vendedor responsável",
+    )
+    proximo_contato = models.DateField("próximo contato", null=True, blank=True)
 
     class Meta:
         verbose_name = "Proposta"
