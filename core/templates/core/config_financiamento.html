@@ -1,26 +1,37 @@
 {% extends "core/_config_base.html" %}
 
 {% block config %}
-  <div class="card">
-    <h3>Taxas de financiamento (% ao mês)</h3>
-    <p class="ajuda">Taxa de cada banco por prazo. A proposta mostra, em cada prazo, a parcela do banco mais barato, como valor aproximado. Para incluir um banco, use a última linha; para tirar, apague o nome e as taxas.</p>
-    <form method="post" novalidate>
-      {% csrf_token %}
-      {% if form.non_field_errors %}<p class="campo__erro">{{ form.non_field_errors|join:" " }}</p>{% endif %}
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}<p class="campo__erro">{{ form.non_field_errors|join:" " }}</p>{% endif %}
+    <div class="card">
+      <h3>Taxas de financiamento</h3>
+      <p class="ajuda">Taxa de juros de cada banco por prazo, em <b>% ao mês</b> (a taxa nominal da simulação do banco, não o CET). Embaixo de cada taxa aparece quanto ela dá ao ano, para conferir. A TAC (tarifa de cadastro) vale para todos os prazos do banco, em reais, em % do valor ou as duas. A proposta mostra, em cada prazo, a parcela do banco mais barato já com TAC e IOF, como valor aproximado. Para incluir um banco, use a última linha; para tirar, apague o nome e as taxas.</p>
       <div class="itens-rolagem">
         <table class="tabela tabela--taxas">
-          <thead><tr><th>Banco</th>{% for prazo in prazos %}<th class="num">{{ prazo }}×</th>{% endfor %}</tr></thead>
+          <thead><tr><th>Banco</th>{% for prazo in prazos %}<th class="num">{{ prazo }}×</th>{% endfor %}<th class="num">TAC (R$)</th><th class="num">TAC (%)</th></tr></thead>
           <tbody>
-            {% for banco, taxas in form.linhas_renderizadas %}
+            {% for banco, taxas, tac_reais, tac_pct in form.linhas_renderizadas %}
               <tr>
                 <td>{{ banco }}{% for erro in banco.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}</td>
-                {% for taxa in taxas %}<td>{{ taxa }}{% for erro in taxa.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}</td>{% endfor %}
+                {% for taxa, anual in taxas %}<td>{{ taxa }}{% if anual is not None %}<span class="ajuda">{{ anual|floatformat:1 }}% a.a.</span>{% endif %}{% for erro in taxa.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}</td>{% endfor %}
+                <td>{{ tac_reais }}{% for erro in tac_reais.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}</td>
+                <td>{{ tac_pct }}{% for erro in tac_pct.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}</td>
               </tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
-      <button type="submit" class="btn">Salvar</button>
-    </form>
-  </div>
+    </div>
+    <div class="card">
+      <h3>IOF</h3>
+      <p class="ajuda">IOF do empréstimo (Decreto 6.306/2007): o adicional sobre o valor e o diário sobre cada parcela, até 365 dias. O sistema usa pessoa jurídica quando o cliente tem CNPJ. Mude só se a Receita mudar as alíquotas.</p>
+      <div class="grade-campos">
+        {% include "core/_campo.html" with campo=form.iof_adicional %}
+        {% include "core/_campo.html" with campo=form.iof_diario_pf %}
+        {% include "core/_campo.html" with campo=form.iof_diario_pj %}
+      </div>
+    </div>
+    <button type="submit" class="btn">Salvar</button>
+  </form>
 {% endblock %}

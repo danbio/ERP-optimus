@@ -84,9 +84,10 @@ def config_tarifas(request):
 
 @so_gestor
 def config_financiamento(request):
-    form = TaxasForm(request.POST or None, taxas=TaxaFinanciamento.objects.all())
+    config = ConfigEmpresa.obter()
+    form = TaxasForm(request.POST or None, taxas=TaxaFinanciamento.objects.all(), config=config)
     if request.method == "POST" and form.is_valid():
-        form.gravar()
+        form.gravar(config)
         messages.success(request, "Taxas de financiamento salvas.")
         return redirect("core:config_financiamento")
     return _render_config(request, "core/config_financiamento.html", {"form": form, "prazos": TaxaFinanciamento.PRAZOS})

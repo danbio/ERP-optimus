@@ -386,15 +386,51 @@ def parcela_price(valor: float, taxa_mensal: float, meses: int) -> float:
     return valor * taxa_mensal / (1 - (1 + taxa_mensal) ** -meses)
 
 
-def tabela_financiamento(valor: float, taxas: list[tuple[str, int, float]]) -> list[dict]:
-    """Para cada prazo, a menor parcela entre os bancos (D22).
+def iof_do_financiamento(principal: float, taxa_mensal: float, meses: int, iof_diario: float,
+                         iof_adicional: float) -> float:
+    """IOF de uma operação de crédito em parcelas (R$), como os bancos calculam (D43).
 
-    `taxas`: (banco, prazo em meses, taxa mensal). Devolve [{"prazo", "banco", "taxa", "parcela"}]
-    em ordem de prazo, só os prazos que têm taxa.
+    Adicional (fração) sobre o principal + diário (fração por dia) sobre a amortização de cada parcela,
+    pelos dias até o vencimento dela (30 por mês), no máximo 365 dias.
+    """
+    parcela = parcela_price(principal, taxa_mensal, meses)
+    saldo, iof = principal, principal * iof_adicional
+    for mes in range(1, meses + 1):
+        amortizacao = parcela - saldo * taxa_mensal
+        iof += amortizacao * iof_diario * min(30 * mes, 365)
+        saldo -= amortizacao
+    return iof
+
+
+def valor_financiado(valor: float, taxa_mensal: float, meses: int, tac_reais: float = 0.0, tac_fracao: float = 0.0,
+                     iof_diario: float = 0.0, iof_adicional: float = 0.0) -> dict:
+    """Valor do sistema + TAC + IOF, todos financiados (D43). Devolve {"tac", "iof", "financiado"} em R$.
+
+    O IOF incide sobre o valor financiado, que já o inclui: resolve-se repetindo a conta até estabilizar.
+    """
+    tac = tac_reais + valor * tac_fracao
+    base = valor + tac
+    financiado = base
+    for _ in range(50):
+        novo = base + iof_do_financiamento(financiado, taxa_mensal, meses, iof_diario, iof_adicional)
+        if abs(novo - financiado) < 0.005:
+            financiado = novo
+            break
+        financiado = novo
+    return {"tac": tac, "iof": financiado - base, "financiado": financiado}
+
+
+def tabela_financiamento(valor: float, taxas: list[tuple], iof_diario: float = 0.0,
+                         iof_adicional: float = 0.0) -> list[dict]:
+    """Para cada prazo, a menor parcela entre os bancos, já com TAC e IOF (D22, D43).
+
+    `taxas`: (banco, prazo em meses, taxa mensal, TAC em R$, TAC em fração do valor). Devolve
+    [{"prazo", "banco", "taxa", "parcela", "tac", "iof", "financiado"}] em ordem de prazo, só os prazos que têm taxa.
     """
     melhores = {}
-    for banco, prazo, taxa in taxas:
-        parcela = parcela_price(valor, taxa, prazo)
+    for banco, prazo, taxa, tac_reais, tac_fracao in taxas:
+        custos = valor_financiado(valor, taxa, prazo, tac_reais, tac_fracao, iof_diario, iof_adicional)
+        parcela = parcela_price(custos["financiado"], taxa, prazo)
         if prazo not in melhores or parcela < melhores[prazo]["parcela"]:
-            melhores[prazo] = {"prazo": prazo, "banco": banco, "taxa": taxa, "parcela": parcela}
+            melhores[prazo] = {"prazo": prazo, "banco": banco, "taxa": taxa, "parcela": parcela} | custos
     return [melhores[prazo] for prazo in sorted(melhores)]

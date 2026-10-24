@@ -88,7 +88,7 @@ def test_parcela_price():
 
 
 def test_tabela_financiamento_escolhe_o_melhor_banco_por_prazo():
-    taxas = [("BV", 12, 0.0159), ("Sicredi", 12, 0.0149), ("BV", 60, 0.0189), ("Sicredi", 72, 0.021)]
+    taxas = [("BV", 12, 0.0159, 0, 0), ("Sicredi", 12, 0.0149, 0, 0), ("BV", 60, 0.0189, 0, 0), ("Sicredi", 72, 0.021, 0, 0)]
     tabela = tabela_financiamento(30000, taxas)
     assert [(t["prazo"], t["banco"]) for t in tabela] == [(12, "Sicredi"), (60, "BV"), (72, "Sicredi")]
     assert tabela[0]["parcela"] == pytest.approx(parcela_price(30000, 0.0149, 12))

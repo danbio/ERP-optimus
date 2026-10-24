@@ -393,12 +393,20 @@ BandeirasFormSet = forms.modelformset_factory(Bandeira, form=BandeiraForm, extra
 
 
 class TaxasForm(forms.Form):
-    """Grade banco × prazo (D22). Uma linha por banco e uma linha vazia para incluir outro."""
+    """Grade banco × prazo (D22), com a TAC de cada banco e o IOF (D43). Uma linha vazia para incluir outro banco."""
 
-    def __init__(self, *args, taxas=(), **kwargs):
+    iof_adicional = CampoPercentual(label="IOF adicional (%)", required=False, maximo=5, casas=4)
+    iof_diario_pf = CampoPercentual(label="IOF ao dia, pessoa física (%)", required=False, maximo=1, casas=4)
+    iof_diario_pj = CampoPercentual(label="IOF ao dia, pessoa jurídica (%)", required=False, maximo=1, casas=4)
+
+    def __init__(self, *args, taxas=(), config=None, **kwargs):
         super().__init__(*args, **kwargs)
+        if config:
+            for campo in ("iof_adicional", "iof_diario_pf", "iof_diario_pj"):
+                self.fields[campo].initial = float(getattr(config, campo))
         self.taxas_atuais = {(t.banco, t.prazo_meses): t for t in taxas}
-        bancos = sorted({t.banco for t in taxas})
+        tac_do_banco = {t.banco: t for t in taxas}
+        bancos = sorted(tac_do_banco)
         self.linhas = []
         for indice, banco in enumerate(bancos + [""]):
             self.fields[f"banco_{indice}"] = forms.CharField(
@@ -409,45 +417,70 @@ class TaxasForm(forms.Form):
                 nome = f"taxa_{indice}_{prazo}"
                 atual = self.taxas_atuais.get((banco, prazo))
                 self.fields[nome] = CampoPercentual(
-                    label=f"{prazo}×", required=False, maximo=10, casas=3,
+                    label=f"{prazo}× (% ao mês)", required=False, maximo=10, casas=3,
                     initial=float(atual.taxa_mensal) if atual else None,
                 )
                 campos.append(nome)
-            self.linhas.append((f"banco_{indice}", campos))
+            exemplo = tac_do_banco.get(banco)
+            self.fields[f"tac_reais_{indice}"] = CampoReais(
+                label="TAC (R$)", required=False, initial=exemplo.tac_reais if exemplo and exemplo.tac_reais else None)
+            self.fields[f"tac_pct_{indice}"] = CampoPercentual(
+                label="TAC (%)", required=False, maximo=10, casas=2,
+                initial=float(exemplo.tac_percentual) if exemplo and exemplo.tac_percentual else None)
+            self.linhas.append((f"banco_{indice}", campos, f"tac_reais_{indice}", f"tac_pct_{indice}"))
 
     def linhas_renderizadas(self):
-        return [(self[banco], [self[c] for c in campos]) for banco, campos in self.linhas]
+        """(banco, [(campo da taxa, % ao ano equivalente ou None)], TAC R$, TAC %) para o template."""
+        linhas = []
+        for banco, campos, tac_reais, tac_pct in self.linhas:
+            taxas = []
+            for nome in campos:
+                inicial = self.fields[nome].initial
+                anual = ((1 + inicial) ** 12 - 1) * 100 if inicial is not None else None
+                taxas.append((self[nome], anual))
+            linhas.append((self[banco], taxas, self[tac_reais], self[tac_pct]))
+        return linhas
 
     def clean(self):
         dados = super().clean()
         vistos = set()
-        for banco, campos in self.linhas:
+        for banco, campos, tac_reais, tac_pct in self.linhas:
             nome = (dados.get(banco) or "").strip()
             tem_taxa = any(dados.get(c) is not None for c in campos)
             if tem_taxa and not nome:
                 self.add_error(banco, "Informe o nome do banco.")
-            if nome.lower() in vistos:
+            if nome and nome.lower() in vistos:
                 self.add_error(banco, "Banco repetido.")
             vistos.add(nome.lower())
+            if dados.get(tac_reais) is not None and dados[tac_reais] < 0:
+                self.add_error(tac_reais, "A TAC não pode ser negativa.")
         return dados
 
-    def gravar(self):
+    def gravar(self, config):
         dados = self.cleaned_data
+        for campo in ("iof_adicional", "iof_diario_pf", "iof_diario_pj"):
+            if dados.get(campo) is not None:  # vazio mantém o valor atual
+                setattr(config, campo, Decimal(str(dados[campo])))
+        config.save(update_fields=["iof_adicional", "iof_diario_pf", "iof_diario_pj"])
         novas = {}
-        for banco, campos in self.linhas:
+        for banco, campos, tac_reais, tac_pct in self.linhas:
             nome = (dados.get(banco) or "").strip()
             if not nome:
                 continue
+            tac = {"tac_reais": dados.get(tac_reais) or Decimal("0"),
+                   "tac_percentual": Decimal(str(dados.get(tac_pct) or 0))}
             for campo, prazo in zip(campos, TaxaFinanciamento.PRAZOS):
                 if dados.get(campo) is not None:
-                    novas[(nome, prazo)] = Decimal(str(dados[campo]))
+                    novas[(nome, prazo)] = (Decimal(str(dados[campo])), tac)
         for chave, taxa in self.taxas_atuais.items():
             if chave not in novas:
                 taxa.delete()
-        for (banco, prazo), valor in novas.items():
+        for (banco, prazo), (valor, tac) in novas.items():
             atual = self.taxas_atuais.get((banco, prazo))
-            if atual and atual.taxa_mensal == valor:
+            if atual and atual.taxa_mensal == valor and atual.tac_reais == tac["tac_reais"] \
+                    and atual.tac_percentual == tac["tac_percentual"]:
                 continue
             TaxaFinanciamento.objects.update_or_create(
-                banco=banco, prazo_meses=prazo, defaults={"taxa_mensal": valor, "vigente_desde": date.today()},
+                banco=banco, prazo_meses=prazo,
+                defaults={"taxa_mensal": valor, "vigente_desde": date.today()} | tac,
             )

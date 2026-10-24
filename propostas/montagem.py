@@ -642,10 +642,14 @@ def _etapa_financeiro(proposta, m, premissas, consumo_motor):
     conta_minima = m.disponibilidade * m.tarifa_kwh + m.iluminacao
     m.conta_com_sistema = max(m.conta_hoje - m.resultado.economia_mensal_ano1, conta_minima)
 
-    taxas = [(t.banco, t.prazo_meses, float(t.taxa_mensal)) for t in TaxaFinanciamento.objects.all()]
-    m.financiamento = [
-        linha | {"taxa_pct": linha["taxa"] * 100} for linha in calculo.tabela_financiamento(m.investimento, taxas)
-    ]
+    taxas = [(t.banco, t.prazo_meses, float(t.taxa_mensal), float(t.tac_reais), float(t.tac_percentual))
+             for t in TaxaFinanciamento.objects.all()]
+    config = ConfigEmpresa.obter()
+    iof_diario = float(config.iof_diario_pj if len(digitos) > 11 else config.iof_diario_pf)  # sem CPF: pessoa física
+    m.iof = {"diario": iof_diario, "adicional": float(config.iof_adicional)}
+    tabela = calculo.tabela_financiamento(m.investimento, taxas, m.iof["diario"], m.iof["adicional"])
+    m.financiamento = [linha | {"taxa_pct": linha["taxa"] * 100, "taxa_ano_pct": ((1 + linha["taxa"]) ** 12 - 1) * 100}
+                       for linha in tabela]
     prazos = [linha["prazo"] for linha in m.financiamento]
     if prazos:
         m.prazo = proposta.prazo_comparacao if proposta.prazo_comparacao in prazos else prazos[-1]
@@ -737,6 +741,7 @@ def registro_da_emissao(proposta, m, premissas):
         "custo_kit_digitado": _decimal(proposta.custo_kit),
         "mao_de_obra_digitada": _decimal(proposta.mao_de_obra),
         "desconto_pct": _decimal(proposta.desconto_pct),
+        "iof": getattr(m, "iof", None),
     }
     saidas = {
         "consumo_kwh": m.consumo,

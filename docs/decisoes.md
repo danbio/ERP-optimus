@@ -293,6 +293,15 @@ Recomendações do parecer aceitas pelo usuário em 24/10 ("usar as recomendaç�
 - **CPF:** não há fonte pública e gratuita de dados por CPF; as pagas exigem contrato e base legal da LGPD. Descartado.
 - **Fatura → cadastro (revisa D37 só neste ponto):** continua "nada é gravado sem o vendedor salvar o passo 2". Ao salvar: a UC é achada pelo número (como já era) e recebe o endereço da fatura; o cliente **sem** endereço recebe o da fatura na rua; o cliente com endereço fica como está. Se o cliente já tem outro CPF/CNPJ, o passo 2 recusa e explica (a fatura pode ser de outro titular); antes, o documento era trocado sem aviso.
 
+## D43 · 2026-10-24 · Financiamento com TAC e IOF (H04)
+Recomendações do parecer aceitas pelo usuário em 24/10 ("usar as recomendações").
+- **Taxa cadastrada:** a taxa **nominal de juros ao mês** da simulação do banco, não o CET (o CET já embute TAC e IOF; cadastrá-lo e somar de novo contaria duas vezes). A tela de Configurações mostra "% ao mês" e o equivalente ao ano, para o gestor conferir.
+- **TAC:** por banco, vale para todos os prazos dele; em R$, em % do valor ou as duas somadas. Vazio = sem TAC.
+- **IOF:** alíquotas do Decreto 6.306/2007 em Configurações (adicional 0,38%; diário 0,0082% pessoa física e 0,0041% pessoa jurídica), editáveis pelo gestor se a Receita mudar. Calculado como os bancos fazem: adicional sobre o valor e diário sobre a amortização de cada parcela pelos dias até ela vencer, no máximo 365. Pessoa jurídica quando o documento do cliente é CNPJ; sem documento, pessoa física.
+- **Financiados:** TAC e IOF entram no valor financiado (o IOF incide sobre ele mesmo; a conta repete até estabilizar). O melhor banco de cada prazo é escolhido **depois** de somar TAC e IOF.
+- **PDF:** mostra só a parcela, com a nota "já com IOF e tarifa de cadastro". O registro da emissão guarda as alíquotas e, por prazo, TAC, IOF e valor financiado.
+- **Código:** `calculo.iof_do_financiamento`, `calculo.valor_financiado` e `calculo.tabela_financiamento` (funções puras).
+
 ## Pendências de validação
 - [x] Regra de custo de disponibilidade para GD após a Lei 14.300 (item 3 de D08): fora do motor (D33).
 - [x] Valor da TUSD Fio B vigente na Energisa TO por subgrupo (B1/B2/B3): 0,441478 R$/kWh (D32).
