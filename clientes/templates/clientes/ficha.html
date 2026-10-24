@@ -14,6 +14,7 @@
       <dt>Telefone</dt><dd>{{ cliente.telefone_formatado|default:"—" }}</dd>
       <dt>Município</dt><dd>{{ cliente.municipio|default:"—" }}</dd>
       <dt>CPF/CNPJ</dt><dd>{{ cliente.cpf_cnpj_formatado|default:"—" }}</dd>
+      <dt>Endereço</dt><dd>{{ cliente.endereco_completo|default:"—" }}</dd>
       {% if cliente.razao_social %}<dt>Razão social</dt><dd>{{ cliente.razao_social }}</dd>{% endif %}
       {% if cliente.email %}<dt>E-mail</dt><dd>{{ cliente.email }}</dd>{% endif %}
       {% if cliente.observacoes %}<dt>Observações</dt><dd>{{ cliente.observacoes|linebreaksbr }}</dd>{% endif %}

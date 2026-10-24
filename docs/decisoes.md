@@ -286,6 +286,13 @@ Revisão em três visões (vendedor iniciante, gestor, dev sênior), com 30 acha
 - **Configurações (H02, A22):** CNPJ da empresa por dígito verificador e telefone com DDD, gravados formatados (os PDFs mostram como está); validade da proposta de 5 a 60 dias; orientação de 50% a 100%; pelo menos um perfil de simultaneidade, sem nome repetido; etapas no formato "Título | descrição".
 - **Modo cliente (A29):** o que ele esconde não vai mais ao navegador (antes era só escondido por CSS). No passo 3 o sistema fica só para ver; para mudar módulos, inversor ou preço, sair do modo cliente. O botão volta para a página em que o vendedor estava.
 
+## D42 · 2026-10-24 · Endereço do cliente, busca por CEP e CNPJ, e o que a fatura muda no cadastro (H12, H15)
+Recomendações do parecer aceitas pelo usuário em 24/10 ("usar as recomendações").
+- **Endereço no `Cliente`:** CEP, rua, número, complemento e bairro, todos opcionais; o município é o que o cliente já tem. O endereço da instalação continua na UC (pode ser outro, como a fazenda).
+- **CEP e CNPJ (exceção à regra "a proposta nunca consulta API na hora", que continua valendo para a proposta):** no cadastro do cliente, o **navegador do vendedor** consulta o ViaCEP (CEP → rua, bairro, município pelo código IBGE) e a BrasilAPI (CNPJ → razão social, nome fantasia, telefone, e-mail, endereço). Só preenche campo vazio; o vendedor confere e salva. O servidor não acessa a internet; sem internet, o vendedor digita. Gratuitos, sem chave, `static/js/cliente.js`.
+- **CPF:** não há fonte pública e gratuita de dados por CPF; as pagas exigem contrato e base legal da LGPD. Descartado.
+- **Fatura → cadastro (revisa D37 só neste ponto):** continua "nada é gravado sem o vendedor salvar o passo 2". Ao salvar: a UC é achada pelo número (como já era) e recebe o endereço da fatura; o cliente **sem** endereço recebe o da fatura na rua; o cliente com endereço fica como está. Se o cliente já tem outro CPF/CNPJ, o passo 2 recusa e explica (a fatura pode ser de outro titular); antes, o documento era trocado sem aviso.
+
 ## Pendências de validação
 - [x] Regra de custo de disponibilidade para GD após a Lei 14.300 (item 3 de D08): fora do motor (D33).
 - [x] Valor da TUSD Fio B vigente na Energisa TO por subgrupo (B1/B2/B3): 0,441478 R$/kWh (D32).

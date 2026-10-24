@@ -30,6 +30,11 @@ def ficha(request, pk):
     })
 
 
+def _municipios_ibge(form):
+    """{código IBGE: id} dos municípios do formulário: o CEP traz o código e o JS escolhe o município (D42)."""
+    return {str(m.codigo_ibge): m.pk for m in form.fields["municipio"].queryset}
+
+
 def cliente_novo(request):
     """Cadastro de cliente. Com ?next= (vindo da proposta) volta para lá com ?cliente=<id>."""
     proximo = request.GET.get("next")
@@ -42,7 +47,9 @@ def cliente_novo(request):
             return redirect("clientes:ficha", pk=cliente.pk)
     else:
         form = ClienteForm()
-    return render(request, "clientes/form_cliente.html", {"form": form, "titulo": "Novo cliente"})
+    return render(request, "clientes/form_cliente.html", {
+        "form": form, "titulo": "Novo cliente", "municipios_ibge": _municipios_ibge(form),
+    })
 
 
 def cliente_editar(request, pk):
@@ -56,6 +63,7 @@ def cliente_editar(request, pk):
         form = ClienteForm(instance=cliente)
     return render(request, "clientes/form_cliente.html", {
         "form": form, "titulo": f"Editar {cliente.nome}", "cliente": cliente,
+        "municipios_ibge": _municipios_ibge(form),
     })
 
 

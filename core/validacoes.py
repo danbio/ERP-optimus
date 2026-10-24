@@ -213,3 +213,13 @@ def conferir_arquivo(nome, tamanho_bytes, tipo):
         raise ValueError(f"Envie um arquivo {aceitas}.")
     if tamanho_bytes > maximo_mb * 1024 * 1024:
         raise ValueError(f"Arquivo grande demais: o limite é {maximo_mb} MB.")
+
+
+def limpar_cep(texto):
+    """CEP com 8 números, gravado como 77400-000 ("" se vazio)."""
+    digitos = so_digitos(texto)
+    if not digitos:
+        return ""
+    if len(digitos) != 8:
+        raise ValueError("O CEP tem 8 números.")
+    return f"{digitos[:5]}-{digitos[5:]}"

@@ -31,7 +31,11 @@
       .replace(/\.(\d{3})(\d)/, ".$1/$2").replace(/(\d{4})(\d)/, "$1-$2");
   }
 
-  var mascaras = { telefone: telefone, cpf_cnpj: cpfCnpj };
+  function cep(valor) {
+    return digitos(valor, 8).replace(/^(\d{5})(\d)/, "$1-$2");
+  }
+
+  var mascaras = { telefone: telefone, cpf_cnpj: cpfCnpj, cep: cep };
 
   document.addEventListener("input", function (evento) {
     var campo = evento.target;

@@ -4,7 +4,7 @@ from django import forms
 
 from core.forms import higienizar, texto_limpo
 from core.models import Municipio
-from core.validacoes import limpar_cpf_cnpj, limpar_nome, limpar_telefone
+from core.validacoes import limpar_cep, limpar_cpf_cnpj, limpar_nome, limpar_telefone
 
 from .models import Cliente, UnidadeConsumidora
 
@@ -33,7 +33,8 @@ class ClienteForm(forms.ModelForm):
 
     class Meta:
         model = Cliente
-        fields = ["nome", "telefone", "municipio", "cpf_cnpj", "razao_social", "email", "observacoes"]
+        fields = ["nome", "telefone", "municipio", "cpf_cnpj", "razao_social", "email",
+                  "cep", "logradouro", "numero", "complemento", "bairro", "observacoes"]
         labels = {"nome": "Nome do cliente"}
 
     def __init__(self, *args, **kwargs):
@@ -41,6 +42,9 @@ class ClienteForm(forms.ModelForm):
         self.fields["cpf_cnpj"].widget.attrs.update({"data-mascara": "cpf_cnpj", "inputmode": "numeric"})
         self.fields["telefone"].widget.attrs.update({"data-mascara": "telefone", "inputmode": "tel"})
         self.fields["observacoes"].widget.attrs["rows"] = 3
+        # Preenchimento automático no navegador (D42): CEP pelo ViaCEP, CNPJ pela BrasilAPI.
+        self.fields["cep"].widget.attrs.update({"data-mascara": "cep", "inputmode": "numeric", "data-busca-cep": ""})
+        self.fields["cpf_cnpj"].widget.attrs["data-busca-cnpj"] = ""
         if self.instance.pk:
             self.initial["cpf_cnpj"] = self.instance.cpf_cnpj_formatado
             self.initial["telefone"] = self.instance.telefone_formatado
@@ -48,6 +52,21 @@ class ClienteForm(forms.ModelForm):
 
     def clean_razao_social(self):
         return texto_limpo(self.cleaned_data["razao_social"])
+
+    def clean_cep(self):
+        return _limpar(limpar_cep, self.cleaned_data["cep"])
+
+    def clean_logradouro(self):
+        return texto_limpo(self.cleaned_data["logradouro"])
+
+    def clean_numero(self):
+        return texto_limpo(self.cleaned_data["numero"], 20)
+
+    def clean_complemento(self):
+        return texto_limpo(self.cleaned_data["complemento"], 100)
+
+    def clean_bairro(self):
+        return texto_limpo(self.cleaned_data["bairro"], 100)
 
     def clean_nome(self):
         return _limpar(limpar_nome, self.cleaned_data["nome"])
