@@ -43,8 +43,10 @@
           <tr>
             <th class="doc-tabela__qtd">Qtd.</th>
             <th>Descrição</th>
-            <th class="num">Unitário (R$)</th>
-            <th class="num">Total (R$)</th>
+            {% if orcamento.mostrar_precos %}
+              <th class="num">Unitário (R$)</th>
+              <th class="num">Total (R$)</th>
+            {% endif %}
           </tr>
         </thead>
         <tbody>
@@ -55,11 +57,23 @@
                 {{ item.descricao }}
                 {% if item.codigo %}<span class="doc-codigo">Cód. Intelbras {{ item.codigo }}</span>{% endif %}
               </td>
-              <td class="num">{{ item.preco_unitario|floatformat:"2g" }}</td>
-              <td class="num">{{ item.total|floatformat:"2g" }}</td>
+              {% if orcamento.mostrar_precos %}
+                <td class="num">{{ item.preco_unitario|floatformat:"2g" }}</td>
+                <td class="num">{{ item.total|floatformat:"2g" }}</td>
+              {% endif %}
             </tr>
           {% endfor %}
         </tbody>
+        <tfoot>
+          <tr class="doc-tabela__subtotal">
+            {% if orcamento.mostrar_precos %}
+              <td colspan="3">Subtotal · {{ grupo.rotulo }}</td>
+              <td class="num">R$ {{ grupo.subtotal|floatformat:"2g" }}</td>
+            {% else %}
+              <td colspan="2" class="num">Subtotal · {{ grupo.rotulo }}: R$ {{ grupo.subtotal|floatformat:"2g" }}</td>
+            {% endif %}
+          </tr>
+        </tfoot>
       </table>
     </section>
   {% endfor %}
@@ -74,6 +88,21 @@
       {% if resumo.desconto_valor %} · Desconto de {{ resumo.desconto_pct|floatformat:"-2" }}% (− R$ {{ resumo.desconto_valor|floatformat:"2g" }}){% endif %}
     </div>
   </section>
+
+  {% if parcelas %}
+    <section class="doc-secao doc-secao--inteira">
+      <h2 class="doc-h2">Parcelamento</h2>
+      <div class="doc-parcelas">
+        {% for p in parcelas %}
+          <div class="doc-parcelas__item">
+            <span class="doc-parcelas__n">{{ p.parcelas }}×</span>
+            <span class="doc-parcelas__valor">R$ {{ p.parcela|floatformat:"2g" }}</span>
+            <span class="doc-parcelas__detalhe">{% if p.acrescimo %}total R$ {{ p.total|floatformat:"2g" }}{% else %}sem juros{% endif %}</span>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
 
   <section class="doc-secao doc-secao--inteira">
     <h2 class="doc-h2">Condições</h2>

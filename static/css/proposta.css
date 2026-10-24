@@ -173,6 +173,43 @@
       width: 40mm;
       font-weight: 500;
     }
+
+    & .doc-tabela__subtotal td {
+      font-weight: 500;
+      border-bottom: 0;
+    }
+  }
+
+  .doc-parcelas {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 3mm;
+
+    & .doc-parcelas__item {
+      border: 1px solid var(--line);
+      border-top: 3px solid var(--gold);
+      border-radius: var(--raio);
+      padding: 3mm;
+      break-inside: avoid;
+    }
+
+    & .doc-parcelas__n {
+      display: block;
+      font-size: 8pt;
+      color: var(--muted);
+    }
+
+    & .doc-parcelas__valor {
+      display: block;
+      font-size: 13pt;
+      font-weight: 700;
+      color: var(--navy);
+    }
+
+    & .doc-parcelas__detalhe {
+      font-size: 7.5pt;
+      color: var(--muted);
+    }
   }
 
   .doc-investimento {

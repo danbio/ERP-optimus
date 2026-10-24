@@ -23,5 +23,6 @@ urlpatterns = [
     path("item/<int:item_pk>/atualizar/", views.atualizar_item, name="item_atualizar"),
     path("item/<int:item_pk>/remover/", views.remover_item, name="item_remover"),
     path("catalogo/", views.catalogo, name="catalogo"),
+    path("configuracoes/parcelamento/", views.config_parcelamento, name="config_parcelamento"),
     path("catalogo/importar/", views.importar_tabela, name="importar"),
 ]

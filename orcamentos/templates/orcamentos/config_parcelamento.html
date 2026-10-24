@@ -1,0 +1,23 @@
+{% extends "core/_config_base.html" %}
+
+{% block config %}
+  <div class="card">
+    <h3>Parcelamento do orçamento Intelbras</h3>
+    <p class="ajuda">Prazos que aparecem no PDF do orçamento e o acréscimo total de cada um sobre o valor (0 = sem juros). Prazo sem acréscimo informado não aparece. O vendedor pode esconder o parcelamento num orçamento. Para tirar um prazo, apague a linha.</p>
+    <form method="post" novalidate>
+      {% csrf_token %}
+      <table class="tabela tabela--taxas">
+        <thead><tr><th>Parcelas</th><th>Acréscimo total (%)</th></tr></thead>
+        <tbody>
+          {% for parcelas, acrescimo in form.linhas_renderizadas %}
+            <tr>
+              <td>{{ parcelas }}{% for erro in parcelas.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}</td>
+              <td>{{ acrescimo }}{% for erro in acrescimo.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <button type="submit" class="btn">Salvar</button>
+    </form>
+  </div>
+{% endblock %}

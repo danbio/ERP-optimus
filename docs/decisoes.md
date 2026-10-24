@@ -302,6 +302,12 @@ Recomendações do parecer aceitas pelo usuário em 24/10 ("usar as recomendaç�
 - **PDF:** mostra só a parcela, com a nota "já com IOF e tarifa de cadastro". O registro da emissão guarda as alíquotas e, por prazo, TAC, IOF e valor financiado.
 - **Código:** `calculo.iof_do_financiamento`, `calculo.valor_financiado` e `calculo.tabela_financiamento` (funções puras).
 
+## D44 · 2026-10-24 · Orçamento Intelbras: preço oculto e parcelamento no PDF (H09, H10)
+Recomendações do parecer aceitas pelo usuário em 24/10 ("usar as recomendações").
+- **Preço dos itens (H09):** uma opção por orçamento, "Mostrar o preço de cada item no PDF" (marcada por padrão). Desmarcada, o PDF lista quantidade e descrição; o subtotal de cada grupo (equipamentos, materiais, serviços) e o total continuam.
+- **Parcelamento (H10):** o gestor cadastra em Configurações → Parcelamento os prazos (padrão 3×, 6×, 12× e 21×, editáveis) e o acréscimo total de cada prazo sobre o valor (0% = sem juros). Prazo sem acréscimo informado não aparece no PDF; o sistema não inventa taxa. O PDF mostra "N× de R$ X" e, com acréscimo, o total parcelado. O vendedor pode esconder o parcelamento num orçamento ("Mostrar o parcelamento no PDF"). Não distingue cartão de boleto: a forma de pagamento continua no texto livre.
+- **Código:** `orcamentos/services/calculo.parcelamento` (função pura); prazos e acréscimos em `ParametrosOrcamento.parcelamento`; uma migração para as três mudanças.
+
 ## Pendências de validação
 - [x] Regra de custo de disponibilidade para GD após a Lei 14.300 (item 3 de D08): fora do motor (D33).
 - [x] Valor da TUSD Fio B vigente na Energisa TO por subgrupo (B1/B2/B3): 0,441478 R$/kWh (D32).

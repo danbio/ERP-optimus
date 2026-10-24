@@ -132,3 +132,20 @@ def resumir(linhas: list[Linha], desconto_pct: Decimal = Decimal("0")) -> Resumo
         alertas_por_linha=alertas_por_linha,
         alertas=alertas,
     )
+
+
+def parcelamento(total: Decimal, opcoes: list[dict]) -> list[dict]:
+    """Parcelas do PDF (H10, D44). `opcoes`: [{"parcelas": 3, "acrescimo": 0.05 ou None}].
+
+    Acréscimo em fração sobre o total; None = o gestor não informou, o prazo fica de fora.
+    Devolve [{"parcelas", "acrescimo", "parcela", "total"}] em ordem de prazo.
+    """
+    linhas = []
+    for opcao in sorted(opcoes, key=lambda o: o["parcelas"]):
+        if opcao.get("acrescimo") is None or not total:
+            continue
+        acrescimo = Decimal(str(opcao["acrescimo"]))
+        com_acrescimo = _centavos(total * (1 + acrescimo))
+        linhas.append({"parcelas": opcao["parcelas"], "acrescimo": acrescimo,
+                       "parcela": _centavos(com_acrescimo / opcao["parcelas"]), "total": com_acrescimo})
+    return linhas

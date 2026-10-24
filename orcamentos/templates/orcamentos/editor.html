@@ -85,7 +85,7 @@
           {% for campo in form %}
             <div class="campo {% if campo.field.widget.input_type == 'checkbox' %}campo--checkbox{% endif %}">
               <label for="{{ campo.id_for_label }}">{{ campo.label }}</label>
-              {% if orcamento.editavel %}{{ campo }}{% else %}<div>{{ campo.value|default:"—"|linebreaksbr }}</div>{% endif %}
+              {% if orcamento.editavel %}{{ campo }}{% elif campo.field.widget.input_type == 'checkbox' %}<div>{{ campo.value|yesno:"Sim,Não" }}</div>{% else %}<div>{{ campo.value|default:"—"|linebreaksbr }}</div>{% endif %}
               {% if campo.errors %}<p class="badge badge--erro">{{ campo.errors|join:" " }}</p>{% endif %}
             </div>
           {% endfor %}
