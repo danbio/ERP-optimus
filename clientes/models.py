@@ -66,7 +66,7 @@ class UnidadeConsumidora(models.Model):
     endereco = models.CharField("endereço", max_length=255)
     # null só para a migration de UCs antigas com município digitado errado; o formulário exige.
     municipio = models.ForeignKey(Municipio, on_delete=models.PROTECT, null=True, verbose_name="município")
-    concessionaria = models.CharField("concessionária", max_length=120, default="Energisa TO")
+    concessionaria = models.CharField("concessionária", max_length=120, blank=True)  # a do município (D47)
     classe = models.CharField(max_length=2, choices=Classe.choices)
     ligacao = models.CharField("ligação", max_length=4, choices=Ligacao.choices)
 

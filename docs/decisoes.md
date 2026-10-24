@@ -328,6 +328,14 @@ Recomendações do parecer aceitas pelo usuário em 24/10 ("usar as recomendaç�
   Propostas contam pelo número (versões da mesma proposta contam uma vez). Os dois prazos (aviso de vencimento, 3 dias; parada, 7 dias) ficam em Configurações → Premissas.
 - **Celular (A18):** o menu fica recolhido atrás de um botão "Menu"; nos passos da proposta, uma barra fixa embaixo mostra kWp, investimento e parcela, atualizada junto com o resumo.
 
+## D47 · 2026-10-24 · Mais de uma distribuidora e de um estado: estrutura para Goiás (H05)
+Recomendação do parecer aceita pelo usuário em 24/10: Goiás entra só com a estrutura, sem dados (municípios, irradiação, tarifas e iluminação de GO são carregados quando a Optimus começar a vender lá).
+- **Distribuidora** (`core.Distribuidora`): nome, sigla ANEEL e UF. Começa com a Energisa TO (sigla ETO). A Equatorial Goiás é incluída pelo gestor no admin quando houver dados (a sigla ANEEL vem do conjunto de tarifas da ANEEL).
+- **Município → distribuidora:** cada município guarda quem o atende (os do Tocantins vêm com a Energisa TO). Ao importar os municípios de um estado, eles recebem a distribuidora se o estado tiver uma só cadastrada; senão, o gestor escolhe no admin.
+- **Estados atendidos:** `ConfigEmpresa.ufs_atendidas` ("TO"; com Goiás, "TO, GO"), em Configurações → Empresa. As listas de município do cliente, da UC e da proposta, e a tela de municípios, usam esses estados.
+- **Tarifa da proposta:** no passo 1, a tarifa precisa ser da distribuidora do município; se não for, o passo explica e não avança. Com mais de uma distribuidora, a lista de tarifas mostra o nome de cada uma.
+- **Sem "Energisa TO" fixo no código:** a atualização da ANEEL percorre as distribuidoras com sigla; a UC recebe a distribuidora do município; o PDF e a tela de tarifas mostram a distribuidora da tarifa. Tributos já são por linha de tarifa e a iluminação já é por município; a bandeira é nacional.
+
 ## Pendências de validação
 - [x] Regra de custo de disponibilidade para GD após a Lei 14.300 (item 3 de D08): fora do motor (D33).
 - [x] Valor da TUSD Fio B vigente na Energisa TO por subgrupo (B1/B2/B3): 0,441478 R$/kWh (D32).

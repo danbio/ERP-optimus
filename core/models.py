@@ -40,6 +40,9 @@ class ConfigEmpresa(models.Model):
         blank=True, help_text="Uma etapa por linha, no formato 'Título | descrição'."
     )
     validade_padrao_dias = models.PositiveIntegerField(default=15)
+    ufs_atendidas = models.CharField(
+        "estados atendidos", max_length=60, default="TO", help_text='Siglas separadas por vírgula: "TO, GO".',
+    )
     # IOF do financiamento (D43, Decreto 6.306/2007): frações. O gestor confere se a Receita mudar.
     iof_adicional = models.DecimalField("IOF adicional (fração)", max_digits=7, decimal_places=6, default=Decimal("0.0038"))
     iof_diario_pf = models.DecimalField("IOF diário pessoa física (fração)", max_digits=8, decimal_places=7,
@@ -108,6 +111,28 @@ class ConfigEmpresa(models.Model):
     def obter(cls):
         return cls.objects.first()
 
+    def ufs(self):
+        return [uf.strip().upper() for uf in self.ufs_atendidas.split(",") if uf.strip()]
+
+
+class Distribuidora(models.Model):
+    """Distribuidora de energia (D47). As tarifas e os municípios apontam para ela pelo nome."""
+
+    nome = models.CharField(max_length=60, unique=True, help_text='Como aparece nas tarifas: "Energisa TO".')
+    sigla_aneel = models.CharField(
+        "sigla na ANEEL", max_length=20, blank=True,
+        help_text="Campo SigAgente do conjunto de tarifas da ANEEL. Vazio: as tarifas são digitadas.",
+    )
+    uf = models.CharField("UF", max_length=2)
+
+    class Meta:
+        verbose_name = "Distribuidora"
+        verbose_name_plural = "Distribuidoras"
+        ordering = ["uf", "nome"]
+
+    def __str__(self):
+        return self.nome
+
 
 class Municipio(models.Model):
     """Município do IBGE, com coordenadas e irradiação (D21, D26)."""
@@ -128,6 +153,9 @@ class Municipio(models.Model):
         help_text="Ex.: UFIRG de Gurupi. Muda todo ano.",
     )
     lei_iluminacao = models.CharField("lei da iluminação pública", max_length=255, blank=True)
+    distribuidora = models.ForeignKey(
+        Distribuidora, on_delete=models.PROTECT, null=True, blank=True, related_name="municipios",
+    )
 
     class Meta:
         verbose_name = "Município"
@@ -136,6 +164,12 @@ class Municipio(models.Model):
 
     def __str__(self):
         return f"{self.nome}/{self.uf}"
+
+    @classmethod
+    def atendidos(cls):
+        """Municípios dos estados em que a Optimus vende (D47)."""
+        config = ConfigEmpresa.obter()
+        return cls.objects.filter(uf__in=config.ufs() if config else [])
 
     @property
     def media_irradiacao(self):

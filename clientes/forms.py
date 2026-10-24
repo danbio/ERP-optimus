@@ -27,7 +27,7 @@ class ClienteForm(forms.ModelForm):
     cpf_cnpj = forms.CharField(label="CPF ou CNPJ", required=False)
     telefone = forms.CharField(label="Telefone com DDD")
     municipio = MunicipioSelect(
-        queryset=Municipio.objects.filter(uf="TO"), label="Município", required=False,
+        queryset=Municipio.objects.none(), label="Município", required=False,
         empty_label="Escolha o município",
     )
 
@@ -39,6 +39,7 @@ class ClienteForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["municipio"].queryset = Municipio.atendidos()
         self.fields["cpf_cnpj"].widget.attrs.update({"data-mascara": "cpf_cnpj", "inputmode": "numeric"})
         self.fields["telefone"].widget.attrs.update({"data-mascara": "telefone", "inputmode": "tel"})
         self.fields["observacoes"].widget.attrs["rows"] = 3
@@ -85,7 +86,7 @@ class ClienteForm(forms.ModelForm):
 
 class UnidadeConsumidoraForm(forms.ModelForm):
     municipio = MunicipioSelect(
-        queryset=Municipio.objects.filter(uf="TO"), label="Município", empty_label="Escolha o município",
+        queryset=Municipio.objects.none(), label="Município", empty_label="Escolha o município",
     )
 
     class Meta:
@@ -95,7 +96,16 @@ class UnidadeConsumidoraForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["municipio"].queryset = Municipio.atendidos()
+        self.fields["concessionaria"].help_text = "Vazio: a distribuidora do município."
         higienizar(self)
+
+    def clean(self):
+        dados = super().clean()
+        municipio = dados.get("municipio")
+        if not dados.get("concessionaria") and municipio and municipio.distribuidora:
+            dados["concessionaria"] = municipio.distribuidora.nome  # D47
+        return dados
 
     def clean_numero_uc(self):
         numero = self.cleaned_data["numero_uc"].strip()

@@ -20,7 +20,6 @@ from decimal import Decimal
 ANEEL_API = "https://dadosabertos.aneel.gov.br/api/3/action/datastore_search?"
 ANEEL_TARIFAS = "fcf2906c-7c32-4b9b-a637-054e7a5234f4"
 ANEEL_BANDEIRAS = "5879ca80-b3bd-45b1-a135-d9b77c1d5b36"
-ANEEL_SIGLA_ENERGISA_TO = "ETO"
 MUNICIPIOS_CSV = "https://raw.githubusercontent.com/kelvins/municipios-brasileiros/main/csv/municipios.csv"
 
 # Como cada tipo de tarifa do Grupo B aparece no conjunto da ANEEL.
@@ -79,13 +78,13 @@ def ler_tarifas_aneel(registros):
     return resultado
 
 
-def _registros_aneel_tarifas(subgrupo):
+def _registros_aneel_tarifas(sigla, subgrupo):
     consulta = {
         "resource_id": ANEEL_TARIFAS,
         "limit": 200,
         "sort": "DatInicioVigencia desc",
         "filters": json.dumps({
-            "SigAgente": ANEEL_SIGLA_ENERGISA_TO,
+            "SigAgente": sigla,
             "DscSubGrupo": subgrupo,
             "DscBaseTarifaria": "Tarifa de Aplicação",
             "DscModalidadeTarifaria": "Convencional",
@@ -95,25 +94,33 @@ def _registros_aneel_tarifas(subgrupo):
 
 
 def atualizar_tarifas():
-    """Grava uma TarifaVigente nova para cada tipo cuja vigência mudou.
+    """Para cada distribuidora com sigla ANEEL (D47), grava uma TarifaVigente nova por tipo cuja vigência mudou.
 
     Tributos e Fio B são do gestor: a tarifa nova começa com os valores da anterior,
     e o Fio B fica marcado para conferir (D21).
     """
+    from .models import Distribuidora
+
+    textos = [_atualizar_tarifas_de(d) for d in Distribuidora.objects.exclude(sigla_aneel="")]
+    return " ".join(textos) or "Nenhuma distribuidora com sigla ANEEL cadastrada. Nada foi alterado."
+
+
+def _atualizar_tarifas_de(distribuidora):
     from propostas.models import TarifaVigente
 
     registros = []
     for subgrupo in ("B1", "B2", "B3"):
-        registros += _registros_aneel_tarifas(subgrupo)
+        registros += _registros_aneel_tarifas(distribuidora.sigla_aneel, subgrupo)
     lidas = ler_tarifas_aneel(registros)
     if not lidas:
-        return "A ANEEL não devolveu tarifas da Energisa TO. Nada foi alterado."
+        return f"A ANEEL não devolveu tarifas da {distribuidora}. Nada foi alterado."
 
     novas, iguais = [], []
     for tipo, valores in lidas.items():
-        anterior = TarifaVigente.objects.filter(distribuidora="Energisa TO", tipo=tipo).order_by("-vigencia_inicio").first()
+        anterior = TarifaVigente.objects.filter(
+            distribuidora=distribuidora.nome, tipo=tipo).order_by("-vigencia_inicio").first()
         tarifa, criada = TarifaVigente.objects.update_or_create(
-            distribuidora="Energisa TO", tipo=tipo, vigencia_inicio=valores["vigencia"],
+            distribuidora=distribuidora.nome, tipo=tipo, vigencia_inicio=valores["vigencia"],
             defaults={
                 "tusd": valores["tusd"], "te": valores["te"],
                 "fonte": f"ANEEL, dados abertos ({valores['reh'][:150]})",
@@ -126,8 +133,8 @@ def atualizar_tarifas():
             tarifa.save(update_fields=["aliquota_tributos", "fiob_kwh"])
         (novas if criada else iguais).append(tarifa.get_tipo_display())
     if novas:
-        return f"Tarifas novas: {', '.join(novas)}. Confira os tributos e o Fio B."
-    return f"Tarifas já estavam em dia ({len(iguais)} tipos)."
+        return f"{distribuidora}: tarifas novas ({', '.join(novas)}). Confira os tributos e o Fio B."
+    return f"{distribuidora}: tarifas já estavam em dia ({len(iguais)} tipos)."
 
 
 # ---------- Bandeiras ----------
@@ -180,9 +187,12 @@ CODIGOS_UF = {
 
 
 def importar_municipios(uf):
-    from .models import Municipio
+    from .models import Distribuidora, Municipio
 
     uf = uf.upper()
+    # Estado com uma distribuidora só: os municípios já vêm com ela; senão, o gestor escolhe (D47).
+    distribuidoras = list(Distribuidora.objects.filter(uf=uf))
+    distribuidora = distribuidoras[0] if len(distribuidoras) == 1 else None
     requisicao = urllib.request.Request(MUNICIPIOS_CSV, headers={"User-Agent": "meu_erp"})
     with urllib.request.urlopen(requisicao, timeout=90) as resposta:
         texto = resposta.read().decode("utf-8")
@@ -192,6 +202,8 @@ def importar_municipios(uf):
             codigo_ibge=m["codigo_ibge"],
             defaults={"nome": m["nome"], "uf": uf, "latitude": m["latitude"], "longitude": m["longitude"]},
         )
+    if distribuidora:
+        Municipio.objects.filter(uf=uf, distribuidora__isnull=True).update(distribuidora=distribuidora)
     return f"{len(lidos)} municípios de {uf} gravados."
 
 
@@ -231,8 +243,8 @@ def atualizar_irradiacao(municipios):
     return atualizados, erros
 
 
-def municipios_para_atualizar(uf=None):
-    """Municípios sem irradiação ou com dado de mais de um ano (D21)."""
+def municipios_para_atualizar(ufs=None):
+    """Municípios (dos estados da lista) sem irradiação ou com dado de mais de um ano (D21)."""
     from django.db.models import Q
 
     from .models import Municipio
@@ -241,4 +253,4 @@ def municipios_para_atualizar(uf=None):
     pendentes = Municipio.objects.filter(
         Q(irradiacao__isnull=True) | Q(atualizado_em__isnull=True) | Q(atualizado_em__lt=um_ano_atras)
     )
-    return pendentes.filter(uf=uf.upper()) if uf else pendentes
+    return pendentes.filter(uf__in=[u.upper() for u in ufs]) if ufs else pendentes

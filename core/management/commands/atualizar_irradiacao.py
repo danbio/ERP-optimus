@@ -13,7 +13,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, uf=None, todos=False, **opcoes):
         municipios = Municipio.objects.filter(uf=uf.upper()) if (todos and uf) else (
-            Municipio.objects.all() if todos else municipios_para_atualizar(uf)
+            Municipio.objects.all() if todos else municipios_para_atualizar([uf] if uf else None)
         )
         total = municipios.count()
         self.stdout.write(f"{total} municípios para atualizar...")

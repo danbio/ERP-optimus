@@ -132,7 +132,7 @@ Achados `Hxx` e premissas `P1`/`P2` do teste feito pelo usuário no navegador. R
 
 ## Rodada 13 · Goiás
 
-- [ ] **H05** Municípios de Goiás com irradiação, distribuidora (Equatorial Goiás, sigla ANEEL própria), tarifas com tributos de GO, Fio B e iluminação pública por município; distribuidora da proposta vinda da UC/município; tirar o "Energisa TO" fixo do código e das telas. Bandeira é nacional, não muda **(perguntas: estado inteiro ou região; tipos de tarifa)**.
+- [x] **H05** (D47, só a estrutura; os dados de GO entram quando houver venda lá) Municípios de Goiás com irradiação, distribuidora (Equatorial Goiás, sigla ANEEL própria), tarifas com tributos de GO, Fio B e iluminação pública por município; distribuidora da proposta vinda da UC/município; tirar o "Energisa TO" fixo do código e das telas. Bandeira é nacional, não muda **(perguntas: estado inteiro ou região; tipos de tarifa)**.
 
 ## Rodada 14 · Higienização e documentação
 

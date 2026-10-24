@@ -113,7 +113,7 @@ def test_carga_inicial_de_tarifas_e_bandeiras(db):
 def test_tarifa_nova_herda_tributos_e_fio_b(db, monkeypatch):
     TarifaVigente.objects.filter(tipo="B1").update(aliquota_tributos=Decimal("0.25"), fiob_kwh=Decimal("0.3"))
     registros = [_tarifa("B1", "Residencial", "Residencial", "700,00", "320,00", vigencia="2027-08-26")]
-    monkeypatch.setattr(dados_oficiais, "_registros_aneel_tarifas", lambda sub: registros if sub == "B1" else [])
+    monkeypatch.setattr(dados_oficiais, "_registros_aneel_tarifas", lambda sigla, sub: registros if sub == "B1" else [])
 
     texto = dados_oficiais.atualizar_tarifas()
 
