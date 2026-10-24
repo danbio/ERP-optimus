@@ -36,6 +36,7 @@ def ler_decimal(texto, padrao=None):
 
 
 def preco_por_markup(custo: Decimal, markup_pct: Decimal) -> Decimal:
+    """Preço de venda (R$) = custo × (1 + markup em %)."""
     return _centavos(custo * (1 + markup_pct / CEM))
 
 
@@ -47,6 +48,7 @@ def markup_por_preco(custo: Decimal, preco: Decimal):
 
 
 def markup_para(segmento: str, markups: dict[str, Decimal], padrao: Decimal) -> Decimal:
+    """Markup (%) do segmento, ou o padrão se o segmento não tem um próprio (D14)."""
     return markups.get(segmento, padrao)
 
 
@@ -80,6 +82,7 @@ class Resumo:
 
 
 def alertas_da_linha(linha: Linha) -> list[str]:
+    """Avisos de um item: sem custo, abaixo do custo, acima do PSCF, fora da tabela, em encerramento."""
     alertas = []
     if linha.tipo == "intelbras" and not linha.custo_unitario:
         alertas.append("Sem custo na tabela (PSD zerado): informe o preço manualmente.")
@@ -97,6 +100,7 @@ def alertas_da_linha(linha: Linha) -> list[str]:
 
 
 def resumir(linhas: list[Linha], desconto_pct: Decimal = Decimal("0")) -> Resumo:
+    """Totais por grupo, desconto (% do subtotal), custo e margem bruta, com os alertas de cada linha (D14)."""
     totais = {"intelbras": Decimal("0"), "material": Decimal("0"), "servico": Decimal("0")}
     custo_total = Decimal("0")
     for linha in linhas:

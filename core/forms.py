@@ -10,7 +10,7 @@ from propostas.models import Bandeira, TarifaVigente, TaxaFinanciamento
 
 from .models import ConfigEmpresa
 from .validacoes import (
-    ARQUIVO_IMAGEM, ARQUIVO_PDF, conferir_arquivo, formatar_cpf_cnpj, formatar_percentual, formatar_reais,
+    ARQUIVO_IMAGEM, conferir_arquivo, formatar_cpf_cnpj, formatar_percentual, formatar_reais,
     formatar_telefone, limpar_cpf_cnpj,
     limpar_linhas, limpar_percentual, limpar_reais, limpar_telefone, limpar_texto,
 )
@@ -57,6 +57,7 @@ def texto_limpo(valor, maximo=TAMANHO_LINHA):
 
 
 def linhas_limpas(valor, maximo=TAMANHO_TEXTO):
+    """Texto de várias linhas higienizado para um `clean_*` (D41); erro vira ValidationError."""
     try:
         return limpar_linhas(valor, maximo)
     except ValueError as erro:
@@ -324,6 +325,7 @@ class PremissasForm(forms.Form):
 
     @classmethod
     def da_config(cls, config):
+        """Valores iniciais do formulário a partir da ConfigEmpresa (premissas, orientação e limites)."""
         premissas = config.premissas_padrao
         inicial = {chave: premissas.get(chave) for chave, _ in PREMISSAS_PERCENTUAIS}
         inicial |= {chave: premissas.get(chave) for chave in (
@@ -334,6 +336,7 @@ class PremissasForm(forms.Form):
         return cls(initial=inicial)
 
     def gravar(self, config):
+        """Grava premissas, orientação e limites na ConfigEmpresa (D19)."""
         dados = self.cleaned_data
         premissas = dict(config.premissas_padrao)
         for chave, _ in PREMISSAS_PERCENTUAIS:
@@ -379,7 +382,7 @@ PerfisFormSet = forms.formset_factory(PerfilForm, formset=BasePerfisFormSet, ext
 
 
 class TarifaForm(forms.ModelForm):
-    """Tributos e Fio B de uma tarifa: o que a ANEEL não publica e o gestor digita (D21)."""
+    """Tributos e Fio B de uma tarifa: o gestor digita da conta e da resolução da ANEEL (D21, D32)."""
 
     aliquota_tributos = CampoPercentual(label="Tributos (%)", maximo=60)
     fiob_kwh = forms.DecimalField(
@@ -484,6 +487,7 @@ class TaxasForm(forms.Form):
         return dados
 
     def gravar(self, config):
+        """Grava o IOF na `config` e as taxas e TAC de cada banco; apaga as que saíram da grade (D43)."""
         dados = self.cleaned_data
         for campo in ("iof_adicional", "iof_diario_pf", "iof_diario_pj"):
             if dados.get(campo) is not None:  # vazio mantém o valor atual
@@ -542,6 +546,7 @@ class AcompanhamentoForm(forms.Form):
         return data
 
     def gravar(self, objeto):
+        """Grava o próximo contato e, se o gestor mudou, o vendedor responsável no `objeto`."""
         campos = ["proximo_contato"]
         objeto.proximo_contato = self.cleaned_data["proximo_contato"]
         if "vendedor" in self.fields:

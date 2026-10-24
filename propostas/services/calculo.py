@@ -71,6 +71,10 @@ def _percentual_fiob(ano_civil: int, tabela: dict[int, float]) -> float:
 
 
 def calcular(e: EntradaCalculo) -> ResultadoCalculo:
+    """Motor da proposta (spec-fase1, D33). Função pura.
+
+    Geração mês a mês, economia com Fio B e simultaneidade, fluxo de caixa e retorno.
+    """
     premissas = e.premissas
     perdas = premissas["perdas"]
     perda_clipping = premissas["perda_clipping"]

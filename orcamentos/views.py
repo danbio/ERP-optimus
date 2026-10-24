@@ -101,6 +101,7 @@ def _referencia_tabela_atual():
 # ---------------------------------------------------------------- orçamentos
 
 def lista(request):
+    """Lista de orçamentos com filtro de situação e busca (D40)."""
     orcamentos = Orcamento.objects.select_related("cliente").all()
     status = request.GET.get("status")
     if status:
@@ -117,6 +118,7 @@ def lista(request):
 
 
 def novo(request):
+    """Cria o orçamento com os padrões dos parâmetros e o vendedor que criou (D46)."""
     parametros = ParametrosOrcamento.obter()
     if request.method == "POST":
         form = OrcamentoNovoForm(request.POST)
@@ -138,6 +140,7 @@ def novo(request):
 
 
 def editor(request, pk):
+    """Tela do orçamento: itens, totais, dados e acompanhamento."""
     orcamento = get_object_or_404(Orcamento.objects.select_related("cliente"), pk=pk)
     salvo = False
     if request.method == "POST" and orcamento.editavel:
@@ -163,11 +166,13 @@ def editor(request, pk):
 
 @require_POST
 def acompanhamento(request, pk):
+    """Grava próximo contato e vendedor responsável do orçamento (A20, D46)."""
     orcamento = get_object_or_404(Orcamento, pk=pk)
     return gravar_acompanhamento(request, orcamento, reverse("orcamentos:editor", args=[pk]))
 
 
 def buscar_produtos(request, pk):
+    """Busca na tabela Intelbras para incluir no orçamento (HTMX)."""
     termo = request.GET.get("q", "").strip()
     produtos = []
     if len(termo) >= 2:
@@ -181,6 +186,7 @@ def buscar_produtos(request, pk):
 
 
 def buscar_itens_proprios(request, pk):
+    """Busca nos materiais e serviços próprios (HTMX)."""
     termo = request.GET.get("q", "").strip()
     itens = ItemProprio.objects.filter(ativo=True)
     if termo:
@@ -192,6 +198,7 @@ def buscar_itens_proprios(request, pk):
 
 @require_POST
 def adicionar_produto(request, pk, produto_pk):
+    """Inclui um produto Intelbras com o preço pelo markup do segmento (sem PSD, usa o PSCF)."""
     orcamento = _orcamento_rascunho(pk)
     produto = get_object_or_404(Produto, pk=produto_pk)
     parametros = ParametrosOrcamento.obter()
@@ -219,6 +226,7 @@ def adicionar_produto(request, pk, produto_pk):
 
 @require_POST
 def adicionar_item_proprio(request, pk, item_pk):
+    """Inclui um material ou serviço próprio com o preço cadastrado."""
     orcamento = _orcamento_rascunho(pk)
     proprio = get_object_or_404(ItemProprio, pk=item_pk)
     ItemOrcamento.objects.create(
@@ -237,6 +245,7 @@ def adicionar_item_proprio(request, pk, item_pk):
 
 @require_POST
 def adicionar_avulso(request, pk):
+    """Inclui uma linha avulsa de material ou serviço, para o vendedor preencher."""
     orcamento = _orcamento_rascunho(pk)
     tipo = request.POST.get("tipo")
     if tipo not in (ItemOrcamento.Tipo.MATERIAL, ItemOrcamento.Tipo.SERVICO):
@@ -254,6 +263,7 @@ def adicionar_avulso(request, pk):
 
 @require_POST
 def atualizar_item(request, item_pk):
+    """Altera um campo do item (descrição, quantidade, preço ou markup) e recalcula os totais (HTMX)."""
     item = get_object_or_404(ItemOrcamento.objects.select_related("orcamento"), pk=item_pk)
     orcamento = _orcamento_rascunho(item.orcamento_id)
     campo = request.POST.get("campo")
@@ -286,6 +296,7 @@ def atualizar_item(request, item_pk):
 
 @require_POST
 def remover_item(request, item_pk):
+    """Remove o item e recalcula os totais (HTMX)."""
     item = get_object_or_404(ItemOrcamento, pk=item_pk)
     orcamento = _orcamento_rascunho(item.orcamento_id)
     item.delete()
@@ -295,6 +306,7 @@ def remover_item(request, item_pk):
 
 @require_POST
 def atualizar_desconto(request, pk):
+    """Grava o desconto (% de 0 a 100) e recalcula os totais (HTMX)."""
     orcamento = _orcamento_rascunho(pk)
     numero = ler_decimal(request.POST.get("desconto_pct"))
     if numero is not None and 0 <= numero <= 100:
@@ -363,6 +375,7 @@ def _contexto_documento(orcamento, para_pdf):
 
 
 def preview(request, pk):
+    """Pré-visualização do PDF no navegador."""
     orcamento = get_object_or_404(Orcamento, pk=pk)
     return render(request, "orcamentos/pdf/orcamento.html", _contexto_documento(orcamento, para_pdf=False))
 
@@ -376,6 +389,7 @@ def _gerar_pdf(orcamento):
 
 @require_POST
 def emitir(request, pk):
+    """Emite: congela a data e o total, gera e guarda o PDF."""
     orcamento = _orcamento_rascunho(pk)
     if not orcamento.itens.exists():
         return _editor_com_erro(orcamento, "Adicione itens antes de emitir.")
@@ -393,6 +407,7 @@ def emitir(request, pk):
 
 
 def baixar_pdf(request, pk):
+    """Abre o PDF guardado na emissão."""
     orcamento = get_object_or_404(Orcamento, pk=pk)
     if not orcamento.pdf:
         raise Http404("PDF ainda não gerado.")
@@ -403,6 +418,7 @@ def baixar_pdf(request, pk):
 @require_POST
 @transaction.atomic
 def revisar(request, pk):
+    """Cria a versão seguinte em rascunho, com os mesmos itens (D07)."""
     original = get_object_or_404(Orcamento, pk=pk)
     ultima = Orcamento.objects.filter(numero=original.numero).order_by("-versao").first()
     if ultima.status == Orcamento.Status.RASCUNHO:
@@ -425,6 +441,7 @@ def revisar(request, pk):
 
 @require_POST
 def marcar_status(request, pk):
+    """Marca um orçamento já emitido como emitido, aceito ou perdido."""
     orcamento = get_object_or_404(Orcamento, pk=pk)
     novo_status = request.POST.get("status")
     if orcamento.status != Orcamento.Status.RASCUNHO and novo_status in (
@@ -439,6 +456,7 @@ def marcar_status(request, pk):
 
 @so_gestor
 def config_parcelamento(request):
+    """Configurações → Parcelamento do orçamento Intelbras (só o gestor, D44)."""
     parametros = ParametrosOrcamento.obter()
     form = ParcelamentoForm(request.POST or None, opcoes=parametros.parcelamento)
     if request.method == "POST" and form.is_valid():
@@ -452,6 +470,7 @@ def config_parcelamento(request):
 # ---------------------------------------------------------------- catálogo
 
 def catalogo(request):
+    """Catálogo Intelbras com busca e filtro por segmento."""
     termo = request.GET.get("q", "").strip()
     segmento = request.GET.get("segmento", "")
     so_ativos = request.GET.get("inativos") != "1"
@@ -482,6 +501,7 @@ def catalogo(request):
 
 @so_gestor
 def importar_tabela(request):
+    """Importa a tabela .xlsb da Intelbras e mostra o que mudou (só o gestor, D13, H17)."""
     parametros = ParametrosOrcamento.obter()
     resumo, erro, tabela = None, "", None
     if request.method == "POST":

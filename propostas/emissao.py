@@ -117,6 +117,7 @@ def revisar(proposta):
 
 
 def aceitar(proposta, data, usuario=None):
+    """Marca a emitida como aceita na `data`; as outras versões viram substituídas (D31)."""
     if proposta.status != Proposta.Status.EMITIDA:
         raise ErroEmissao("Só uma proposta emitida pode ser aceita.")
     proposta.status = Proposta.Status.ACEITA
@@ -146,6 +147,7 @@ def desfazer_aceite(proposta, motivo, usuario=None):
 
 
 def marcar_perdida(proposta, motivo, observacao="", usuario=None):
+    """Marca a emitida como perdida, com motivo, observação, quem e quando (D31, D46)."""
     if proposta.status != Proposta.Status.EMITIDA:
         raise ErroEmissao("Só uma proposta emitida pode ser marcada como perdida.")
     proposta.status = Proposta.Status.PERDIDA

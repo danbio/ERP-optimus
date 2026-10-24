@@ -18,6 +18,7 @@ class ErroPDF(Exception):
 
 
 def html_para_pdf(html: str, rodape_html: str = "") -> bytes:
+    """Gera o PDF A4 do HTML com o Chromium do Playwright; `rodape_html` vai no rodapé de cada página. Devolve os bytes."""
     try:
         from playwright.sync_api import sync_playwright
     except ImportError as erro:

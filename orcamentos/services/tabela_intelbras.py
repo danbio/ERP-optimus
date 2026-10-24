@@ -120,6 +120,7 @@ def _ler_encerrados(workbook) -> dict[str, str]:
 
 
 def ler_tabela(caminho, uf_destino: str) -> LeituraTabela:
+    """Lê o .xlsb da Intelbras e devolve os produtos da UF de destino e os encerrados (D13). Arquivo errado: TabelaInvalida."""
     uf_destino = uf_destino.strip().upper()
     try:
         workbook = open_workbook(str(caminho))

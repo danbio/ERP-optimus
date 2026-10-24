@@ -10,6 +10,7 @@ from .models import Cliente, UnidadeConsumidora
 
 
 def lista(request):
+    """Lista de clientes com busca por nome, razão social, telefone ou CPF/CNPJ (D40)."""
     clientes = Cliente.objects.select_related("municipio")
     busca = " ".join(request.GET.get("busca", "").split())
     if busca:
@@ -22,6 +23,7 @@ def lista(request):
 
 
 def ficha(request, pk):
+    """Ficha do cliente: dados, unidades consumidoras e propostas."""
     cliente = get_object_or_404(Cliente.objects.select_related("municipio"), pk=pk)
     return render(request, "clientes/ficha.html", {
         "cliente": cliente,
@@ -53,6 +55,7 @@ def cliente_novo(request):
 
 
 def cliente_editar(request, pk):
+    """Edita o cadastro do cliente e volta para a ficha."""
     cliente = get_object_or_404(Cliente, pk=pk)
     if request.method == "POST":
         form = ClienteForm(request.POST, instance=cliente)
@@ -68,6 +71,7 @@ def cliente_editar(request, pk):
 
 
 def uc_novo(request):
+    """Cadastra uma UC e volta para a página de origem (`next`) com a UC escolhida."""
     proximo = request.GET.get("next") or reverse("propostas:nova")
     if request.method == "POST":
         form = UnidadeConsumidoraForm(request.POST)
@@ -83,6 +87,7 @@ def uc_novo(request):
 
 
 def uc_editar(request, pk):
+    """Edita a UC e volta para a ficha do cliente."""
     uc = get_object_or_404(UnidadeConsumidora, pk=pk)
     if request.method == "POST":
         form = UnidadeConsumidoraForm(request.POST, instance=uc)

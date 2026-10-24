@@ -491,6 +491,7 @@ class Passo3Form(forms.ModelForm):
         return linhas
 
     def extras(self):
+        """Campos dos itens extras do kit (equipamento e quantidade), para o template (D34)."""
         return [{"item": self[f"extra_{n}_equipamento"], "qtd": self[f"extra_{n}_qtd"]} for n in range(self.n_extras)]
 
     def clean_tipo_inversor(self):

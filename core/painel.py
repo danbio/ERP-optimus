@@ -44,6 +44,7 @@ def _ligar_hoje(propostas, orcamentos, hoje):
 
 
 def montar_painel(usuario, gestor, hoje, config):
+    """Números do painel do mês para `usuario` (todos, se `gestor`). `hoje` é a data de referência; prazos vêm de `config`."""
     propostas = Proposta.objects.all()
     orcamentos = Orcamento.objects.all()
     if not gestor:

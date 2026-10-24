@@ -139,6 +139,7 @@ def _contexto_documento(proposta, para_pdf, n_paginas_anexo):
 
 
 def preview(request, pk):
+    """Pré-visualização da proposta no navegador, com o número de páginas da fatura anexa."""
     proposta = get_object_or_404(Proposta, pk=pk)
     try:
         _, n_paginas_anexo = _paginas_da_fatura(proposta.fatura)
@@ -164,6 +165,7 @@ def gerar_pdf(proposta):
 
 
 def pdf(request, pk):
+    """PDF da proposta emitida (o guardado; sem ele, gera de novo). Rascunho não tem PDF (A09)."""
     proposta = get_object_or_404(Proposta, pk=pk)
     if proposta.status == Proposta.Status.RASCUNHO:
         # A09: o PDF que vai para o cliente é só o da emitida; o rascunho tem a pré-visualização.

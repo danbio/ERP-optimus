@@ -7,7 +7,7 @@
     border: 1px solid var(--navy);
     border-radius: var(--raio);
     background: var(--navy);
-    color: #fff;
+    color: var(--branco);
     font-family: var(--fonte);
     font-size: var(--texto-sm);
     font-weight: 500;
@@ -37,7 +37,7 @@
   }
 
   .card {
-    background: #fff;
+    background: var(--branco);
     border: 1px solid var(--line);
     border-radius: var(--raio);
     box-shadow: var(--sombra);
@@ -45,7 +45,7 @@
   }
 
   .kpi {
-    background: #fff;
+    background: var(--branco);
     border: 1px solid var(--line);
     border-radius: var(--raio);
     padding: var(--esp-4);
@@ -65,7 +65,7 @@
       background: var(--navy);
 
       & .kpi__valor {
-        color: #fff;
+        color: var(--branco);
       }
 
       & .kpi__rotulo {
@@ -115,7 +115,7 @@
       font-family: var(--fonte);
       font-size: var(--texto-base);
       color: var(--ink);
-      background: #fff;
+      background: var(--branco);
     }
 
     /* Checkbox e rádio: tamanho natural, ao lado do texto (H03) */
@@ -173,12 +173,12 @@
 
     &.badge--ok {
       background: var(--ok);
-      color: #fff;
+      color: var(--branco);
     }
 
     &.badge--erro {
       background: var(--erro);
-      color: #fff;
+      color: var(--branco);
     }
 
     &.badge--aviso {

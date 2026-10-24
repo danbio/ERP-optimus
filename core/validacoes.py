@@ -19,6 +19,7 @@ DDDS_VALIDOS = {
 
 
 def so_digitos(texto):
+    """Só os números do texto (vazio se None)."""
     return re.sub(r"\D", "", texto or "")
 
 
@@ -45,6 +46,7 @@ def _digito_verificador(digitos, pesos):
 
 
 def cpf_valido(digitos):
+    """True se os 11 dígitos formam um CPF com dígito verificador certo."""
     if len(digitos) != 11 or digitos == digitos[0] * 11:
         return False
     d1 = _digito_verificador(digitos[:9], range(10, 1, -1))
@@ -53,6 +55,7 @@ def cpf_valido(digitos):
 
 
 def cnpj_valido(digitos):
+    """True se os 14 dígitos formam um CNPJ com dígito verificador certo."""
     if len(digitos) != 14 or digitos == digitos[0] * 14:
         return False
     pesos1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
@@ -85,6 +88,7 @@ def limpar_cpf_cnpj(texto):
 
 
 def formatar_cpf_cnpj(digitos):
+    """000.000.000-00 ou 00.000.000/0000-00; outro tamanho volta como veio."""
     if len(digitos) == 11:
         return f"{digitos[:3]}.{digitos[3:6]}.{digitos[6:9]}-{digitos[9:]}"
     if len(digitos) == 14:
@@ -114,6 +118,7 @@ def limpar_telefone(texto):
 
 
 def formatar_telefone(digitos):
+    """(00) 00000-0000 ou (00) 0000-0000; outro tamanho volta como veio."""
     if len(digitos) == 11:
         return f"({digitos[:2]}) {digitos[2:7]}-{digitos[7:]}"
     if len(digitos) == 10:

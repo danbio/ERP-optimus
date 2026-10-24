@@ -3,7 +3,6 @@
 from django.contrib import messages
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse
 from django.utils import timezone
 
 from django.views.decorators.http import require_POST
@@ -28,6 +27,7 @@ ABAS_CATALOGO = [
 
 
 def solar_equipamentos(request):
+    """Catálogo solar com filtros de tipo e distribuidor e busca (D40)."""
     tipo = request.GET.get("tipo", Equipamento.Tipo.MODULO)
     distribuidor = request.GET.get("distribuidor", "")
     busca = " ".join(request.GET.get("busca", "").split())
@@ -60,6 +60,7 @@ def solar_equipamento_ver(request, pk):
 
 @so_gestor
 def solar_equipamento(request, pk=None):
+    """Inclui ou edita um equipamento, com só os campos do tipo (só o gestor, D45)."""
     equipamento = get_object_or_404(Equipamento, pk=pk) if pk else None
     form = EquipamentoForm(request.POST or None, request.FILES or None, instance=equipamento)
     if request.method == "POST" and form.is_valid():
@@ -72,6 +73,7 @@ def solar_equipamento(request, pk=None):
 
 
 def solar_cotacoes(request):
+    """Memória de cotações de kit, com o R$/Wp de referência por faixa (D18)."""
     dias_velho = ConfigEmpresa.obter().dias_preco_velho
     return render(request, "propostas/catalogo/cotacoes.html", {
         "abas": ABAS_CATALOGO,
@@ -95,6 +97,7 @@ def _ligar_itens_ao_catalogo(cotacao):
 
 
 def solar_cotacao(request, pk=None):
+    """Inclui ou edita uma cotação e seus itens; os itens são ligados ao catálogo pelo código (D35)."""
     cotacao = get_object_or_404(Cotacao, pk=pk) if pk else None
     form = CotacaoForm(request.POST or None, request.FILES or None, instance=cotacao,
                        initial=None if cotacao else {"data": timezone.localdate()})

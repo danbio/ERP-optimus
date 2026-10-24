@@ -27,6 +27,7 @@ POR_PAGINA = 50
 
 
 def lista(request):
+    """Lista de propostas com filtro de situação, mês e busca (D40, A28)."""
     propostas = Proposta.objects.select_related("cliente")
     situacao = request.GET.get("status", "")
     if situacao:
@@ -57,6 +58,7 @@ def lista(request):
 
 
 def proposta_detalhe(request, pk):
+    """Detalhe da proposta: dados, versões, acompanhamento, aceite e perda."""
     proposta = get_object_or_404(Proposta.objects.select_related("cliente"), pk=pk)
     return render(request, "propostas/detalhe.html", {
         "proposta": proposta,
@@ -71,12 +73,14 @@ def proposta_detalhe(request, pk):
 
 @require_POST
 def proposta_acompanhamento(request, pk):
+    """Grava próximo contato e vendedor responsável da proposta (A20, D46)."""
     proposta = get_object_or_404(Proposta, pk=pk)
     return gravar_acompanhamento(request, proposta, reverse("propostas:detalhe", args=[pk]))
 
 
 @require_POST
 def proposta_emitir(request, pk):
+    """Emite a proposta e guarda o PDF; com impedimento, volta ao passo 4 com o motivo."""
     proposta = get_object_or_404(Proposta, pk=pk)
     try:
         with transaction.atomic():
@@ -91,6 +95,7 @@ def proposta_emitir(request, pk):
 
 @require_POST
 def proposta_revisar(request, pk):
+    """Cria a versão seguinte em rascunho, no passo 2 (fatura) ou 4."""
     proposta = get_object_or_404(Proposta, pk=pk)
     try:
         nova = emissao.revisar(proposta)
@@ -103,6 +108,7 @@ def proposta_revisar(request, pk):
 
 @require_POST
 def proposta_aceitar(request, pk):
+    """Registra o aceite com a data informada."""
     proposta = get_object_or_404(Proposta, pk=pk)
     form = AceiteForm(request.POST)
     if form.is_valid():
@@ -118,6 +124,7 @@ def proposta_aceitar(request, pk):
 
 @require_POST
 def proposta_descartar(request, pk):
+    """Apaga um rascunho que nunca foi emitido."""
     proposta = get_object_or_404(Proposta, pk=pk)
     try:
         identificacao = proposta.identificacao
@@ -131,6 +138,7 @@ def proposta_descartar(request, pk):
 
 @require_POST
 def proposta_desfazer_aceite(request, pk):
+    """Volta a aceita para emitida, com o motivo (D33)."""
     proposta = get_object_or_404(Proposta, pk=pk)
     form = DesfazerAceiteForm(request.POST)
     if not form.is_valid():
@@ -146,6 +154,7 @@ def proposta_desfazer_aceite(request, pk):
 
 @require_POST
 def proposta_perdida(request, pk):
+    """Marca a proposta como perdida, com o motivo."""
     proposta = get_object_or_404(Proposta, pk=pk)
     form = PerdaForm(request.POST)
     if form.is_valid():

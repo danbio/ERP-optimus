@@ -129,10 +129,12 @@ def _atualizar_cliente(cliente, dados, proposta):
 
 
 def proposta_nova(request):
+    """Começa uma proposta nova pelo passo 1."""
     return proposta_passo(request, None, 1)
 
 
 def proposta_passo(request, pk, n):
+    """Mostra e grava um dos 4 passos; rascunho salvo a cada passo (D29)."""
     if n not in (1, 2, 3, 4):
         raise Http404("Passo inexistente.")
     proposta = get_object_or_404(Proposta, pk=pk) if pk else None
@@ -327,6 +329,7 @@ def ler_fatura(request, pk):
 
 @require_POST
 def alternar_modo_cliente(request):
+    """Liga ou desliga o modo cliente e volta para a página do ERP de onde veio (A23, A29)."""
     request.session["modo_cliente"] = not _modo_cliente(request)
     destino = request.POST.get("voltar", "")
     if not url_has_allowed_host_and_scheme(destino, allowed_hosts={request.get_host()}):

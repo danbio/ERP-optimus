@@ -44,6 +44,7 @@ def _sem_acento(texto):
 
 
 def tipo_do_item(categoria, descricao):
+    """Tipo do equipamento (módulo, inversor, cabo...) pela categoria do site e pela descrição."""
     if categoria in TIPO_POR_CATEGORIA:
         return TIPO_POR_CATEGORIA[categoria]
     texto = _sem_acento(descricao)
@@ -65,6 +66,7 @@ def fase_e_tensao(descricao):
 
 
 def tipo_estrutura(descricao):
+    """Tipo de telhado lido da descrição da estrutura, ou vazio."""
     texto = _sem_acento(descricao)
     for palavra, tipo in ESTRUTURA_POR_PALAVRA:
         if palavra in texto:
@@ -126,6 +128,7 @@ def espessura_mm(descricao):
 
 
 def fabricante(marca, descricao):
+    """Fabricante pela marca do site (normalizada) ou pela última palavra da descrição."""
     marca = (marca or "").lower().replace("logo_", "").replace("logo ", "").replace("sem fundo", "").strip()
     if marca in MARCAS:
         return MARCAS[marca]

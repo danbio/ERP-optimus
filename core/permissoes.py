@@ -8,6 +8,7 @@ GRUPO_GESTOR = "gestor"
 
 
 def eh_gestor(usuario):
+    """True para o superusuário e para quem está no grupo "gestor" (D36)."""
     return usuario.is_superuser or usuario.groups.filter(name=GRUPO_GESTOR).exists()
 
 

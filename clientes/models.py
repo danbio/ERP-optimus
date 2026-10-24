@@ -32,10 +32,12 @@ class Cliente(models.Model):
 
     @property
     def cpf_cnpj_formatado(self):
+        """CPF ou CNPJ com pontos, barra e traço, para a tela e o PDF."""
         return formatar_cpf_cnpj(self.cpf_cnpj)
 
     @property
     def telefone_formatado(self):
+        """Telefone no formato (63) 99999-1234."""
         return formatar_telefone(self.telefone)
 
     @property
@@ -79,8 +81,10 @@ class UnidadeConsumidora(models.Model):
 
     @property
     def uf(self):
+        """UF do município da UC, ou vazio sem município."""
         return self.municipio.uf if self.municipio else ""
 
     @property
     def disponibilidade_kwh(self):
+        """Custo de disponibilidade da ligação, em kWh/mês (30, 50 ou 100)."""
         return self.DISPONIBILIDADE_KWH[self.ligacao]
