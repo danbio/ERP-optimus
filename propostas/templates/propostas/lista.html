@@ -5,7 +5,7 @@
 
 {% block conteudo %}
   <div class="card">
-    <form method="get" class="barra-acoes barra-acoes--plana">
+    <form method="get" class="barra-acoes barra-acoes--plana" hx-get="{{ request.path }}" hx-trigger="input delay:300ms, submit" hx-target="#resultado" hx-select="#resultado" hx-swap="outerHTML" hx-push-url="true" hx-sync="this:replace">
       <input type="search" name="busca" class="busca busca--linha" placeholder="Cliente, telefone ou número" value="{{ busca }}">
       <select name="status" aria-label="Situação">
         <option value="">Todas as situações</option>
@@ -14,10 +14,10 @@
         {% endfor %}
       </select>
       <input type="month" name="mes" value="{{ mes }}" class="busca busca--mes" aria-label="Mês de emissão" title="Mês de emissão">
-      <button type="submit" class="btn btn--secundario">Filtrar</button>
       <a href="{% url 'propostas:nova' %}" class="btn">+ nova proposta</a>
     </form>
 
+    <div id="resultado">
     <div class="itens-rolagem">
       <table class="tabela">
         <thead>
@@ -47,5 +47,6 @@
         {% if pagina.has_next %}<a href="?{{ filtros }}&amp;pagina={{ pagina.next_page_number }}" class="btn btn--secundario btn--pequeno">Próximas</a>{% endif %}
       </nav>
     {% endif %}
+    </div>
   </div>
 {% endblock %}

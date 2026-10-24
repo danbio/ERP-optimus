@@ -167,3 +167,14 @@ def test_tarifa_de_outra_distribuidora_nao_substitui_a_vigente(base):
                                  tusd=Decimal("0.5"), te=Decimal("0.3"), atualizado_em=date(2030, 1, 1))
     b1 = [t for t in TarifaVigente.vigentes() if t.tipo == "B1"]
     assert {t.distribuidora for t in b1} == {"Energisa TO", "Equatorial Goiás"}
+
+
+# ---------- H06/H07/P2 · busca e filtros sem botão (D40)
+
+@pytest.mark.parametrize("rota", ["clientes:lista", "propostas:lista", "orcamentos:lista", "orcamentos:catalogo",
+                                  "propostas:solar_equipamentos"])
+def test_listas_filtram_na_hora_sem_botao(db, rota):
+    from django.test import Client as Navegador
+    html = Navegador().get(reverse(rota)).content.decode()
+    assert 'hx-select="#resultado"' in html and 'id="resultado"' in html
+    assert ">Filtrar<" not in html and ">Buscar<" not in html

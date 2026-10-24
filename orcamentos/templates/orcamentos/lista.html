@@ -5,18 +5,18 @@
 
 {% block conteudo %}
   <div class="card">
-    <form method="get" class="topbar">
-      <input type="text" name="busca" placeholder="Cliente, título ou número" value="{{ request.GET.busca }}">
+    <form method="get" class="topbar" hx-get="{{ request.path }}" hx-trigger="input delay:300ms, submit" hx-target="#resultado" hx-select="#resultado" hx-swap="outerHTML" hx-push-url="true" hx-sync="this:replace">
+      <input type="search" name="busca" placeholder="Cliente, título ou número" value="{{ request.GET.busca }}">
       <select name="status">
         <option value="">Todos os status</option>
         {% for valor, rotulo in status_choices %}
           <option value="{{ valor }}" {% if request.GET.status == valor %}selected{% endif %}>{{ rotulo }}</option>
         {% endfor %}
       </select>
-      <button type="submit" class="btn btn--secundario">Filtrar</button>
       <a href="{% url 'orcamentos:novo' %}" class="btn">+ novo orçamento</a>
     </form>
 
+    <div id="resultado">
     <table class="tabela">
       <thead>
         <tr>
@@ -39,9 +39,10 @@
             <td>{{ orcamento.emissao|date:"d/m/Y"|default:"—" }}</td>
           </tr>
         {% empty %}
-          <tr><td colspan="6">Nenhum orçamento cadastrado.</td></tr>
+          <tr><td colspan="6">{% if request.GET.busca or request.GET.status %}Nenhum orçamento com estes filtros.{% else %}Nenhum orçamento cadastrado.{% endif %}</td></tr>
         {% endfor %}
       </tbody>
     </table>
+    </div>
   </div>
 {% endblock %}

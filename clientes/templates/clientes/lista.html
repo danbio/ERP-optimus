@@ -5,13 +5,12 @@
 
 {% block conteudo %}
   <div class="card">
-    <form method="get" class="barra-acoes barra-acoes--plana">
+    <form method="get" class="barra-acoes barra-acoes--plana" hx-get="{{ request.path }}" hx-trigger="input delay:300ms, submit" hx-target="#resultado" hx-select="#resultado" hx-swap="outerHTML" hx-push-url="true" hx-sync="this:replace">
       <input type="search" name="busca" class="busca busca--linha" placeholder="Nome, telefone ou CPF/CNPJ" value="{{ busca }}" autofocus>
-      <button type="submit" class="btn btn--secundario">Buscar</button>
       <a href="{% url 'clientes:cliente_novo' %}" class="btn">+ novo cliente</a>
     </form>
 
-    <div class="itens-rolagem">
+    <div id="resultado" class="itens-rolagem">
       <table class="tabela">
         <thead>
           <tr><th>Nome</th><th>Telefone</th><th>Município</th><th>CPF/CNPJ</th></tr>
