@@ -313,10 +313,10 @@ class TarifaVigente(models.Model):
 
     @classmethod
     def vigentes(cls):
-        """A tarifa mais recente de cada tipo."""
+        """A tarifa mais recente de cada tipo, em cada distribuidora (uma não substitui a outra)."""
         mais_recentes = {}
-        for tarifa in cls.objects.order_by("tipo", "-vigencia_inicio"):
-            mais_recentes.setdefault(tarifa.tipo, tarifa)
+        for tarifa in cls.objects.order_by("distribuidora", "tipo", "-vigencia_inicio"):
+            mais_recentes.setdefault((tarifa.distribuidora, tarifa.tipo), tarifa)
         return list(mais_recentes.values())
 
 

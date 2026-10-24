@@ -11,7 +11,7 @@
         {% include "core/_campo.html" with campo=form.endereco %}
         {% include "core/_campo.html" with campo=form.telefone %}
         {% include "core/_campo.html" with campo=form.email %}
-        {% include "core/_campo.html" with campo=form.logo %}
+        {% include "core/_campo_arquivo.html" with campo=form.logo remover="Remover logo" aceita="image/*" %}
         {% include "core/_campo.html" with campo=form.projetos_entregues %}
         {% include "core/_campo.html" with campo=form.anos_atuacao %}
         {% include "core/_campo.html" with campo=form.validade_padrao_dias %}

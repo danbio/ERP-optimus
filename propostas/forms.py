@@ -177,6 +177,7 @@ class Passo2Form(forms.ModelForm):
     arquivo_fatura = forms.FileField(label="PDF da fatura", required=False)
     cpf_cnpj = forms.CharField(
         label="CPF ou CNPJ do titular", required=False,
+        help_text="Pode ficar vazio agora; é exigido para emitir. A fatura costuma esconder parte do número.",
         widget=forms.TextInput(attrs={"data-mascara": "cpf_cnpj", "inputmode": "numeric"}),
     )
     # Aparece só quando um valor foge do normal (A06): o vendedor confere com o cliente e confirma.
@@ -278,7 +279,7 @@ class Passo2Form(forms.ModelForm):
             Proposta.OrigemConsumo.CONTA: ["conta_informada"],
             Proposta.OrigemConsumo.KWH: ["kwh_informado"],
             Proposta.OrigemConsumo.FATURA: ["numero_uc", "endereco", "competencia", "fatura_kwh", "dias_ciclo",
-                                            "valor_fatura", "cpf_cnpj"],
+                                            "valor_fatura"],  # CPF/CNPJ só na emissão (D38)
         }.get(origem, [])
         for campo in obrigatorios:
             if dados.get(campo) in (None, ""):

@@ -62,7 +62,7 @@ def _contexto_passos(request, proposta, n, form=None, m=None):
         contexto["kit_editavel"] = form.linhas_do_kit(contexto["m"])
         contexto["kit_extras"] = form.extras()
     if n == 4 and contexto["m"]:
-        contexto["impedimentos"] = impedimentos_de_emissao(contexto["m"])
+        contexto["impedimentos"] = impedimentos_de_emissao(contexto["m"], proposta)
     return contexto
 
 
@@ -217,11 +217,12 @@ def _gravar_passo2(request, form, proposta):
         return proposta, []
 
     cliente = proposta.cliente
-    dono = Cliente.objects.filter(cpf_cnpj=dados["cpf_cnpj"]).exclude(pk=cliente.pk).first()
-    if dono:
-        return proposta, [("cpf_cnpj", f"Este CPF/CNPJ já é de {dono.nome}.")]
-    cliente.cpf_cnpj = dados["cpf_cnpj"]
-    cliente.save(update_fields=["cpf_cnpj"])
+    if dados["cpf_cnpj"]:  # vazio é aceito aqui; a emissão exige (D38)
+        dono = Cliente.objects.filter(cpf_cnpj=dados["cpf_cnpj"]).exclude(pk=cliente.pk).first()
+        if dono:
+            return proposta, [("cpf_cnpj", f"Este CPF/CNPJ já é de {dono.nome}.")]
+        cliente.cpf_cnpj = dados["cpf_cnpj"]
+        cliente.save(update_fields=["cpf_cnpj"])
     uc = UnidadeConsumidora.objects.filter(cliente=cliente, numero_uc=dados["numero_uc"]).first() or UnidadeConsumidora(
         cliente=cliente, numero_uc=dados["numero_uc"])
     uc.endereco = dados["endereco"]
@@ -284,9 +285,13 @@ def ler_fatura(request, pk):
             titular = lido.pop("titular")
             valores |= {campo: valor for campo, valor in lido.items() if valor}
             contexto["leitura_ok"] = True
-            vazios = [Passo2Form.base_fields[c].label for c in CAMPOS_DA_FATURA if not lido.get(c)]
+            vazios = [Passo2Form.base_fields[c].label for c in CAMPOS_DA_FATURA
+                      if not lido.get(c) and c != "cpf_cnpj"]
             if vazios:
                 contexto["leitura_avisos"].append(f"A IA não achou: {', '.join(vazios)}. Preencha à mão.")
+            if not valores.get("cpf_cnpj"):  # a fatura costuma esconder parte do CPF (H14)
+                contexto["leitura_avisos"].append(
+                    "A fatura não traz o CPF ou CNPJ completo. Peça ao cliente: ele é exigido para emitir.")
             if titular and not nomes_iguais(titular, proposta.cliente.nome):
                 contexto["leitura_avisos"].append(
                     f"A fatura está no nome de {titular} e o cliente é {proposta.cliente.nome}. Confira.")

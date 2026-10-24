@@ -1,0 +1,15 @@
+{# Campo de arquivo com o atual em miniatura e "Remover" alinhado (H03). Usa o nome "<campo>-clear" do Django. #}
+<div class="campo{% if campo.errors %} campo--erro{% endif %}">
+  <label for="{{ campo.id_for_label }}">{{ campo.label }}</label>
+  {% if campo.value and campo.value.url %}
+    <div class="campo__atual">
+      <a href="{{ campo.value.url }}" target="_blank" rel="noopener"><img class="miniatura" src="{{ campo.value.url }}" alt="{{ campo.label }} atual"></a>
+      <label class="campo__opcao" for="{{ campo.html_name }}-clear_id">
+        <input type="checkbox" name="{{ campo.html_name }}-clear" id="{{ campo.html_name }}-clear_id"> {{ remover|default:"Remover" }}
+      </label>
+    </div>
+  {% endif %}
+  <input type="file" name="{{ campo.html_name }}" id="{{ campo.id_for_label }}"{% if aceita %} accept="{{ aceita }}"{% endif %}>
+  {% if campo.help_text %}<p class="ajuda">{{ campo.help_text }}</p>{% endif %}
+  {% for erro in campo.errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
+</div>

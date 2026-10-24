@@ -82,7 +82,7 @@ def test_fluxo_completo(tabela, monkeypatch, settings, tmp_path):
     http.post(url_item(camera), {"campo": "markup", "valor": "35"})
     http.post(url_item(servico), {"campo": "descricao", "valor": "Instalação e configuração"})
     resposta = http.post(url_item(servico), {"campo": "preco", "valor": "1.200,00"})
-    assert "múltiplos de 5" in resposta.content.decode()
+    assert "múltiplos" not in resposta.content.decode()  # D39: o distribuidor vende unidade avulsa
 
     camera.refresh_from_db(); servico.refresh_from_db()
     assert camera.quantidade == D("4") and camera.preco_unitario == D("270.00")

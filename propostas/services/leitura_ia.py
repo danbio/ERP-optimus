@@ -23,7 +23,9 @@ ESQUEMA_FATURA = {
     "type": "OBJECT",
     "properties": {
         "titular": {"type": "STRING", "description": "Nome do titular da conta."},
-        "cpf_cnpj": {"type": "STRING", "description": "CPF ou CNPJ do titular."},
+        "cpf_cnpj": {"type": "STRING", "description": (
+            "CPF ou CNPJ do titular, só se estiver completo na fatura. Se aparecer com asteriscos ou "
+            "parcialmente escondido, devolva string vazia; nunca complete os dígitos.")},
         "numero_uc": {"type": "STRING", "description": "Número da unidade consumidora (UC) ou código da instalação."},
         "endereco": {"type": "STRING", "description": "Endereço da instalação."},
         "mes_referencia": {"type": "STRING", "description": "Mês de referência, AAAA-MM."},

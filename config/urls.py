@@ -15,10 +15,14 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 
+from pathlib import Path
+
 from django.conf import settings
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_not_required
+from django.contrib.staticfiles import finders
+from django.http import Http404
 from django.urls import include, path, re_path
 from django.views.static import serve
 
@@ -30,8 +34,15 @@ def arquivo_de_midia(request, caminho):
 
 @login_not_required
 def arquivo_estatico(request, caminho):
-    """CSS, fontes e imagens. Com DEBUG=0 o runserver/waitress não os serve sozinho (D36)."""
-    return serve(request, caminho, document_root=settings.BASE_DIR / "static")
+    """CSS, fontes e imagens. Com DEBUG=0 o runserver/waitress não os serve sozinho (D36).
+
+    Procura onde o Django procura (`static/` do projeto e dos apps, como o CSS do admin), sem `collectstatic`.
+    """
+    achado = finders.find(caminho)
+    if not achado:
+        raise Http404("Arquivo não encontrado.")
+    achado = Path(achado)
+    return serve(request, achado.name, document_root=achado.parent)
 
 
 urlpatterns = [

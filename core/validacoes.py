@@ -67,6 +67,9 @@ def limpar_cpf_cnpj(texto):
     texto = (texto or "").strip()
     if not texto:
         return ""
+    if "*" in texto:
+        raise ValueError("A fatura esconde parte do número. Peça o CPF ou CNPJ completo ao cliente "
+                         "ou deixe vazio por enquanto.")
     if re.search(r"[^\d.\-/\s]", texto):
         raise ValueError("CPF ou CNPJ só pode ter números.")
     digitos = so_digitos(texto)

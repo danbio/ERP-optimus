@@ -111,7 +111,7 @@ def atualizar_tarifas():
 
     novas, iguais = [], []
     for tipo, valores in lidas.items():
-        anterior = TarifaVigente.objects.filter(tipo=tipo).order_by("-vigencia_inicio").first()
+        anterior = TarifaVigente.objects.filter(distribuidora="Energisa TO", tipo=tipo).order_by("-vigencia_inicio").first()
         tarifa, criada = TarifaVigente.objects.update_or_create(
             distribuidora="Energisa TO", tipo=tipo, vigencia_inicio=valores["vigencia"],
             defaults={

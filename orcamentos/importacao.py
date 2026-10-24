@@ -77,7 +77,11 @@ def aplicar_importacao(leitura: LeituraTabela, tabela: TabelaPreco) -> dict:
         "sairam": len(sairam),
         "em_encerramento": sum(1 for d in leitura.produtos if d["codigo"] in leitura.encerrados),
         "maiores_variacoes": variacoes[:LIMITE_VARIACOES_NO_RESUMO],
-        "codigos_que_sairam": [p.codigo for p in sairam][:LIMITE_VARIACOES_NO_RESUMO],
+        # Listas para o gestor ver quais são (H17), não só quantos.
+        "lista_novos": [{"codigo": p.codigo, "produto": p.resumo or p.descricao}
+                        for p in novos][:LIMITE_VARIACOES_NO_RESUMO],
+        "lista_sairam": [{"codigo": p.codigo, "produto": p.resumo or p.descricao}
+                         for p in sairam][:LIMITE_VARIACOES_NO_RESUMO],
     }
     tabela.resumo = resumo
     tabela.save(update_fields=["resumo"])
