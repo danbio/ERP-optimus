@@ -55,6 +55,11 @@ class EquipamentoForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         higienizar(self, arquivos={"foto": ARQUIVO_IMAGEM, "datasheet": ARQUIVO_PDF})
+        # Campos de um tipo só (D45): a tela mostra só os do tipo escolhido.
+        for nome in self.fields:
+            tipos = Equipamento.tipos_do_campo(nome)
+            if tipos:
+                self.fields[nome].widget.attrs["data-tipos"] = " ".join(tipos)
 
     def clean_descricao(self):
         return texto_limpo(self.cleaned_data["descricao"], self.fields["descricao"].max_length)

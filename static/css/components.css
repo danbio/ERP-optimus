@@ -95,6 +95,10 @@
     display: block;
     margin-bottom: var(--esp-4);
 
+    &[hidden] {
+      display: none;
+    }
+
     & label {
       display: block;
       margin-bottom: var(--esp-1);
