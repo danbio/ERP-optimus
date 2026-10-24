@@ -116,8 +116,8 @@ Achados `Hxx` e premissas `P1`/`P2` do teste feito pelo usuário no navegador. R
 
 ## Rodada 10 · Orçamento Intelbras
 
-- [ ] **H09** Mostrar ou esconder o preço dos itens no PDF **(perguntas: orçamento inteiro ou por item; quantidade e subtotais)**.
-- [ ] **H10** Parcelamento 3×, 6×, 12×, 21× no PDF do orçamento **(perguntas: cartão ou boleto, juros por prazo, prazos fixos, vendedor pode esconder)**. Mesmo PDF e mesma migração do H09.
+- [x] **H09** (D44) Mostrar ou esconder o preço dos itens no PDF **(perguntas: orçamento inteiro ou por item; quantidade e subtotais)**.
+- [x] **H10** (D44) Parcelamento 3×, 6×, 12×, 21× no PDF do orçamento **(perguntas: cartão ou boleto, juros por prazo, prazos fixos, vendedor pode esconder)**. Mesmo PDF e mesma migração do H09.
 
 ## Rodada 11 · Detalhe do produto solar
 

@@ -3,6 +3,7 @@ from pathlib import Path
 from urllib.parse import urlencode
 
 from django.conf import settings
+from django.contrib import messages
 from django.core.files.base import ContentFile
 from django.db import transaction
 from django.db.models import Q
@@ -16,13 +17,16 @@ from django.views.decorators.http import require_POST
 from core.models import ConfigEmpresa
 from core.pdf import ErroPDF, html_para_pdf
 from core.permissoes import so_gestor
+from core.views import ABAS
 
-from .forms import ImportarTabelaForm, OrcamentoDadosForm, OrcamentoNovoForm
+from .forms import ImportarTabelaForm, OrcamentoDadosForm, OrcamentoNovoForm, ParcelamentoForm
 from .importacao import aplicar_importacao
 from .models import (
     ItemOrcamento, ItemProprio, MarkupSegmento, Orcamento, ParametrosOrcamento, Produto, TabelaPreco,
 )
-from .services.calculo import Linha, ler_decimal, markup_para, markup_por_preco, preco_por_markup, resumir
+from .services.calculo import (
+    Linha, ler_decimal, markup_para, markup_por_preco, parcelamento, preco_por_markup, resumir,
+)
 from .services.tabela_intelbras import TabelaInvalida, ler_tabela
 
 LIMITE_BUSCA = 25
@@ -324,12 +328,20 @@ def _contexto_documento(orcamento, para_pdf):
         ItemOrcamento.Tipo.MATERIAL: "Materiais",
         ItemOrcamento.Tipo.SERVICO: "Serviços",
     }
+    subtotais = {
+        ItemOrcamento.Tipo.INTELBRAS: resumo.total_intelbras,
+        ItemOrcamento.Tipo.MATERIAL: resumo.total_materiais,
+        ItemOrcamento.Tipo.SERVICO: resumo.total_servicos,
+    }
     for tipo, rotulo in rotulos.items():
         do_grupo = [i for i in itens if i.tipo == tipo]
         if do_grupo:
-            grupos.append({"rotulo": rotulo, "itens": do_grupo, "tipo": tipo})
+            grupos.append({"rotulo": rotulo, "itens": do_grupo, "tipo": tipo, "subtotal": subtotais[tipo]})
     emissao = orcamento.emissao or timezone.localdate()
+    parcelas = parcelamento(resumo.total, ParametrosOrcamento.obter().parcelamento) \
+        if orcamento.mostrar_parcelamento else []
     return {
+        "parcelas": parcelas,
         "orcamento": orcamento,
         "empresa": ConfigEmpresa.obter(),
         "grupos": grupos,
@@ -412,6 +424,20 @@ def marcar_status(request, pk):
         orcamento.status = novo_status
         orcamento.save(update_fields=["status"])
     return redirect("orcamentos:editor", pk=pk)
+
+
+# ---------------------------------------------------------------- configurações
+
+@so_gestor
+def config_parcelamento(request):
+    parametros = ParametrosOrcamento.obter()
+    form = ParcelamentoForm(request.POST or None, opcoes=parametros.parcelamento)
+    if request.method == "POST" and form.is_valid():
+        parametros.parcelamento = form.opcoes()
+        parametros.save(update_fields=["parcelamento"])
+        messages.success(request, "Parcelamento salvo.")
+        return redirect("orcamentos:config_parcelamento")
+    return render(request, "orcamentos/config_parcelamento.html", {"abas": ABAS, "form": form})
 
 
 # ---------------------------------------------------------------- catálogo

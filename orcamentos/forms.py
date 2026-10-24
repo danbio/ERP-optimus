@@ -1,6 +1,6 @@
 from django import forms
 
-from core.forms import higienizar, texto_limpo
+from core.forms import CampoPercentual, higienizar, texto_limpo
 
 from .models import Orcamento
 
@@ -23,6 +23,7 @@ class OrcamentoDadosForm(forms.ModelForm):
         model = Orcamento
         fields = [
             "cliente", "titulo", "local_instalacao", "validade_dias", "forma_pagamento",
+            "mostrar_precos", "mostrar_parcelamento",
             "prazo_execucao", "garantia", "observacoes", "projeto_registrado", "numero_registro",
         ]
         widgets = {
@@ -54,3 +55,43 @@ class ImportarTabelaForm(forms.Form):
         if arquivo.size > 50 * 1024 * 1024:
             raise forms.ValidationError("Arquivo grande demais: o limite é 50 MB.")
         return arquivo
+
+
+class ParcelamentoForm(forms.Form):
+    """Prazos e acréscimos do parcelamento do orçamento (H10, D44). Uma linha vazia para incluir prazo."""
+
+    LINHAS = 6
+
+    def __init__(self, *args, opcoes=(), **kwargs):
+        super().__init__(*args, **kwargs)
+        opcoes = list(opcoes)
+        self.linhas = []
+        for i in range(self.LINHAS):
+            atual = opcoes[i] if i < len(opcoes) else {}
+            self.fields[f"parcelas_{i}"] = forms.IntegerField(
+                label="Parcelas", required=False, min_value=2, max_value=36, initial=atual.get("parcelas"))
+            self.fields[f"acrescimo_{i}"] = CampoPercentual(
+                label="Acréscimo total (%)", required=False, maximo=100, casas=2, initial=atual.get("acrescimo"))
+            self.linhas.append((f"parcelas_{i}", f"acrescimo_{i}"))
+
+    def linhas_renderizadas(self):
+        return [(self[p], self[a]) for p, a in self.linhas]
+
+    def clean(self):
+        dados = super().clean()
+        vistos = set()
+        for parcelas, acrescimo in self.linhas:
+            n = dados.get(parcelas)
+            if n is None:
+                if dados.get(acrescimo) is not None:
+                    self.add_error(parcelas, "Informe em quantas vezes.")
+                continue
+            if n in vistos:
+                self.add_error(parcelas, "Prazo repetido.")
+            vistos.add(n)
+        return dados
+
+    def opcoes(self):
+        dados = self.cleaned_data
+        lista = [{"parcelas": dados[p], "acrescimo": dados.get(a)} for p, a in self.linhas if dados.get(p)]
+        return sorted(lista, key=lambda o: o["parcelas"])

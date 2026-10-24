@@ -22,6 +22,7 @@ ABAS = [
     ("core:config_tarifas", "Tarifas e bandeiras"),
     ("core:config_financiamento", "Financiamento"),
     ("core:config_municipios", "Municípios e irradiação"),
+    ("orcamentos:config_parcelamento", "Parcelamento (Intelbras)"),
 ]
 
 

@@ -6,6 +6,11 @@ from django.utils import timezone
 from clientes.models import Cliente
 
 
+def parcelamento_padrao():
+    """Prazos do PDF (H10, D44). Acréscimo vazio até o gestor informar: o prazo não aparece."""
+    return [{"parcelas": n, "acrescimo": None} for n in (3, 6, 12, 21)]
+
+
 class ParametrosOrcamento(models.Model):
     """Registro único com os padrões do módulo (D13/D14). Editado pelo admin."""
 
@@ -22,6 +27,10 @@ class ParametrosOrcamento(models.Model):
     prazo_padrao = models.CharField("prazo de execução padrão", max_length=255, blank=True)
     garantia_padrao = models.TextField("garantia padrão", blank=True)
     observacoes_padrao = models.TextField("observações padrão", blank=True)
+    parcelamento = models.JSONField(
+        "parcelamento", default=parcelamento_padrao,
+        help_text='Lista de {"parcelas": 3, "acrescimo": 0.05}; acréscimo em fração do total.',
+    )
 
     class Meta:
         verbose_name = "Parâmetros de orçamento"
@@ -149,6 +158,8 @@ class Orcamento(models.Model):
     emissao = models.DateField(null=True, blank=True)
     validade_dias = models.PositiveIntegerField("validade (dias)", default=7)
     forma_pagamento = models.CharField("forma de pagamento", max_length=255, blank=True)
+    mostrar_precos = models.BooleanField("Mostrar o preço de cada item no PDF", default=True)
+    mostrar_parcelamento = models.BooleanField("Mostrar o parcelamento no PDF", default=True)
     prazo_execucao = models.CharField("prazo de execução", max_length=255, blank=True)
     garantia = models.TextField(blank=True)
     observacoes = models.TextField("observações", blank=True)
