@@ -92,16 +92,16 @@ Achados `Hxx` e premissas `P1`/`P2` do teste feito pelo usuário no navegador. R
 - [x] **H17** Resumo da importação Intelbras lista os códigos novos e os que saíram, com texto explicando novo, em encerramento e inativo.
 - [x] Tarifa vigente escolhida por distribuidora (`TarifaVigente.vigentes()` e `dados_oficiais`), para a entrada de outra distribuidora (H05) não misturar tarifas.
 
-## Rodada 7 · Premissas da aplicação inteira e modo cliente
+## Rodada 7 · Premissas da aplicação inteira e modo cliente (PR #22)
 
-- [ ] **P1** Registrar em `decisoes.md` e `CLAUDE.md`: toda entrada do usuário com validação e higienização (amplia D24).
+- [x] **P1** (D41) Registrar em `decisoes.md` e `CLAUDE.md`: toda entrada do usuário com validação e higienização (amplia D24).
 - [x] **P2** Registrar em `decisoes.md` e `CLAUDE.md`: busca e filtros atualizam a lista na hora, sem botão (D40).
-- [ ] **H02** `EmpresaForm`: CNPJ e telefone com as validações de `core/validacoes.py`, limite de tamanho nos textos, linhas vazias fora das listas "um por linha".
-- [ ] **A22** Travas nas Configurações (mínimo de um perfil, orientação 50–100%, validade 5–60 dias). Mesmo trabalho do H02.
-- [ ] **P1** Varredura de todos os formulários (tabela campo × regra), com teste de dados malformados em cada um.
+- [x] **H02** `EmpresaForm`: CNPJ e telefone com as validações de `core/validacoes.py`, limite de tamanho nos textos, linhas vazias fora das listas "um por linha".
+- [x] **A22** Travas nas Configurações (mínimo de um perfil, orientação 50–100%, validade 5–60 dias). Mesmo trabalho do H02.
+- [x] **P1** Varredura de todos os formulários (tabela campo × regra), com teste de dados malformados em cada um.
 - [x] **H06/H07/P2** (PR #21, D40) Busca e filtros com HTMX em clientes, propostas, orçamentos, catálogo Intelbras e catálogo solar; endereço da página atualizado; filtro volta à página 1 e a paginação mantém os filtros.
-- [ ] **A29** Modo cliente volta para a página em que estava e não envia ao navegador o que esconde (antes de mostrar a tela a cliente no celular).
-- [ ] Antes de usar fatura de cliente real: ativar o nível pago da chave Gemini ou rever o provedor (D37, LGPD). Configuração, não código.
+- [x] **A29** Modo cliente volta para a página em que estava e não envia ao navegador o que esconde (antes de mostrar a tela a cliente no celular).
+- [ ] **(com você)** Antes de usar fatura de cliente real: ativar o nível pago da chave Gemini ou rever o provedor (D37, LGPD). Configuração, não código.
 
 ## Rodada 8 · Cliente com endereço e leitura da fatura
 

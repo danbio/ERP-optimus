@@ -94,7 +94,7 @@ def test_uc_sem_municipio_pode_ser_corrigida(gurupi):
     navegador = Navegador()
     assert "escolher município" in navegador.get(reverse("clientes:ficha", args=[cliente.pk])).content.decode()
     navegador.post(reverse("clientes:uc_editar", args=[uc.pk]), {
-        "cliente": cliente.pk, "numero_uc": "123", "endereco": "Rua A", "municipio": gurupi.pk,
+        "cliente": cliente.pk, "numero_uc": "123456", "endereco": "Rua A", "municipio": gurupi.pk,
         "concessionaria": "Energisa TO", "classe": "B1", "ligacao": "mono",
     })
     uc.refresh_from_db()

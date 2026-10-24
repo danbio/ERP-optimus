@@ -20,18 +20,18 @@
     <ul class="kit-lista">
       {% for linha in m.kit %}
         <li><b>{{ linha.quantidade }}{% if linha.unidade == "m" %} m{% else %}×{% endif %}</b> {{ linha.descricao }}
-          <small>{% if linha.rotulo %}{{ linha.rotulo }}{% elif linha.funcao == "modulo" %}Módulo {{ m.modulo.potencia_w }} W{% if m.modulo_sugerido %} · menor R$/Wp{% endif %}{% elif linha.funcao == "inversor" %}{{ m.inversor.get_tipo_display }}{% if m.inversor.fase %} · {{ m.inversor.get_fase_display }}{% endif %}{% else %}Item a mais{% endif %}{% if linha.sugerida is not None and linha.quantidade != linha.sugerida %} · sugestão: {{ linha.sugerida }}{% endif %}{% if linha.alterada %} · alterado pelo vendedor{% endif %}<span class="interno">{% if linha.preco is not None %} · R$ {{ linha.preco|floatformat:"2g" }} cada = R$ {{ linha.subtotal|floatformat:"2g" }}{% endif %}</span></small></li>
+          <small>{% if linha.rotulo %}{{ linha.rotulo }}{% elif linha.funcao == "modulo" %}Módulo {{ m.modulo.potencia_w }} W{% if m.modulo_sugerido %} · menor R$/Wp{% endif %}{% elif linha.funcao == "inversor" %}{{ m.inversor.get_tipo_display }}{% if m.inversor.fase %} · {{ m.inversor.get_fase_display }}{% endif %}{% else %}Item a mais{% endif %}{% if linha.sugerida is not None and linha.quantidade != linha.sugerida %} · sugestão: {{ linha.sugerida }}{% endif %}{% if linha.alterada %} · alterado pelo vendedor{% endif %}{% if not modo_cliente and linha.preco is not None %}<span class="interno"> · R$ {{ linha.preco|floatformat:"2g" }} cada = R$ {{ linha.subtotal|floatformat:"2g" }}</span>{% endif %}</small></li>
       {% endfor %}
     </ul>
-    <div class="interno precos-sugeridos">
+    {% if not modo_cliente %}<div class="interno precos-sugeridos">
       <p class="ajuda">{% if m.produtos_kit is not None %}Produtos R$ {{ m.produtos_kit|floatformat:"2g" }} + frete R$ {{ m.frete_kit|floatformat:"2g" }} = {% endif %}Kit: {% if m.custo_kit is not None %}R$ {{ m.custo_kit|floatformat:"2g" }}{% else %}—{% endif %}.
       Mão de obra sugerida: R$ {{ m.mo_sugerida|floatformat:"2g" }}.</p>
-    </div>
+    </div>{% endif %}
   {% endif %}
 
   {% if passo == 3 and m.alertas %}
     <div class="alertas">
-      {% for a in m.alertas %}<p class="alerta alerta--{{ a.tipo }}{% if a.interno %} interno{% endif %}">{{ a.texto }}</p>{% endfor %}
+      {% for a in m.alertas %}{% if not a.interno or not modo_cliente %}<p class="alerta alerta--{{ a.tipo }}{% if a.interno %} interno{% endif %}">{{ a.texto }}</p>{% endif %}{% endfor %}
     </div>
   {% endif %}
 </div>

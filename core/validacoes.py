@@ -172,3 +172,44 @@ def formatar_reais(valor):
         grupos.insert(0, inteiro[-3:])
         inteiro = inteiro[:-3]
     return ("-" if negativo else "") + ".".join(grupos or ["0"]) + "," + centavos
+
+
+# ---------- Textos e arquivos (P1, D41) ----------
+
+def limpar_texto(texto, maximo):
+    """Uma linha: tira espaços sobrando (inclusive no meio) e limita o tamanho."""
+    limpo = " ".join((texto or "").split())
+    if len(limpo) > maximo:
+        raise ValueError(f"Use no máximo {maximo} caracteres (tem {len(limpo)}).")
+    return limpo
+
+
+def limpar_linhas(texto, maximo):
+    """Texto de várias linhas: tira espaços das pontas de cada linha e as linhas vazias repetidas."""
+    linhas, anterior_vazia = [], True
+    for linha in (texto or "").splitlines():
+        linha = " ".join(linha.split())
+        if not linha and anterior_vazia:
+            continue
+        linhas.append(linha)
+        anterior_vazia = not linha
+    limpo = "\n".join(linhas).strip()
+    if len(limpo) > maximo:
+        raise ValueError(f"Use no máximo {maximo} caracteres (tem {len(limpo)}).")
+    return limpo
+
+
+# Extensões aceitas por tipo de arquivo e tamanho máximo em MB.
+ARQUIVO_IMAGEM = ({".png", ".jpg", ".jpeg", ".webp"}, 5)
+ARQUIVO_PDF = ({".pdf"}, 15)
+
+
+def conferir_arquivo(nome, tamanho_bytes, tipo):
+    """Recusa extensão fora do tipo (imagem ou PDF) e arquivo grande demais. `tipo` é ARQUIVO_IMAGEM ou ARQUIVO_PDF."""
+    extensoes, maximo_mb = tipo
+    extensao = ("." + nome.rsplit(".", 1)[-1].lower()) if "." in (nome or "") else ""
+    if extensao not in extensoes:
+        aceitas = ", ".join(sorted(e.lstrip(".").upper() for e in extensoes))
+        raise ValueError(f"Envie um arquivo {aceitas}.")
+    if tamanho_bytes > maximo_mb * 1024 * 1024:
+        raise ValueError(f"Arquivo grande demais: o limite é {maximo_mb} MB.")

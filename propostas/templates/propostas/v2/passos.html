@@ -21,7 +21,7 @@
     {% if proposta %}
       <form method="post" action="{% url 'propostas:modo_cliente' %}" class="modo-chave">
         {% csrf_token %}
-        <input type="hidden" name="voltar" value="{% url 'propostas:passo' proposta.pk 4 %}">
+        <input type="hidden" name="voltar" value="{{ request.get_full_path }}">
         <button type="submit" class="btn btn--secundario" aria-pressed="{{ modo_cliente|yesno:'true,false' }}">
           {% if modo_cliente %}Sair do modo cliente{% else %}Modo cliente{% endif %}</button>
       </form>
@@ -41,11 +41,15 @@
           {% if form.non_field_errors %}<p class="campo__erro">{{ form.non_field_errors|join:" " }}</p>{% endif %}
           {% if passo == 1 %}{% include "propostas/v2/_passo1.html" %}
           {% elif passo == 2 %}{% include "propostas/v2/_passo2.html" %}
+          {% elif modo_cliente %}
+            <p class="aviso-estimativa">No modo cliente o sistema fica só para ver. Saia do modo cliente para alterar módulos, inversor e preço.</p>
+            <fieldset disabled class="sem-moldura">{% include "propostas/v2/_passo3.html" %}</fieldset>
           {% else %}{% include "propostas/v2/_passo3.html" %}{% endif %}
           <div class="barra-acoes barra-acoes--plana assistente__acoes">
             {% if passo > 1 %}<a href="{% url 'propostas:passo' proposta.pk passo|add:'-1' %}" class="btn btn--secundario">Voltar</a>{% endif %}
             <span class="barra-acoes__espaco"></span>
-            <button type="submit" class="btn">{% if passo == 3 %}Ver o resultado{% else %}Continuar{% endif %}</button>
+            {% if passo == 3 and modo_cliente %}<a href="{% url 'propostas:passo' proposta.pk 4 %}" class="btn">Ver o resultado</a>
+            {% else %}<button type="submit" class="btn">{% if passo == 3 %}Ver o resultado{% else %}Continuar{% endif %}</button>{% endif %}
           </div>
         </form>
       {% endif %}

@@ -144,6 +144,10 @@ def proposta_passo(request, pk, n):
             return redirect("propostas:passo", pk=proposta.pk, n=4)
         return render(request, "propostas/v2/passos.html", _contexto_passos(request, proposta, 4))
 
+    if request.method == "POST" and n == 3 and _modo_cliente(request):
+        # O preço não vai ao navegador no modo cliente (A29): gravar agora apagaria custo e mão de obra.
+        messages.error(request, "Saia do modo cliente para alterar o sistema e o preço.")
+        return redirect("propostas:passo", pk=proposta.pk, n=3)
     form = _form_do_passo(n, proposta, request.POST or None, request.FILES or None)
     if request.method == "POST" and form.is_valid() and n == 3:
         _conferir_desconto(form)
@@ -252,7 +256,9 @@ def proposta_previa(request, pk, n):
         raise Http404("Passo inexistente.")
     proposta = get_object_or_404(Proposta, pk=pk)
     form = _form_do_passo(n, proposta, request.POST, previa=True)
-    if n in (2, 3) and form.is_valid():
+    if n == 3 and _modo_cliente(request):
+        pass  # A29: sem os campos de preço, a prévia mostraria outro investimento; fica a gravada
+    elif n in (2, 3) and form.is_valid():
         proposta = form.save(commit=False)
         if n == 2 and proposta.origem_consumo == Proposta.OrigemConsumo.FATURA:
             proposta.fatura = FaturaReferencia(

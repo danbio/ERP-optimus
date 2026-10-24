@@ -280,6 +280,12 @@ Revisão em três visões (vendedor iniciante, gestor, dev sênior), com 30 acha
 - **Decisão:** nas listas com filtro (clientes, propostas, orçamentos, catálogo Intelbras e catálogo solar), a lista se atualiza 0,3 s depois da última tecla ou ao escolher um filtro, sem botão. Vale para toda lista nova.
 - **Como:** HTMX no próprio `<form method="get">`: `hx-get` para a mesma página, `hx-select` e `hx-target` no bloco `#resultado` (a view e o template continuam os mesmos, sem parcial nem view nova), `hx-push-url` para o endereço da página acompanhar o filtro (o "voltar" do navegador e o link copiado continuam valendo) e `hx-sync` para descartar a busca anterior. Mudar o filtro volta para a página 1. Enter continua enviando o formulário.
 
+## D41 · 2026-10-24 · Toda entrada do usuário com validação e higienização (P1, amplia D24)
+- **Regra:** vale para toda tela, não só proposta e cliente. Texto: espaços sobrando fora e limite de tamanho (o do modelo; sem ele, 200 caracteres numa linha e 3.000 em várias). Números e dinheiro: faixa mínima e máxima plausível. Documentos: dígito verificador. Datas: sem futuro onde não faz sentido (preço, cotação, aceite). Arquivos: extensão e tamanho (imagem até 5 MB; PDF até 15 MB; tabela Intelbras até 50 MB). Sem isso, um `.html` enviado como foto seria servido como página do ERP.
+- **Como:** `core/validacoes.py` (`limpar_texto`, `limpar_linhas`, `conferir_arquivo`, funções puras) e `core/forms.py` (`higienizar(form, arquivos=...)`, chamado no `__init__` de cada formulário). Cada formulário tem teste com dado malformado em `tests/test_rodada7.py`.
+- **Configurações (H02, A22):** CNPJ da empresa por dígito verificador e telefone com DDD, gravados formatados (os PDFs mostram como está); validade da proposta de 5 a 60 dias; orientação de 50% a 100%; pelo menos um perfil de simultaneidade, sem nome repetido; etapas no formato "Título | descrição".
+- **Modo cliente (A29):** o que ele esconde não vai mais ao navegador (antes era só escondido por CSS). No passo 3 o sistema fica só para ver; para mudar módulos, inversor ou preço, sair do modo cliente. O botão volta para a página em que o vendedor estava.
+
 ## Pendências de validação
 - [x] Regra de custo de disponibilidade para GD após a Lei 14.300 (item 3 de D08): fora do motor (D33).
 - [x] Valor da TUSD Fio B vigente na Energisa TO por subgrupo (B1/B2/B3): 0,441478 R$/kWh (D32).

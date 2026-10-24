@@ -7,11 +7,11 @@
     <div><dt>Consumo considerado</dt><dd>{% if m.consumo_alvo is not None %}{{ m.consumo_alvo|floatformat:0 }} kWh/mês{% else %}—{% endif %}</dd></div>
     <div><dt>Sistema</dt><dd>{% if m.kwp %}{{ m.kwp|floatformat:2 }} kWp{% else %}—{% endif %}</dd></div>
     <div><dt>Geração média</dt><dd>{% if m.geracao_media %}{{ m.geracao_media|floatformat:0 }} kWh/mês{% else %}—{% endif %}</dd></div>
-    <div class="interno"><dt>Kit</dt><dd>{% if m.custo_kit is not None %}R$ {{ m.custo_kit|floatformat:"2g" }}{% else %}—{% endif %}</dd></div>
-    <div class="interno"><dt>Mão de obra</dt><dd>{% if m.mao_de_obra is not None %}R$ {{ m.mao_de_obra|floatformat:"2g" }}{% else %}—{% endif %}</dd></div>
-    <div class="interno"><dt>Desconto</dt><dd>{% if m.desconto %}− R$ {{ m.desconto|floatformat:"2g" }}{% else %}—{% endif %}</dd></div>
+    {% if not modo_cliente %}<div class="interno"><dt>Kit</dt><dd>{% if m.custo_kit is not None %}R$ {{ m.custo_kit|floatformat:"2g" }}{% else %}—{% endif %}</dd></div>{% endif %}
+    {% if not modo_cliente %}<div class="interno"><dt>Mão de obra</dt><dd>{% if m.mao_de_obra is not None %}R$ {{ m.mao_de_obra|floatformat:"2g" }}{% else %}—{% endif %}</dd></div>{% endif %}
+    {% if not modo_cliente %}<div class="interno"><dt>Desconto</dt><dd>{% if m.desconto %}− R$ {{ m.desconto|floatformat:"2g" }}{% else %}—{% endif %}</dd></div>{% endif %}
     <div class="resumo__total"><dt>Investimento</dt><dd>{% if m.investimento is not None %}R$ {{ m.investimento|floatformat:"2g" }}{% else %}—{% endif %}</dd></div>
-    <div class="interno"><dt>R$ por Wp</dt><dd>{% if m.rs_por_wp %}{{ m.rs_por_wp|floatformat:2 }}{% else %}—{% endif %}</dd></div>
+    {% if not modo_cliente %}<div class="interno"><dt>R$ por Wp</dt><dd>{% if m.rs_por_wp %}{{ m.rs_por_wp|floatformat:2 }}{% else %}—{% endif %}</dd></div>{% endif %}
     <div><dt>Economia/mês (ano 1)</dt><dd>{% if m.resultado %}R$ {{ m.resultado.economia_mensal_ano1|floatformat:"2g" }}{% else %}—{% endif %}</dd></div>
     <div><dt>Parcela</dt><dd>{% if m.parcela %}{{ m.parcela.prazo }}× R$ {{ m.parcela.parcela|floatformat:"2g" }}{% else %}—{% endif %}</dd></div>
   </dl>
