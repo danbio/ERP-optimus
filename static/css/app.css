@@ -639,6 +639,14 @@
     display: none;
   }
 
+  /* Passo 3 só para ver no modo cliente (A29) */
+  .sem-moldura {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
   .etiqueta-interna {
     margin-left: var(--esp-2);
     color: var(--muted);

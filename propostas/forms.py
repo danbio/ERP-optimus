@@ -7,9 +7,11 @@ from django.db.models import Q
 
 from clientes.forms import MunicipioSelect, _limpar
 from clientes.models import UnidadeConsumidora
-from core.forms import CampoPercentual, CampoReais
+from core.forms import CampoPercentual, CampoReais, higienizar, texto_limpo
 from core.models import Municipio
 from core.validacoes import (
+    ARQUIVO_IMAGEM,
+    ARQUIVO_PDF,
     formatar_percentual,
     formatar_reais,
     limpar_cpf_cnpj,
@@ -43,6 +45,26 @@ class EquipamentoForm(forms.ModelForm):
         widgets = {"preco_em": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d")}
         localized_fields = ["area_m2"]
 
+    # Faixas que nenhum equipamento real ultrapassa (P1, D41): pegam zero a mais ou unidade trocada.
+    FAIXAS = {
+        "potencia_w": (1, 100000), "area_m2": (Decimal("0.1"), 10), "comprimento_mm": (100, 5000),
+        "largura_mm": (100, 5000), "espessura_mm": (10, 100), "mppts": (1, 20), "modulos_por_micro": (1, 8),
+        "pecas_por_embalagem": (1, 1000), "tensao": (100, 1000),
+    }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        higienizar(self, arquivos={"foto": ARQUIVO_IMAGEM, "datasheet": ARQUIVO_PDF})
+
+    def clean_descricao(self):
+        return texto_limpo(self.cleaned_data["descricao"], self.fields["descricao"].max_length)
+
+    def clean_preco_em(self):
+        data = self.cleaned_data["preco_em"]
+        if data and data > date.today():
+            raise forms.ValidationError("A data do preço não pode ser no futuro.")
+        return data
+
     def clean_preco_referencia(self):
         preco = self.cleaned_data["preco_referencia"]
         if preco is not None and preco < 0:
@@ -51,6 +73,10 @@ class EquipamentoForm(forms.ModelForm):
 
     def clean(self):
         dados = super().clean()
+        for campo, (minimo, maximo) in self.FAIXAS.items():
+            valor = dados.get(campo)
+            if campo in self.fields and valor is not None and not minimo <= valor <= maximo:
+                self.add_error(campo, f"Use um valor entre {minimo} e {maximo}.")
         if dados.get("tipo") in ("modulo", "inversor", "microinversor") and not dados.get("potencia_w"):
             self.add_error("potencia_w", "Informe a potência: o dimensionamento usa este valor.")
         if dados.get("tipo") == "microinversor" and not dados.get("modulos_por_micro"):
@@ -79,8 +105,16 @@ class CotacaoForm(forms.ModelForm):
         }
         localized_fields = ["kwp"]
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        higienizar(self, arquivos={"arquivo": ARQUIVO_PDF})
+
     def clean(self):
         dados = super().clean()
+        if dados.get("data") and dados["data"] > date.today():
+            self.add_error("data", "A data da cotação não pode ser no futuro.")
+        if dados.get("data") and dados.get("validade") and dados["validade"] < dados["data"]:
+            self.add_error("validade", "A validade não pode ser antes da data da cotação.")
         frete = dados.get("frete") or Decimal("0")
         dados["frete"] = frete
         if frete < 0:
@@ -102,6 +136,10 @@ class ItemCotadoForm(forms.ModelForm):
         fields = ["codigo", "descricao", "quantidade", "unidade"]
         widgets = {"quantidade": forms.TextInput(attrs={"inputmode": "decimal"})}
         localized_fields = ["quantidade"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        higienizar(self)
 
     def clean_quantidade(self):
         quantidade = self.cleaned_data["quantidade"]
@@ -148,6 +186,7 @@ class Passo1Form(forms.Form):
         super().__init__(*args, **kwargs)
         self.fields["tipo_tarifa"].queryset = TarifaVigente.objects.filter(pk__in=[t.pk for t in TarifaVigente.vigentes()])
         self.fields["tipo_tarifa"].label_from_instance = lambda t: t.get_tipo_display()
+        higienizar(self)
 
     def clean_nome(self):
         return _limpar(limpar_nome, self.cleaned_data["nome"])
@@ -221,6 +260,7 @@ class Passo2Form(forms.ModelForm):
             (p["nome"], f"{p['nome']} ({p['simultaneidade'] * 100:.0f}%)") for p in perfis
         ]
         self.fields["bandeira"].empty_label = None
+        higienizar(self, arquivos={"arquivo_fatura": ARQUIVO_PDF})
         fatura = self.instance.fatura
         if fatura and not self.is_bound:
             self.initial |= {
@@ -232,6 +272,9 @@ class Passo2Form(forms.ModelForm):
 
     def clean_cpf_cnpj(self):
         return _limpar(limpar_cpf_cnpj, self.cleaned_data["cpf_cnpj"])
+
+    def clean_endereco(self):
+        return texto_limpo(self.cleaned_data["endereco"], 255)
 
     def clean_numero_uc(self):
         numero = self.cleaned_data["numero_uc"].strip()
@@ -371,6 +414,7 @@ class Passo3Form(forms.ModelForm):
         self.fields["tipo_estrutura"] = forms.ChoiceField(label="Estrutura", choices=Equipamento.TipoEstrutura.choices)
         self.fields["tipo_inversor"].choices = Proposta.TipoInversor.choices
         self.fields["tipo_inversor"].required = False  # sem escolha: inversor string
+        higienizar(self)
         self.fields["modulo"].label_from_instance = _rotulo_com_preco
         fase = "tri" if self.instance.ligacao == "tri" else "mono"
         self.fields["inversor"].queryset = Equipamento.objects.filter(
@@ -494,11 +538,18 @@ def _rotulo_com_preco(equipamento):
 class AceiteForm(forms.Form):
     data_aceite = forms.DateField(label="Data do aceite", widget=forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"))
 
+    def clean_data_aceite(self):
+        data = self.cleaned_data["data_aceite"]
+        if data > date.today():
+            raise forms.ValidationError("A data do aceite não pode ser no futuro.")
+        return data
+
 
 class DesfazerAceiteForm(forms.Form):
-    motivo = forms.CharField(label="Por que desfazer o aceite?", widget=forms.Textarea(attrs={"rows": 2}))
+    motivo = forms.CharField(label="Por que desfazer o aceite?", max_length=500, widget=forms.Textarea(attrs={"rows": 2}))
 
 
 class PerdaForm(forms.Form):
     motivo_perda = forms.ChoiceField(label="Motivo", choices=Proposta.MotivoPerda.choices)
-    obs_perda = forms.CharField(label="Observação (opcional)", required=False, widget=forms.Textarea(attrs={"rows": 2}))
+    obs_perda = forms.CharField(label="Observação (opcional)", required=False, max_length=500,
+                                widget=forms.Textarea(attrs={"rows": 2}))

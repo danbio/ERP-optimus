@@ -3,7 +3,7 @@
 
 {% if proposta.nivel == "estimativa" %}<p class="aviso-estimativa">{{ aviso_estimativa }}</p>{% endif %}
 
-{% if impedimentos %}
+{% if impedimentos and not modo_cliente %}
   <div class="impedimentos interno">
     <p class="alerta alerta--erro"><b>Ainda não dá para emitir.</b> Corrija antes:</p>
     {% for motivo in impedimentos %}<p class="alerta alerta--erro">{{ motivo }}</p>{% endfor %}
@@ -56,7 +56,7 @@
 
   {% if m.alertas %}
     <div class="alertas">
-      {% for a in m.alertas %}{% if a.tipo != "erro" %}<p class="alerta alerta--{{ a.tipo }}{% if a.interno %} interno{% endif %}">{{ a.texto }}</p>{% endif %}{% endfor %}
+      {% for a in m.alertas %}{% if a.tipo != "erro" and not a.interno or a.tipo != "erro" and not modo_cliente %}<p class="alerta alerta--{{ a.tipo }}{% if a.interno %} interno{% endif %}">{{ a.texto }}</p>{% endif %}{% endfor %}
     </div>
   {% endif %}
 {% endif %}

@@ -37,6 +37,7 @@
       <h3>Perfis de uso (simultaneidade)</h3>
       <p class="ajuda">O vendedor escolhe o perfil; o percentual é a parte da geração consumida na hora. Para apagar um perfil, deixe o nome vazio.</p>
       {{ perfis.management_form }}
+      {% for erro in perfis.non_form_errors %}<p class="campo__erro">{{ erro }}</p>{% endfor %}
       {% for perfil in perfis %}
         <div class="grade-campos grade-campos--perfil">
           {% include "core/_campo.html" with campo=perfil.nome %}

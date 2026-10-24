@@ -66,6 +66,7 @@
   </details>
 {% endif %}
 
+{% if not modo_cliente %}
 <div class="interno">
   <h3>Preço <span class="etiqueta-interna">só o vendedor vê</span></h3>
   <div class="grade-campos">
@@ -76,3 +77,4 @@
   </div>
   <p class="ajuda">Com uma cotação escolhida, o kit e o custo vêm dela e o catálogo não é usado. O custo do kit digitado substitui a soma do catálogo.</p>
 </div>
+{% endif %}

@@ -4,11 +4,63 @@ from datetime import date
 from decimal import Decimal
 
 from django import forms
+from django.core import validators
 
 from propostas.models import Bandeira, TarifaVigente, TaxaFinanciamento
 
 from .models import ConfigEmpresa
-from .validacoes import formatar_percentual, formatar_reais, limpar_percentual, limpar_reais
+from .validacoes import (
+    ARQUIVO_IMAGEM, ARQUIVO_PDF, conferir_arquivo, formatar_cpf_cnpj, formatar_percentual, formatar_reais,
+    formatar_telefone, limpar_cpf_cnpj,
+    limpar_linhas, limpar_percentual, limpar_reais, limpar_telefone, limpar_texto,
+)
+
+# Limites de texto quando o modelo não tem max_length (P1, D41).
+TAMANHO_LINHA = 200
+TAMANHO_TEXTO = 3000
+
+
+def _validador_de_arquivo(tipo):
+    def validar(arquivo):
+        if arquivo and hasattr(arquivo, "size"):  # arquivo novo; o já gravado não é conferido de novo
+            try:
+                conferir_arquivo(arquivo.name, arquivo.size, tipo)
+            except ValueError as erro:
+                raise forms.ValidationError(str(erro))
+    return validar
+
+
+def higienizar(form, arquivos=None):
+    """Regra P1 (D41) num formulário: chamar no fim do __init__.
+
+    Todo campo de texto ganha limite de tamanho (o do modelo ou TAMANHO_LINHA / TAMANHO_TEXTO) e
+    todo campo de arquivo listado em `arquivos` ({campo: ARQUIVO_IMAGEM ou ARQUIVO_PDF}) é conferido
+    pela extensão e pelo tamanho.
+    """
+    for campo in form.fields.values():
+        if type(campo) is forms.CharField and not campo.max_length:
+            maximo = TAMANHO_TEXTO if isinstance(campo.widget, forms.Textarea) else TAMANHO_LINHA
+            campo.max_length = maximo
+            campo.validators.append(validators.MaxLengthValidator(maximo))
+            campo.widget.attrs["maxlength"] = str(maximo)
+    for nome, tipo in (arquivos or {}).items():
+        form.fields[nome].validators.append(_validador_de_arquivo(tipo))
+        form.fields[nome].widget.attrs["accept"] = ",".join(sorted(tipo[0]))
+
+
+def texto_limpo(valor, maximo=TAMANHO_LINHA):
+    """Versão para formulário de limpar_texto: ValueError vira erro do campo."""
+    try:
+        return limpar_texto(valor, maximo)
+    except ValueError as erro:
+        raise forms.ValidationError(str(erro))
+
+
+def linhas_limpas(valor, maximo=TAMANHO_TEXTO):
+    try:
+        return limpar_linhas(valor, maximo)
+    except ValueError as erro:
+        raise forms.ValidationError(str(erro))
 
 
 class CampoReais(forms.CharField):
@@ -38,7 +90,8 @@ class CampoReais(forms.CharField):
 class CampoPercentual(forms.CharField):
     """Texto "18,5" (em %) na tela, fração 0.185 no servidor."""
 
-    def __init__(self, *args, maximo=100.0, casas=2, **kwargs):
+    def __init__(self, *args, minimo=0.0, maximo=100.0, casas=2, **kwargs):
+        self.minimo = minimo
         self.maximo = maximo
         self.casas = casas
         super().__init__(*args, **kwargs)
@@ -56,7 +109,7 @@ class CampoPercentual(forms.CharField):
         if value in ("", None):
             return None
         try:
-            return limpar_percentual(value, maximo=self.maximo)
+            return limpar_percentual(value, minimo=self.minimo, maximo=self.maximo)
         except ValueError as erro:
             raise forms.ValidationError(str(erro))
 
@@ -80,6 +133,75 @@ class EmpresaForm(forms.ModelForm):
         widgets = {campo: forms.Textarea(attrs={"rows": 4}) for campo in (
             "texto_sobre", "beneficios_padrao", "escopo_padrao", "etapas_padrao",
         )} | {"aviso_estimativa": forms.Textarea(attrs={"rows": 2})}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        higienizar(self, arquivos={"logo": ARQUIVO_IMAGEM})
+        self.fields["cnpj"].widget.attrs.update({"data-mascara": "cpf_cnpj", "inputmode": "numeric"})
+        self.fields["telefone"].widget.attrs.update({"data-mascara": "telefone", "inputmode": "tel"})
+
+    def clean_cnpj(self):
+        try:
+            digitos = limpar_cpf_cnpj(self.cleaned_data["cnpj"])
+        except ValueError as erro:
+            raise forms.ValidationError(str(erro))
+        if len(digitos) != 14:
+            raise forms.ValidationError("Informe o CNPJ da empresa (14 números).")
+        return formatar_cpf_cnpj(digitos)  # gravado formatado: os PDFs mostram como está
+
+    def clean_telefone(self):
+        if not self.cleaned_data["telefone"]:
+            return ""
+        try:
+            return formatar_telefone(limpar_telefone(self.cleaned_data["telefone"]))
+        except ValueError as erro:
+            raise forms.ValidationError(str(erro))
+
+    def clean_razao_social(self):
+        return texto_limpo(self.cleaned_data["razao_social"])
+
+    def clean_nome_fantasia(self):
+        return texto_limpo(self.cleaned_data["nome_fantasia"])
+
+    def clean_endereco(self):
+        return texto_limpo(self.cleaned_data["endereco"], 255)
+
+    def clean_validade_padrao_dias(self):  # A22
+        dias = self.cleaned_data["validade_padrao_dias"]
+        if not 5 <= dias <= 60:
+            raise forms.ValidationError("A validade precisa ficar entre 5 e 60 dias.")
+        return dias
+
+    def clean_projetos_entregues(self):
+        return _no_maximo(self.cleaned_data["projetos_entregues"], 100000)
+
+    def clean_anos_atuacao(self):
+        return _no_maximo(self.cleaned_data["anos_atuacao"], 100)
+
+    def clean_texto_sobre(self):
+        return linhas_limpas(self.cleaned_data["texto_sobre"], 1500)
+
+    def clean_beneficios_padrao(self):
+        return linhas_limpas(self.cleaned_data["beneficios_padrao"])
+
+    def clean_escopo_padrao(self):
+        return linhas_limpas(self.cleaned_data["escopo_padrao"])
+
+    def clean_etapas_padrao(self):
+        etapas = linhas_limpas(self.cleaned_data["etapas_padrao"])
+        for linha in etapas.splitlines():
+            if linha and "|" not in linha:
+                raise forms.ValidationError(f'Etapa sem "|": "{linha}". Use "Título | descrição".')
+        return etapas
+
+    def clean_aviso_estimativa(self):
+        return linhas_limpas(self.cleaned_data["aviso_estimativa"], 500)
+
+
+def _no_maximo(valor, maximo):
+    if valor is not None and valor > maximo:
+        raise forms.ValidationError(f"Use um valor até {maximo}.")
+    return valor
 
 
 # Premissas técnicas: chave em premissas_padrao → rótulo. Percentuais guardados em fração.
@@ -143,7 +265,8 @@ class PremissasForm(forms.Form):
 
     # Travas da proposta (A06, A01, A02): acima disso o sistema pede confirmação ou avisa.
     conta_alta = CampoReais(label="Conta alta: pedir confirmação acima de (R$)")
-    consumo_alto = forms.IntegerField(label="Consumo alto: pedir confirmação acima de (kWh/mês)", min_value=1)
+    consumo_alto = forms.IntegerField(label="Consumo alto: pedir confirmação acima de (kWh/mês)", min_value=1,
+                                      max_value=100000)
     tolerancia_tarifa_fatura = CampoPercentual(label="R$/kWh da fatura: diferença aceita da tarifa (%)")
     tolerancia_kwp_cotacao = CampoPercentual(label="kWp da cotação: diferença aceita do sistema (%)", maximo=50)
     limite_microgeracao_kwp = forms.DecimalField(
@@ -163,7 +286,7 @@ class PremissasForm(forms.Form):
         for chave, rotulo in PREMISSAS_PERCENTUAIS:
             self.fields[chave] = CampoPercentual(label=rotulo)
         for chave, rotulo in ORIENTACOES:
-            self.fields[f"orientacao_{chave}"] = CampoPercentual(label=rotulo, maximo=100)
+            self.fields[f"orientacao_{chave}"] = CampoPercentual(label=rotulo, minimo=50, maximo=100)  # A22
 
     def clean(self):
         dados = super().clean()
@@ -212,7 +335,20 @@ class PerfilForm(forms.Form):
         return dados
 
 
-PerfisFormSet = forms.formset_factory(PerfilForm, extra=1)
+class BasePerfisFormSet(forms.BaseFormSet):
+    def clean(self):
+        """Pelo menos um perfil, sem nome repetido (A22): a proposta escolhe um deles."""
+        if any(self.errors):
+            return
+        nomes = [f.cleaned_data["nome"].strip().casefold() for f in self.forms
+                 if f.cleaned_data.get("nome", "").strip()]
+        if not nomes:
+            raise forms.ValidationError("Cadastre pelo menos um perfil de simultaneidade.")
+        if len(nomes) != len(set(nomes)):
+            raise forms.ValidationError("Há perfis com o mesmo nome.")
+
+
+PerfisFormSet = forms.formset_factory(PerfilForm, formset=BasePerfisFormSet, extra=1)
 
 
 class TarifaForm(forms.ModelForm):
@@ -220,7 +356,7 @@ class TarifaForm(forms.ModelForm):
 
     aliquota_tributos = CampoPercentual(label="Tributos (%)", maximo=60)
     fiob_kwh = forms.DecimalField(
-        label="Fio B (R$/kWh)", required=False, min_value=0, decimal_places=6, localize=True,
+        label="Fio B (R$/kWh)", required=False, min_value=0, max_value=2, decimal_places=6, localize=True,
         widget=forms.TextInput(attrs={"inputmode": "decimal"}),
     )
     fiob_conferido = forms.BooleanField(label="Fio B conferido nesta vigência", required=False)
@@ -241,14 +377,19 @@ class TarifaForm(forms.ModelForm):
         return tarifa
 
 
-BandeirasFormSet = forms.modelformset_factory(
-    Bandeira,
-    fields=["adicional_kwh", "vigencia"],
-    extra=0,
-    field_classes={"adicional_kwh": forms.DecimalField},
-    widgets={"adicional_kwh": forms.TextInput(attrs={"inputmode": "decimal"}), "vigencia": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d")},
-    localized_fields=["adicional_kwh"],
-)
+class BandeiraForm(forms.ModelForm):
+    adicional_kwh = forms.DecimalField(
+        min_value=0, max_value=1, decimal_places=5, localize=True,  # R$/kWh: a vermelha 2 fica perto de 0,08
+        widget=forms.TextInput(attrs={"inputmode": "decimal"}),
+    )
+
+    class Meta:
+        model = Bandeira
+        fields = ["adicional_kwh", "vigencia"]
+        widgets = {"vigencia": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d")}
+
+
+BandeirasFormSet = forms.modelformset_factory(Bandeira, form=BandeiraForm, extra=0)
 
 
 class TaxasForm(forms.Form):

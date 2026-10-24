@@ -1,5 +1,8 @@
+import re
+
 from django import forms
 
+from core.forms import higienizar, texto_limpo
 from core.models import Municipio
 from core.validacoes import limpar_cpf_cnpj, limpar_nome, limpar_telefone
 
@@ -41,6 +44,10 @@ class ClienteForm(forms.ModelForm):
         if self.instance.pk:
             self.initial["cpf_cnpj"] = self.instance.cpf_cnpj_formatado
             self.initial["telefone"] = self.instance.telefone_formatado
+        higienizar(self)
+
+    def clean_razao_social(self):
+        return texto_limpo(self.cleaned_data["razao_social"])
 
     def clean_nome(self):
         return _limpar(limpar_nome, self.cleaned_data["nome"])
@@ -66,3 +73,16 @@ class UnidadeConsumidoraForm(forms.ModelForm):
         model = UnidadeConsumidora
         fields = ["cliente", "numero_uc", "endereco", "municipio", "concessionaria", "classe", "ligacao"]
         labels = {"numero_uc": "Número da UC (na fatura)"}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        higienizar(self)
+
+    def clean_numero_uc(self):
+        numero = self.cleaned_data["numero_uc"].strip()
+        if re.search(r"[^\d./\-\s]", numero) or len(re.sub(r"\D", "", numero)) < 4:
+            raise forms.ValidationError("Copie o número da UC como está na conta: só números.")
+        return numero
+
+    def clean_endereco(self):
+        return texto_limpo(self.cleaned_data["endereco"], 255)
